@@ -1,18 +1,28 @@
 package com.marketsimulator.controller;
 
+import com.marketsimulator.domain.PostTradeRiskEvaluation;
 import com.marketsimulator.dto.*;
+import com.marketsimulator.repository.PostTradeRiskEvaluationRepository;
 import com.marketsimulator.repository.UserRepository;
+import com.marketsimulator.service.PortfolioRiskAnalyticsService;
+import com.marketsimulator.service.PortfolioService;
 import com.marketsimulator.service.PreTradeRiskService;
+import com.marketsimulator.service.RiskAlertService;
 import com.marketsimulator.service.RiskService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/risk")
@@ -23,10 +33,10 @@ public class RiskController {
 
     private final RiskService riskService;
     private final PreTradeRiskService preTradeRiskService;
-    private final com.marketsimulator.service.PortfolioRiskAnalyticsService portfolioRiskAnalyticsService;
-    private final com.marketsimulator.service.RiskAlertService riskAlertService;
-    private final com.marketsimulator.service.PortfolioService portfolioService;
-    private final com.marketsimulator.repository.PostTradeRiskEvaluationRepository postTradeRiskRepository;
+    private final PortfolioRiskAnalyticsService portfolioRiskAnalyticsService;
+    private final RiskAlertService riskAlertService;
+    private final PortfolioService portfolioService;
+    private final PostTradeRiskEvaluationRepository postTradeRiskRepository;
     private final UserRepository userRepository;
 
     @Operation(summary = "Get full institutional Portfolio Risk Analytics: VaR 95/99%, CVaR, Volatility, Drawdown, Beta, Risk Contribution, Correlation")
@@ -40,7 +50,7 @@ public class RiskController {
 
     @Operation(summary = "Get active risk alerts for user")
     @GetMapping("/alerts")
-    public ResponseEntity<java.util.List<RiskAlertDto>> getActiveRiskAlerts(
+    public ResponseEntity<List<RiskAlertDto>> getActiveRiskAlerts(
             @AuthenticationPrincipal UserDetails userDetails) {
         Long userId = resolveUserId(userDetails);
         return ResponseEntity.ok(riskAlertService.getActiveAlerts(userId));
@@ -57,13 +67,15 @@ public class RiskController {
 
     @Operation(summary = "Get recent post-trade risk evaluations and before/after impact audit")
     @GetMapping("/post-trade-evaluations")
-    public ResponseEntity<java.util.List<PostTradeRiskEvaluationDto>> getPostTradeEvaluations(
+    public ResponseEntity<List<PostTradeRiskEvaluationDto>> getPostTradeEvaluations(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam(required = false, defaultValue = "0") Long sessionId) {
         Long userId = resolveUserId(userDetails);
         var portfolio = portfolioService.ensurePortfolio(userId, sessionId);
-        return ResponseEntity.ok(postTradeRiskRepository.findByPortfolioIdOrderByCreatedAtDesc(
-                portfolio.getId(), org.springframework.data.domain.PageRequest.of(0, 20)).stream()
+        List<PostTradeRiskEvaluation> evaluations = postTradeRiskRepository.findByPortfolioIdOrderByCreatedAtDesc(
+                portfolio.getId(), PageRequest.of(0, 20));
+
+        List<PostTradeRiskEvaluationDto> dtos = evaluations.stream()
                 .map(e -> PostTradeRiskEvaluationDto.builder()
                         .id(e.getId())
                         .tradeId(e.getTradeId())
@@ -81,10 +93,12 @@ public class RiskController {
                         .deltaVar95(e.getDeltaVar95())
                         .concentrationHhiBefore(e.getConcentrationHhiBefore())
                         .concentrationHhiAfter(e.getConcentrationHhiAfter())
-                        .warnings(List.of())
+                        .warnings(Collections.emptyList())
                         .createdAt(e.getCreatedAt())
                         .build())
-                .collect(java.util.stream.Collectors.toList()));
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(dtos);
     }
 
     @Operation(summary = "Get risk metrics: VaR95, max drawdown, symbol exposure")
