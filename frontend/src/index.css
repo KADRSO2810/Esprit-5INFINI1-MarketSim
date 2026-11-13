@@ -1,0 +1,204 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-main: #070B14;
+  --bg-secondary: #0B1220;
+  --surface-primary: #101A2B;
+  --surface-elevated: #142035;
+  --surface-interactive: #192841;
+  --border-subtle: rgba(148, 163, 184, 0.12);
+  --border-strong: rgba(148, 163, 184, 0.24);
+  --accent-primary: #38BDF8;
+  --accent-blue: #3B82F6;
+  --accent-violet: #8B5CF6;
+  --bullish: #22C55E;
+  --bearish: #EF4444;
+  --warning: #F59E0B;
+}
+
+@layer base {
+  html {
+    background-color: var(--bg-main);
+    color: #F1F5F9;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--bg-main);
+    background-image:
+      radial-gradient(ellipse 85% 48% at 50% -18%, rgba(56, 189, 248, 0.075), transparent 70%),
+      radial-gradient(ellipse 55% 40% at 88% 4%, rgba(139, 92, 246, 0.06), transparent 65%),
+      radial-gradient(ellipse 45% 35% at 12% 95%, rgba(59, 130, 246, 0.04), transparent 70%);
+    background-attachment: fixed;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  button,
+  a,
+  [role="button"] {
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+}
+
+@layer utilities {
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .workstation-panel {
+    background: linear-gradient(180deg, rgba(16, 26, 43, 0.94) 0%, rgba(11, 18, 32, 0.97) 100%);
+    border: 1px solid var(--border-subtle);
+    box-shadow: 0 12px 32px -14px rgba(0, 0, 0, 0.65), inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .workstation-panel-elevated {
+    background: linear-gradient(180deg, rgba(20, 32, 53, 0.97) 0%, rgba(13, 21, 36, 0.99) 100%);
+    border: 1px solid var(--border-strong);
+    box-shadow: 0 20px 46px -14px rgba(0, 0, 0, 0.78), inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .card-interactive {
+    transition: border-color 180ms ease,
+                box-shadow 180ms ease,
+                background-color 180ms ease;
+  }
+
+  .card-interactive:hover {
+    border-color: rgba(148, 163, 184, 0.3);
+    box-shadow: 0 14px 34px -12px rgba(0, 0, 0, 0.72), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .ai-surface {
+    background:
+      radial-gradient(circle at 100% 0%, rgba(139, 92, 246, 0.09), transparent 55%),
+      radial-gradient(circle at 0% 100%, rgba(56, 189, 248, 0.06), transparent 50%),
+      linear-gradient(180deg, rgba(16, 26, 43, 0.96) 0%, rgba(11, 18, 32, 0.98) 100%);
+    border: 1px solid rgba(139, 92, 246, 0.24);
+    box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.68), inset 0 1px 0 0 rgba(167, 139, 250, 0.09);
+  }
+
+  .glass-header {
+    background: rgba(7, 11, 20, 0.82);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .shimmer-bg {
+    background: linear-gradient(
+      90deg,
+      rgba(20, 32, 53, 0.55) 0%,
+      rgba(36, 56, 90, 0.85) 50%,
+      rgba(20, 32, 53, 0.55) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.75s linear infinite;
+  }
+
+  /* Marquee pause on hover / focus / press */
+  .ticker-wrap:hover .ticker-track,
+  .ticker-wrap:focus-within .ticker-track,
+  .ticker-wrap:active .ticker-track {
+    animation-play-state: paused;
+  }
+
+  /* Tactile Institutional Action Buttons */
+  .btn-primary-cyan {
+    background: linear-gradient(180deg, #38BDF8 0%, #0EA5E9 100%);
+    color: #070B14;
+    box-shadow: 0 6px 20px -6px rgba(56, 189, 248, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .btn-primary-cyan:hover:not(:disabled) {
+    background: linear-gradient(180deg, #7DD3FC 0%, #38BDF8 100%);
+    box-shadow: 0 10px 26px -6px rgba(56, 189, 248, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  }
+  .btn-primary-cyan:active:not(:disabled) {
+    filter: brightness(0.96);
+  }
+
+  .btn-bullish {
+    background: linear-gradient(180deg, #22C55E 0%, #16A34A 100%);
+    color: #041209;
+    box-shadow: 0 6px 18px -6px rgba(34, 197, 94, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .btn-bullish:hover:not(:disabled) {
+    background: linear-gradient(180deg, #4ADE80 0%, #22C55E 100%);
+    box-shadow: 0 10px 24px -6px rgba(34, 197, 94, 0.55);
+  }
+  .btn-bullish:active:not(:disabled) {
+    filter: brightness(0.96);
+  }
+
+  .btn-bearish {
+    background: linear-gradient(180deg, #EF4444 0%, #DC2626 100%);
+    color: #FFFFFF;
+    box-shadow: 0 6px 18px -6px rgba(239, 68, 68, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .btn-bearish:hover:not(:disabled) {
+    background: linear-gradient(180deg, #F87171 0%, #EF4444 100%);
+    box-shadow: 0 10px 24px -6px rgba(239, 68, 68, 0.55);
+  }
+  .btn-bearish:active:not(:disabled) {
+    filter: brightness(0.96);
+  }
+
+  .btn-ai {
+    background: linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%);
+    color: #FFFFFF;
+    box-shadow: 0 6px 20px -6px rgba(139, 92, 246, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .btn-ai:hover:not(:disabled) {
+    background: linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%);
+    box-shadow: 0 10px 26px -6px rgba(139, 92, 246, 0.65);
+  }
+  .btn-ai:active:not(:disabled) {
+    filter: brightness(0.96);
+  }
+}
+
+/* Custom sleek dark scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(7, 11, 20, 0.6);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(56, 189, 248, 0.4);
+}
+
+/* Hide horizontal scrollbar where explicitly desired */
+.overflow-x-auto::-webkit-scrollbar,
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Accessibility: respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

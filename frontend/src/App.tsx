@@ -1,0 +1,84 @@
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { MotionConfig } from 'framer-motion';
+import { AuthProvider } from './context/AuthContext';
+import { GlobalTransitionProvider, ToastProvider } from './components/ui';
+import { AuthTransitionProvider } from './components/auth';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { Login } from './pages/Login';
+import { Register } from './pages/Register';
+import { Dashboard } from './pages/Dashboard';
+import { Backtesting } from './pages/Backtesting';
+import { StressTesting } from './pages/StressTesting';
+import { NewsSentimentPage } from './pages/NewsSentimentPage';
+import { StrategyLab } from './pages/StrategyLab';
+
+export const App: React.FC = () => {
+  return (
+    <MotionConfig reducedMotion="user">
+      <BrowserRouter>
+        <ToastProvider>
+        <AuthProvider>
+        <GlobalTransitionProvider>
+        <AuthTransitionProvider>
+        <Routes>
+          {/* Routes publiques */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+
+          {/* Routes protégées */}
+          <Route
+            path="/app"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/app/news"
+            element={
+              <ProtectedRoute>
+                <NewsSentimentPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/app/strategies"
+            element={
+              <ProtectedRoute>
+                <StrategyLab />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/app/backtesting"
+            element={
+              <ProtectedRoute>
+                <Backtesting />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/app/stress-testing"
+            element={
+              <ProtectedRoute>
+                <StressTesting />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Redirection racine vers /app */}
+          <Route path="/" element={<Navigate to="/app" replace />} />
+          <Route path="*" element={<Navigate to="/app" replace />} />
+        </Routes>
+        </AuthTransitionProvider>
+        </GlobalTransitionProvider>
+      </AuthProvider>
+      </ToastProvider>
+    </BrowserRouter>
+    </MotionConfig>
+  );
+};
+
+export default App;
