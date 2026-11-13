@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { PortfolioSummary, PositionItem, TradeItem } from '../api/trading';
 import { PortfolioSkeleton, EmptyState, AnimatedTabs, AssetLogo } from './ui';
 import { SlTpConfigModal } from './SlTpConfigModal';
+import { RiskLimitsModal } from './risk/RiskLimitsModal';
 import {
   TrendingUp,
   TrendingDown,
@@ -53,6 +54,7 @@ export const PortfolioPanel: React.FC<PortfolioPanelProps> = ({
   const [expanded, setExpanded] = useState(true);
   const [selectedSlTpPos, setSelectedSlTpPos] = useState<PositionItem | null>(null);
   const [isSlTpOpen, setIsSlTpOpen] = useState<boolean>(false);
+  const [isLimitsOpen, setIsLimitsOpen] = useState<boolean>(false);
 
   const openSlTp = (pos: PositionItem) => {
     setSelectedSlTpPos(pos);
@@ -87,11 +89,24 @@ export const PortfolioPanel: React.FC<PortfolioPanelProps> = ({
             </span>
           )}
         </div>
-        {expanded ? (
-          <ChevronUp className="w-4 h-4 text-slate-400" />
-        ) : (
-          <ChevronDown className="w-4 h-4 text-slate-400" />
-        )}
+        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={() => setIsLimitsOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#142035] hover:bg-[#192841] border border-subtle text-[11px] text-sky-400 font-medium transition"
+            title="Gérer les limites de risque pré-trade"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Règles de Risque</span>
+          </button>
+          <div onClick={() => setExpanded((e) => !e)} className="p-1 cursor-pointer">
+            {expanded ? (
+              <ChevronUp className="w-4 h-4 text-slate-400" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-slate-400" />
+            )}
+          </div>
+        </div>
       </div>
 
       {expanded && (
@@ -380,6 +395,13 @@ export const PortfolioPanel: React.FC<PortfolioPanelProps> = ({
         currentPrice={selectedSlTpPos?.lastPrice ?? null}
         onClose={() => setIsSlTpOpen(false)}
         onUpdated={handleSlTpUpdated}
+      />
+
+      {/* Modal de configuration des Limites de Risque Pré-Trade */}
+      <RiskLimitsModal
+        isOpen={isLimitsOpen}
+        onClose={() => setIsLimitsOpen(false)}
+        onLimitsUpdated={handleSlTpUpdated}
       />
     </div>
   );

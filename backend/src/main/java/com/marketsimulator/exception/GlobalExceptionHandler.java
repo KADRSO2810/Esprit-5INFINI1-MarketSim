@@ -127,6 +127,23 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
+    @ExceptionHandler(RiskLimitBreachedException.class)
+    public ResponseEntity<ErrorResponse> handleRiskLimitBreachedException(
+            RiskLimitBreachedException ex,
+            HttpServletRequest request) {
+        String detailMessage = (ex.getRejections() != null && !ex.getRejections().isEmpty())
+                ? String.join(" | ", ex.getRejections())
+                : ex.getMessage();
+        ErrorResponse response = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("Risk Limit Breached")
+                .message(detailMessage)
+                .path(request.getRequestURI())
+                .build();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
     @ExceptionHandler(InsufficientPositionException.class)
     public ResponseEntity<ErrorResponse> handleInsufficientPositionException(
             InsufficientPositionException ex,

@@ -141,3 +141,99 @@ export const getRiskMetrics = async (): Promise<RiskMetrics> => {
   const res = await api.get<RiskMetrics>('/api/risk/metrics');
   return res.data;
 };
+
+// ── Pre-Trade Risk Management System ────────────────────────────────────────
+
+export interface RiskLimits {
+  maxRiskPerTradePct: number;
+  maxAssetExposurePct: number;
+  maxSectorExposurePct: number;
+  maxPortfolioExposurePct: number;
+}
+
+export interface PreTradeRiskRequest {
+  symbol: string;
+  side: 'BUY' | 'SELL';
+  quantity: number;
+  price?: number | null;
+  stopLoss?: number | null;
+  takeProfit?: number | null;
+  sessionId?: number;
+}
+
+export interface PreTradeRiskResponse {
+  decision: 'APPROVED' | 'WARNING' | 'REJECTED';
+  orderNotional: number;
+  currentCash: number;
+  cashAfter: number;
+  portfolioEquity: number;
+  currentPortfolioExposure: number;
+  currentPortfolioExposurePct: number;
+  newPortfolioExposure: number;
+  newPortfolioExposurePct: number;
+  currentAssetExposure: number;
+  currentAssetExposurePct: number;
+  newAssetExposure: number;
+  newAssetExposurePct: number;
+  sector: string;
+  currentSectorExposurePct: number;
+  newSectorExposurePct: number;
+  potentialLoss?: number | null;
+  riskPerTradePct?: number | null;
+  potentialProfit?: number | null;
+  riskRewardRatio?: number | null;
+  positionSizePct: number;
+  remainingAvailableExposure: number;
+  suggestedMaxQuantity: number;
+  limits: RiskLimits;
+  reasons: string[];
+  warnings: string[];
+  rejections: string[];
+}
+
+export interface PositionSizingRequest {
+  symbol: string;
+  riskPercentage?: number | null;
+  entryPrice?: number | null;
+  stopLoss: number;
+  sessionId?: number;
+}
+
+export interface PositionSizingResponse {
+  symbol: string;
+  portfolioEquity: number;
+  riskPercentage: number;
+  riskBudget: number;
+  entryPrice: number;
+  stopLoss: number;
+  riskPerUnit: number;
+  maxQuantityByRisk: number;
+  maxQuantityByCash: number;
+  maxQuantityByAssetExposure: number;
+  suggestedQuantity: number;
+  formulaExplanation: string;
+}
+
+export const assessPreTradeRisk = async (
+  req: PreTradeRiskRequest
+): Promise<PreTradeRiskResponse> => {
+  const res = await api.post<PreTradeRiskResponse>('/api/risk/pre-trade-assessment', req);
+  return res.data;
+};
+
+export const calculatePositionSize = async (
+  req: PositionSizingRequest
+): Promise<PositionSizingResponse> => {
+  const res = await api.post<PositionSizingResponse>('/api/risk/position-sizing', req);
+  return res.data;
+};
+
+export const getRiskLimits = async (): Promise<RiskLimits> => {
+  const res = await api.get<RiskLimits>('/api/risk/limits');
+  return res.data;
+};
+
+export const updateRiskLimits = async (limits: RiskLimits): Promise<RiskLimits> => {
+  const res = await api.put<RiskLimits>('/api/risk/limits', limits);
+  return res.data;
+};

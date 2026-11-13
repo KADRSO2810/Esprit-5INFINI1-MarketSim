@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { placeMarketOrder, OrderFill } from '../api/trading';
+import { placeMarketOrder, OrderFill, assessPreTradeRisk, PreTradeRiskResponse } from '../api/trading';
 import { useToast, AnimatedModal, OrbitalSpinner, AssetLogo } from './ui';
+import { PreTradeRiskPanel } from './risk/PreTradeRiskPanel';
 import {
   X,
   TrendingUp,
@@ -39,6 +40,8 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [fill, setFill] = useState<OrderFill | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [riskAssessment, setRiskAssessment] = useState<PreTradeRiskResponse | null>(null);
+  const [evaluatingRisk, setEvaluatingRisk] = useState(false);
   const toast = useToast();
 
   useEffect(() => {
@@ -49,12 +52,52 @@ export const OrderModal: React.FC<OrderModalProps> = ({
       setStopLoss('');
       setTakeProfit('');
       setShowSlTp(false);
+      setRiskAssessment(null);
     }
   }, [isOpen, symbol, initialSide]);
 
   const numQty = Number(qty);
   const numSL = stopLoss ? parseFloat(stopLoss) : null;
   const numTP = takeProfit ? parseFloat(takeProfit) : null;
+
+  useEffect(() => {
+    if (!isOpen || !lastPrice || !numQty || numQty <= 0) {
+      setRiskAssessment(null);
+      return;
+    }
+
+    let isMounted = true;
+    setEvaluatingRisk(true);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await assessPreTradeRisk({
+          symbol,
+          side,
+          quantity: numQty,
+          price: lastPrice,
+          stopLoss: side === 'BUY' ? numSL : null,
+          takeProfit: side === 'BUY' ? numTP : null,
+          sessionId,
+        });
+        if (isMounted) {
+          setRiskAssessment(res);
+        }
+      } catch {
+        if (isMounted) {
+          setRiskAssessment(null);
+        }
+      } finally {
+        if (isMounted) {
+          setEvaluatingRisk(false);
+        }
+      }
+    }, 200);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [isOpen, symbol, side, qty, stopLoss, takeProfit, lastPrice, sessionId]);
 
   // Calculs de risque
   const riskAmount =
@@ -127,6 +170,14 @@ export const OrderModal: React.FC<OrderModalProps> = ({
         setError('Le Stop-Loss doit être strictement inférieur au Take-Profit.');
         return;
       }
+    }
+
+    if (riskAssessment?.decision === 'REJECTED') {
+      const msg = riskAssessment.rejections && riskAssessment.rejections.length > 0
+        ? riskAssessment.rejections.join(' | ')
+        : "Ordre bloqué par les règles de risque pré-trade.";
+      setError(msg);
+      return;
     }
 
     setLoading(true);
@@ -489,6 +540,16 @@ export const OrderModal: React.FC<OrderModalProps> = ({
               </div>
             )}
 
+            {/* Pre-Trade Risk Engine Panel */}
+            <PreTradeRiskPanel
+              assessment={riskAssessment}
+              loading={evaluatingRisk}
+              entryPrice={lastPrice}
+              stopLoss={numSL}
+              symbol={symbol}
+              onApplyQuantity={(newQ) => setQty(newQ)}
+            />
+
             {error && (
               <div className="flex items-start gap-2 text-rose-300 text-xs bg-rose-500/10 border border-rose-500/25 rounded-xl px-3 py-2.5">
                 <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
@@ -498,14 +559,20 @@ export const OrderModal: React.FC<OrderModalProps> = ({
 
             <button
               type="submit"
-              disabled={loading || !lastPrice}
+              disabled={loading || !lastPrice || riskAssessment?.decision === 'REJECTED'}
               className={`w-full py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.985] flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed ${
-                side === 'BUY' ? 'btn-bullish text-slate-950' : 'btn-bearish text-white'
+                riskAssessment?.decision === 'REJECTED'
+                  ? 'bg-rose-950/60 border border-rose-500/40 text-rose-300 cursor-not-allowed'
+                  : side === 'BUY'
+                  ? 'btn-bullish text-slate-950'
+                  : 'btn-bearish text-white'
               }`}
             >
               {loading && <OrbitalSpinner size="xs" tone={side === 'BUY' ? 'slate' : 'cyan'} />}
               {loading
                 ? 'Exécution en cours...'
+                : riskAssessment?.decision === 'REJECTED'
+                ? 'Transaction Bloquée par le Risque'
                 : `Confirmer ${side === 'BUY' ? "l'achat" : 'la vente'}`}
             </button>
           </form>

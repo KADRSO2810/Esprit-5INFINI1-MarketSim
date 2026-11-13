@@ -40,6 +40,7 @@ class OrderServiceTest {
     @Mock private TradeRepository tradeRepository;
     @Mock private MarketDataIngestionService ingestionService;
     @Mock private PortfolioService portfolioService;
+    @Mock private PreTradeRiskService preTradeRiskService;
 
     @InjectMocks
     private OrderService orderService;
@@ -231,5 +232,30 @@ class OrderServiceTest {
         assertThat(fill.getTradeReason()).isEqualTo("STOP_LOSS");
         assertThat(fill.getRealizedPnl()).isEqualByComparingTo(new BigDecimal("-105.000000")); // (139.50 - 150) * 10
         verify(positionRepository).delete(pos);
+    }
+
+    @Test
+    @DisplayName("placeMarketOrder should call preTradeRiskService and reject if risk limit breached")
+    void placeMarketOrder_riskLimitBreached_throwsException() {
+        when(ingestionService.getLatestQuote("AAPL")).thenReturn(MarketQuoteDto.builder()
+                .symbol("AAPL")
+                .price(new BigDecimal("150.00"))
+                .ts(Instant.now())
+                .build());
+
+        MarketOrderRequest request = MarketOrderRequest.builder()
+                .symbol("AAPL")
+                .side("BUY")
+                .quantity(new BigDecimal("10"))
+                .build();
+
+        doThrow(new com.marketsimulator.exception.RiskLimitBreachedException("Dépassement de la limite"))
+                .when(preTradeRiskService).validateOrderOrThrow(eq(1L), eq(request), eq(0L), any());
+
+        assertThatThrownBy(() -> orderService.placeMarketOrder(1L, request))
+                .isInstanceOf(com.marketsimulator.exception.RiskLimitBreachedException.class)
+                .hasMessageContaining("Dépassement de la limite");
+
+        verify(tradeRepository, never()).save(any());
     }
 }

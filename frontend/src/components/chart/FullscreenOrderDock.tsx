@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { placeMarketOrder, PositionItem } from '../../api/trading';
+import { placeMarketOrder, PositionItem, assessPreTradeRisk, PreTradeRiskResponse } from '../../api/trading';
 import { LiveQuote } from '../../hooks/useMarketWebSocket';
 import { OrbitalSpinner, useToast, AssetLogo } from '../ui';
+import { PreTradeRiskPanel } from '../risk/PreTradeRiskPanel';
 import {
   TrendingUp,
   TrendingDown,
@@ -50,6 +51,8 @@ export const FullscreenOrderDock: React.FC<FullscreenOrderDockProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastFillText, setLastFillText] = useState<string | null>(null);
+  const [riskAssessment, setRiskAssessment] = useState<PreTradeRiskResponse | null>(null);
+  const [evaluatingRisk, setEvaluatingRisk] = useState(false);
 
   useEffect(() => {
     setError(null);
@@ -57,6 +60,7 @@ export const FullscreenOrderDock: React.FC<FullscreenOrderDockProps> = ({
     setStopLoss('');
     setTakeProfit('');
     setShowSlTp(false);
+    setRiskAssessment(null);
     setQty(isCryptoSymbol(symbol) ? '0.1' : '1');
   }, [symbol]);
 
@@ -66,6 +70,44 @@ export const FullscreenOrderDock: React.FC<FullscreenOrderDockProps> = ({
 
   const numSL = stopLoss ? parseFloat(stopLoss) : null;
   const numTP = takeProfit ? parseFloat(takeProfit) : null;
+
+  useEffect(() => {
+    if (!lastPrice || !isValidQty || numericQty <= 0) {
+      setRiskAssessment(null);
+      return;
+    }
+
+    let isMounted = true;
+    setEvaluatingRisk(true);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await assessPreTradeRisk({
+          symbol,
+          side,
+          quantity: numericQty,
+          price: lastPrice,
+          stopLoss: side === 'BUY' ? numSL : null,
+          takeProfit: side === 'BUY' ? numTP : null,
+        });
+        if (isMounted) {
+          setRiskAssessment(res);
+        }
+      } catch {
+        if (isMounted) {
+          setRiskAssessment(null);
+        }
+      } finally {
+        if (isMounted) {
+          setEvaluatingRisk(false);
+        }
+      }
+    }, 200);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [symbol, side, qty, stopLoss, takeProfit, lastPrice]);
 
   const riskAmount =
     lastPrice != null && numSL != null && numericQty > 0
@@ -138,6 +180,14 @@ export const FullscreenOrderDock: React.FC<FullscreenOrderDockProps> = ({
         setError('Le Stop-Loss doit être inférieur au Take-Profit.');
         return;
       }
+    }
+
+    if (riskAssessment?.decision === 'REJECTED') {
+      const msg = riskAssessment.rejections && riskAssessment.rejections.length > 0
+        ? riskAssessment.rejections.join(' | ')
+        : "Ordre bloqué par les règles de risque pré-trade.";
+      setError(msg);
+      return;
     }
 
     setSubmitting(true);
@@ -523,6 +573,17 @@ export const FullscreenOrderDock: React.FC<FullscreenOrderDockProps> = ({
           </div>
         )}
 
+        {/* Pre-Trade Risk Engine Panel */}
+        <PreTradeRiskPanel
+          compact
+          assessment={riskAssessment}
+          loading={evaluatingRisk}
+          entryPrice={lastPrice}
+          stopLoss={numSL}
+          symbol={symbol}
+          onApplyQuantity={(newQ) => setQty(newQ)}
+        />
+
         {error && (
           <div className="flex items-start gap-2 rounded-lg bg-rose-500/10 border border-rose-500/30 p-2.5 text-[11px] text-rose-300">
             <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
@@ -539,9 +600,11 @@ export const FullscreenOrderDock: React.FC<FullscreenOrderDockProps> = ({
 
         <button
           type="submit"
-          disabled={submitting || !lastPrice}
+          disabled={submitting || !lastPrice || riskAssessment?.decision === 'REJECTED'}
           className={`w-full py-2.5 rounded-lg text-xs font-bold uppercase tracking-wide flex items-center justify-center gap-2 transition-all disabled:opacity-50 ${
-            side === 'BUY'
+            riskAssessment?.decision === 'REJECTED'
+              ? 'bg-rose-950/60 border border-rose-500/40 text-rose-300 cursor-not-allowed'
+              : side === 'BUY'
               ? 'bg-emerald-500 hover:bg-emerald-400 text-[#070B14] shadow-[0_0_20px_rgba(16,185,129,0.25)]'
               : 'bg-rose-500 hover:bg-rose-400 text-white shadow-[0_0_20px_rgba(244,63,94,0.25)]'
           }`}
@@ -551,6 +614,8 @@ export const FullscreenOrderDock: React.FC<FullscreenOrderDockProps> = ({
               <OrbitalSpinner size="xs" />
               Exécution...
             </>
+          ) : riskAssessment?.decision === 'REJECTED' ? (
+            'Bloqué par le Risque'
           ) : (
             `${side === 'BUY' ? 'Acheter' : 'Vendre'} ${symbol}`
           )}

@@ -32,6 +32,7 @@ public class OrderService {
     private final TradeRepository tradeRepository;
     private final MarketDataIngestionService ingestionService;
     private final PortfolioService portfolioService;
+    @Lazy private final PreTradeRiskService preTradeRiskService;
 
     @Value("${app.trading.max-quote-age-sec:30}")
     private long maxQuoteAgeSec;
@@ -57,6 +58,11 @@ public class OrderService {
         portfolioService.ensurePortfolio(userId, sId);
         Portfolio portfolio = (sId == 0L ? portfolioRepository.findByUserIdWithLock(userId) : portfolioRepository.findByUserIdAndSessionIdWithLock(userId, sId))
                 .orElseThrow(() -> new RuntimeException("Portfolio not found for user: " + userId));
+
+        // 3. Validation autoritaire du risque pré-trade (Pre-Trade Risk Engine)
+        if (preTradeRiskService != null) {
+            preTradeRiskService.validateOrderOrThrow(userId, request, sId, price);
+        }
 
         BigDecimal fee = BigDecimal.ZERO;  // no fee in this step
         BigDecimal realizedPnl = null;
