@@ -81,35 +81,35 @@ export const RiskLimitsModal: React.FC<RiskLimitsModalProps> = ({
 
   return (
     <AnimatedModal isOpen={isOpen} onClose={onClose} maxWidthClass="max-w-md">
-      <div>
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-subtle">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
-              <Shield className="w-4 h-4 text-sky-400" />
-            </div>
-            <div>
-              <span className="text-[10px] font-mono uppercase tracking-wider text-sky-400">
-                Institutional Risk Policy
-              </span>
-              <h2 className="font-bold text-white text-sm">Paramètres des Limites de Risque</h2>
-            </div>
+      {/* Header */}
+      <div className="shrink-0 flex items-center justify-between px-5 py-3.5 border-b border-subtle bg-[#0B1220]">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
+            <Shield className="w-4 h-4 text-sky-400" />
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#192841] transition"
-          >
-            ✕
-          </button>
+          <div>
+            <span className="text-[10px] font-mono uppercase tracking-wider text-sky-400">
+              Institutional Risk Policy
+            </span>
+            <h2 className="font-bold text-white text-sm">Paramètres des Limites de Risque</h2>
+          </div>
         </div>
+        <button
+          onClick={onClose}
+          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#192841] transition"
+        >
+          ✕
+        </button>
+      </div>
 
-        {loading ? (
-          <div className="p-8 flex flex-col items-center justify-center gap-2">
-            <OrbitalSpinner size="md" tone="cyan" />
-            <span className="text-xs font-mono text-slate-400">Chargement de la politique de risque...</span>
-          </div>
-        ) : (
-          <form onSubmit={handleSave} className="p-5 space-y-4">
+      {loading ? (
+        <div className="p-8 flex flex-col items-center justify-center gap-2 flex-1 min-h-0">
+          <OrbitalSpinner size="md" tone="cyan" />
+          <span className="text-xs font-mono text-slate-400">Chargement de la politique de risque...</span>
+        </div>
+      ) : (
+        <form onSubmit={handleSave} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4">
             {error && (
               <div className="flex items-start gap-2 text-rose-300 text-xs bg-rose-500/10 border border-rose-500/25 rounded-xl px-3 py-2.5">
                 <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
@@ -240,33 +240,33 @@ export const RiskLimitsModal: React.FC<RiskLimitsModalProps> = ({
                 />
               </div>
             </div>
+          </div>
 
-            {/* Actions */}
-            <div className="flex items-center gap-2 pt-2">
-              <button
-                type="button"
-                onClick={handleResetDefaults}
-                className="px-3 py-2.5 rounded-xl border border-subtle hover:bg-[#142035] text-slate-300 text-xs font-semibold transition flex items-center gap-1.5"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Rétablir défaut</span>
-              </button>
-              <button
-                type="submit"
-                disabled={saving}
-                className="flex-1 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs font-bold transition flex items-center justify-center gap-2 shadow-glow-bull disabled:opacity-40"
-              >
-                {saving ? (
-                  <OrbitalSpinner size="xs" tone="slate" />
-                ) : (
-                  <Check className="w-3.5 h-3.5" />
-                )}
-                <span>{saving ? 'Enregistrement...' : 'Appliquer la politique'}</span>
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
+          {/* Actions */}
+          <div className="shrink-0 flex items-center gap-2 px-5 py-3.5 border-t border-subtle bg-[#070B14]">
+            <button
+              type="button"
+              onClick={handleResetDefaults}
+              className="px-3 py-2.5 rounded-xl border border-subtle hover:bg-[#142035] text-slate-300 text-xs font-semibold transition flex items-center gap-1.5"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Rétablir défaut</span>
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs font-bold transition flex items-center justify-center gap-2 shadow-glow-bull disabled:opacity-40"
+            >
+              {saving ? (
+                <OrbitalSpinner size="xs" tone="slate" />
+              ) : (
+                <Check className="w-3.5 h-3.5" />
+              )}
+              <span>{saving ? 'Enregistrement...' : 'Appliquer la politique'}</span>
+            </button>
+          </div>
+        </form>
+      )}
     </AnimatedModal>
   );
 };

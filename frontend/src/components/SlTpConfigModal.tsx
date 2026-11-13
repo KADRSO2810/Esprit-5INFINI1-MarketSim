@@ -150,51 +150,49 @@ export const SlTpConfigModal: React.FC<SlTpConfigModalProps> = ({
 
   return (
     <AnimatedModal isOpen={isOpen} onClose={onClose} maxWidthClass="max-w-md">
-      <div className="p-5 space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-subtle">
-          <div className="flex items-center gap-2.5">
-            <AssetLogo symbol={position.symbol} size="md" />
+      {/* Header */}
+      <div className="shrink-0 flex items-center justify-between px-5 py-3.5 border-b border-subtle bg-[#0B1220]">
+        <div className="flex items-center gap-2.5">
+          <AssetLogo symbol={position.symbol} size="md" />
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-sky-400">
+                Risk Management
+              </span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/10 border border-sky-500/20 text-sky-300 font-mono">
+                LONG
+              </span>
+            </div>
+            <h2 className="font-bold text-white text-base font-mono">
+              {position.symbol} — SL & TP
+            </h2>
+          </div>
+        </div>
+        <button
+          onClick={onClose}
+          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#142035] transition"
+        >
+          ✕
+        </button>
+      </div>
+
+      <form onSubmit={handleSave} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4">
+          {/* Position Context Card */}
+          <div className="grid grid-cols-3 gap-2 p-2.5 rounded-lg bg-[#070B14]/60 border border-subtle text-xs font-mono">
             <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-sky-400">
-                  Risk Management
-                </span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/10 border border-sky-500/20 text-sky-300 font-mono">
-                  LONG
-                </span>
-              </div>
-              <h2 className="font-bold text-white text-base font-mono">
-                {position.symbol} — SL & TP
-              </h2>
+              <div className="text-[10px] text-slate-400 uppercase">Quantité</div>
+              <div className="text-white font-semibold">{Number(quantity).toFixed(4)}</div>
+            </div>
+            <div>
+              <div className="text-[10px] text-slate-400 uppercase">PRU Moyen</div>
+              <div className="text-slate-200 font-semibold">${Number(avgPrice).toFixed(2)}</div>
+            </div>
+            <div>
+              <div className="text-[10px] text-sky-400 uppercase">Cours Live</div>
+              <div className="text-white font-bold">${Number(marketPrice).toFixed(2)}</div>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#142035] transition"
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* Position Context Card */}
-        <div className="grid grid-cols-3 gap-2 p-2.5 rounded-lg bg-[#070B14]/60 border border-subtle text-xs font-mono">
-          <div>
-            <div className="text-[10px] text-slate-400 uppercase">Quantité</div>
-            <div className="text-white font-semibold">{Number(quantity).toFixed(4)}</div>
-          </div>
-          <div>
-            <div className="text-[10px] text-slate-400 uppercase">PRU Moyen</div>
-            <div className="text-slate-200 font-semibold">${Number(avgPrice).toFixed(2)}</div>
-          </div>
-          <div>
-            <div className="text-[10px] text-sky-400 uppercase">Cours Live</div>
-            <div className="text-white font-bold">${Number(marketPrice).toFixed(2)}</div>
-          </div>
-        </div>
-
-        {/* Form Inputs */}
-        <form onSubmit={handleSave} className="space-y-4">
           {/* Stop-Loss Section */}
           <div className="space-y-1.5 p-3 rounded-lg bg-rose-500/5 border border-rose-500/20">
             <div className="flex items-center justify-between">
@@ -327,47 +325,47 @@ export const SlTpConfigModal: React.FC<SlTpConfigModalProps> = ({
               <span>{error}</span>
             </div>
           )}
+        </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center gap-2 pt-2">
-            {hasExistingLevels && (
-              <button
-                type="button"
-                onClick={handleRemove}
-                disabled={loading}
-                className="px-3 py-2 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition text-xs font-semibold flex items-center gap-1.5"
-                title="Supprimer la protection"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Supprimer</span>
-              </button>
-            )}
-
+        {/* Sticky Action Buttons Footer */}
+        <div className="shrink-0 flex items-center gap-2 px-5 py-3.5 border-t border-subtle bg-[#070B14]">
+          {hasExistingLevels && (
             <button
               type="button"
-              onClick={onClose}
-              className="flex-1 py-2 rounded-lg bg-[#142035] hover:bg-[#1B2B47] text-slate-300 transition text-xs font-semibold"
-            >
-              Annuler
-            </button>
-
-            <button
-              type="submit"
+              onClick={handleRemove}
               disabled={loading}
-              className="flex-1 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-white font-semibold transition text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-sky-500/20"
+              className="px-3 py-2 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition text-xs font-semibold flex items-center gap-1.5"
+              title="Supprimer la protection"
             >
-              {loading ? (
-                <OrbitalSpinner size="sm" />
-              ) : (
-                <>
-                  <Check className="w-4 h-4" />
-                  Enregistrer
-                </>
-              )}
+              <Trash2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Supprimer</span>
             </button>
-          </div>
-        </form>
-      </div>
+          )}
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 py-2 rounded-lg bg-[#142035] hover:bg-[#1B2B47] text-slate-300 transition text-xs font-semibold"
+          >
+            Annuler
+          </button>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex-1 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-white font-semibold transition text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-sky-500/20"
+          >
+            {loading ? (
+              <OrbitalSpinner size="sm" />
+            ) : (
+              <>
+                <Check className="w-4 h-4" />
+                Enregistrer
+              </>
+            )}
+          </button>
+        </div>
+      </form>
     </AnimatedModal>
   );
 };
