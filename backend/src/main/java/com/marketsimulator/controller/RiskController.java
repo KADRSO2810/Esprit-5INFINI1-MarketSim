@@ -23,7 +23,69 @@ public class RiskController {
 
     private final RiskService riskService;
     private final PreTradeRiskService preTradeRiskService;
+    private final com.marketsimulator.service.PortfolioRiskAnalyticsService portfolioRiskAnalyticsService;
+    private final com.marketsimulator.service.RiskAlertService riskAlertService;
+    private final com.marketsimulator.service.PortfolioService portfolioService;
+    private final com.marketsimulator.repository.PostTradeRiskEvaluationRepository postTradeRiskRepository;
     private final UserRepository userRepository;
+
+    @Operation(summary = "Get full institutional Portfolio Risk Analytics: VaR 95/99%, CVaR, Volatility, Drawdown, Beta, Risk Contribution, Correlation")
+    @GetMapping("/portfolio-analytics")
+    public ResponseEntity<PortfolioRiskAnalyticsDto> getPortfolioRiskAnalytics(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(required = false, defaultValue = "0") Long sessionId) {
+        Long userId = resolveUserId(userDetails);
+        return ResponseEntity.ok(portfolioRiskAnalyticsService.computeAnalytics(userId, sessionId));
+    }
+
+    @Operation(summary = "Get active risk alerts for user")
+    @GetMapping("/alerts")
+    public ResponseEntity<java.util.List<RiskAlertDto>> getActiveRiskAlerts(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long userId = resolveUserId(userDetails);
+        return ResponseEntity.ok(riskAlertService.getActiveAlerts(userId));
+    }
+
+    @Operation(summary = "Acknowledge a risk alert")
+    @PostMapping("/alerts/{alertId}/acknowledge")
+    public ResponseEntity<RiskAlertDto> acknowledgeRiskAlert(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long alertId) {
+        Long userId = resolveUserId(userDetails);
+        return ResponseEntity.ok(riskAlertService.acknowledgeAlert(alertId, userId));
+    }
+
+    @Operation(summary = "Get recent post-trade risk evaluations and before/after impact audit")
+    @GetMapping("/post-trade-evaluations")
+    public ResponseEntity<java.util.List<PostTradeRiskEvaluationDto>> getPostTradeEvaluations(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(required = false, defaultValue = "0") Long sessionId) {
+        Long userId = resolveUserId(userDetails);
+        var portfolio = portfolioService.ensurePortfolio(userId, sessionId);
+        return ResponseEntity.ok(postTradeRiskRepository.findByPortfolioIdOrderByCreatedAtDesc(
+                portfolio.getId(), org.springframework.data.domain.PageRequest.of(0, 20)).stream()
+                .map(e -> PostTradeRiskEvaluationDto.builder()
+                        .id(e.getId())
+                        .tradeId(e.getTradeId())
+                        .symbol(e.getSymbol())
+                        .side(e.getSide())
+                        .quantity(e.getQuantity())
+                        .price(e.getPrice())
+                        .equityBefore(e.getEquityBefore())
+                        .equityAfter(e.getEquityAfter())
+                        .exposurePctBefore(e.getExposurePctBefore())
+                        .exposurePctAfter(e.getExposurePctAfter())
+                        .deltaExposurePct(e.getDeltaExposurePct())
+                        .var95Before(e.getVar95Before())
+                        .var95After(e.getVar95After())
+                        .deltaVar95(e.getDeltaVar95())
+                        .concentrationHhiBefore(e.getConcentrationHhiBefore())
+                        .concentrationHhiAfter(e.getConcentrationHhiAfter())
+                        .warnings(List.of())
+                        .createdAt(e.getCreatedAt())
+                        .build())
+                .collect(java.util.stream.Collectors.toList()));
+    }
 
     @Operation(summary = "Get risk metrics: VaR95, max drawdown, symbol exposure")
     @GetMapping("/metrics")

@@ -237,3 +237,159 @@ export const updateRiskLimits = async (limits: RiskLimits): Promise<RiskLimits> 
   const res = await api.put<RiskLimits>('/api/risk/limits', limits);
   return res.data;
 };
+
+// ── Portfolio Risk Intelligence & Analytics (Task 03) ──────────────────────────
+
+export interface PositionRiskContribution {
+  symbol: string;
+  quantity: number;
+  currentPrice: number;
+  marketValue: number;
+  weightPct: number;
+  assetVolatilityPct: number;
+  marginalRiskContribution: number;
+  componentRiskContribution: number;
+  riskContributionPct: number;
+  sector: string;
+}
+
+export interface SectorConcentration {
+  sector: string;
+  marketValue: number;
+  weightPct: number;
+  assetsCount: number;
+  symbols: string[];
+}
+
+export interface CorrelatedPair {
+  symbolA: string;
+  symbolB: string;
+  correlation: number;
+  warning: string;
+}
+
+export interface CorrelationMatrix {
+  symbols: string[];
+  matrix: number[][];
+  highlyCorrelatedPairs: CorrelatedPair[];
+}
+
+export interface RiskAlert {
+  id: number;
+  alertType: string;
+  severity: 'INFO' | 'WARNING' | 'CRITICAL';
+  title: string;
+  description: string;
+  metricName: string;
+  metricValue: number;
+  thresholdValue: number;
+  affectedSymbols: string[];
+  suggestion: string;
+  acknowledged: boolean;
+  createdAt: string;
+}
+
+export interface RiskEvolutionPoint {
+  ts: string;
+  equity: number;
+  drawdownPct: number;
+  dailyReturnPct: number;
+}
+
+export interface PostTradeRiskEvaluation {
+  id: number;
+  tradeId: number;
+  symbol: string;
+  side: string;
+  quantity: number;
+  price: number;
+  equityBefore: number;
+  equityAfter: number;
+  exposurePctBefore: number;
+  exposurePctAfter: number;
+  deltaExposurePct: number;
+  var95Before: number;
+  var95After: number;
+  deltaVar95: number;
+  concentrationHhiBefore: number;
+  concentrationHhiAfter: number;
+  warnings: string[];
+  createdAt: string;
+}
+
+export interface PortfolioRiskAnalytics {
+  portfolioEquity: number;
+  cashBalance: number;
+  investedValue: number;
+  totalExposurePct: number;
+  positionsCount: number;
+
+  var95Pct: number | null;
+  var95Amount: number | null;
+  var99Pct: number | null;
+  var99Amount: number | null;
+  varMethodology: string;
+
+  cvar95Pct: number | null;
+  cvar95Amount: number | null;
+  cvar99Pct: number | null;
+  cvar99Amount: number | null;
+  cvarExplanation: string;
+
+  dailyVolatilityPct: number | null;
+  annualizedVolatilityPct: number | null;
+
+  currentDrawdownPct: number;
+  maxHistoricalDrawdownPct: number;
+  peakEquity: number;
+
+  beta: number | null;
+  benchmarkSymbol: string;
+  benchmarkStatus: string;
+
+  hhi: number;
+  hhiLevel: string;
+  diversificationRatio: number | null;
+  largestRiskContributor: string | null;
+
+  positionsRisk: PositionRiskContribution[];
+  sectorConcentration: SectorConcentration[];
+  correlationMatrix: CorrelationMatrix | null;
+  riskEvolution: RiskEvolutionPoint[];
+  activeAlerts: RiskAlert[];
+  lastPostTradeImpact: PostTradeRiskEvaluation | null;
+
+  observationWindow: number;
+  observationStatus: string;
+  message: string | null;
+  calculatedAt: string;
+}
+
+export const getPortfolioRiskAnalytics = async (
+  sessionId = 0
+): Promise<PortfolioRiskAnalytics> => {
+  const res = await api.get<PortfolioRiskAnalytics>('/api/risk/portfolio-analytics', {
+    params: { sessionId },
+  });
+  return res.data;
+};
+
+export const getRiskAlerts = async (): Promise<RiskAlert[]> => {
+  const res = await api.get<RiskAlert[]>('/api/risk/alerts');
+  return res.data;
+};
+
+export const acknowledgeRiskAlert = async (alertId: number): Promise<RiskAlert> => {
+  const res = await api.post<RiskAlert>(`/api/risk/alerts/${alertId}/acknowledge`);
+  return res.data;
+};
+
+export const getPostTradeRiskEvaluations = async (
+  sessionId = 0
+): Promise<PostTradeRiskEvaluation[]> => {
+  const res = await api.get<PostTradeRiskEvaluation[]>('/api/risk/post-trade-evaluations', {
+    params: { sessionId },
+  });
+  return res.data;
+};
+

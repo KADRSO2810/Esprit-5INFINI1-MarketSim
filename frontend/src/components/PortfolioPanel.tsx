@@ -3,6 +3,7 @@ import { PortfolioSummary, PositionItem, TradeItem } from '../api/trading';
 import { PortfolioSkeleton, EmptyState, AnimatedTabs, AssetLogo } from './ui';
 import { SlTpConfigModal } from './SlTpConfigModal';
 import { RiskLimitsModal } from './risk/RiskLimitsModal';
+import { PortfolioRiskAnalyticsView } from './risk/PortfolioRiskAnalyticsView';
 import {
   TrendingUp,
   TrendingDown,
@@ -14,6 +15,7 @@ import {
   ChevronUp,
   Activity,
   Shield,
+  ShieldAlert,
   SlidersHorizontal,
 } from 'lucide-react';
 
@@ -50,7 +52,7 @@ export const PortfolioPanel: React.FC<PortfolioPanelProps> = ({
   onSell,
   onPositionUpdated,
 }) => {
-  const [tab, setTab] = useState<'positions' | 'trades'>('positions');
+  const [tab, setTab] = useState<'positions' | 'trades' | 'risk'>('positions');
   const [expanded, setExpanded] = useState(true);
   const [selectedSlTpPos, setSelectedSlTpPos] = useState<PositionItem | null>(null);
   const [isSlTpOpen, setIsSlTpOpen] = useState<boolean>(false);
@@ -177,12 +179,21 @@ export const PortfolioPanel: React.FC<PortfolioPanelProps> = ({
               tabs={[
                 { id: 'positions', label: 'Positions Ouvertes', badge: positions.length },
                 { id: 'trades', label: 'Historique Trades', badge: trades.length },
+                { id: 'risk', label: 'Risk Intelligence & VaR', icon: ShieldAlert },
               ]}
             />
           </div>
 
-          {/* Tables */}
-          <div className="max-h-72 overflow-y-auto overflow-x-auto">
+          {/* Content */}
+          {tab === 'risk' ? (
+            <div className="p-4 sm:p-5 overflow-y-auto max-h-[850px] bg-[#070B14]/30">
+              <PortfolioRiskAnalyticsView
+                onOpenLimitsModal={() => setIsLimitsOpen(true)}
+                onSelectSymbol={onBuy}
+              />
+            </div>
+          ) : (
+            <div className="max-h-72 overflow-y-auto overflow-x-auto">
             {tab === 'positions' ? (
               positions.length === 0 ? (
                 <EmptyState
@@ -385,8 +396,9 @@ export const PortfolioPanel: React.FC<PortfolioPanelProps> = ({
               </table>
             )}
           </div>
-        </>
-      )}
+        )}
+      </>
+    )}
 
       {/* Modal de configuration SL/TP */}
       <SlTpConfigModal

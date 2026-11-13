@@ -33,6 +33,7 @@ public class OrderService {
     private final MarketDataIngestionService ingestionService;
     private final PortfolioService portfolioService;
     @Lazy private final PreTradeRiskService preTradeRiskService;
+    @Lazy private final PortfolioRiskAnalyticsService riskAnalyticsService;
 
     @Value("${app.trading.max-quote-age-sec:30}")
     private long maxQuoteAgeSec;
@@ -139,6 +140,11 @@ public class OrderService {
                 .tradeReason("MANUAL")
                 .build();
         tradeRepository.save(trade);
+
+        // Post-Trade Risk Monitoring & Audit
+        if (riskAnalyticsService != null) {
+            riskAnalyticsService.evaluatePostTradeRisk(portfolio, trade);
+        }
 
         log.info("[TRADE] userId={} sessionId={} {} {} {} @ {}", userId, sId, side, quantity, symbol, price);
 
