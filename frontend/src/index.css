@@ -182,10 +182,70 @@
 ::-webkit-scrollbar-thumb {
   background: rgba(148, 163, 184, 0.2);
   border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(56, 189, 248, 0.4);
+  background: rgba(56, 189, 248, 0.5);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+}
+
+/* Institutional Trading Scrollbar with Candlestick Depth Glow */
+.trading-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(56, 189, 248, 0.4) rgba(7, 11, 20, 0.7);
+}
+
+.trading-scrollbar::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+.trading-scrollbar::-webkit-scrollbar-track {
+  background: rgba(7, 11, 20, 0.85);
+  border-left: 1px solid rgba(148, 163, 184, 0.1);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(148, 163, 184, 0.08) 0px,
+    rgba(148, 163, 184, 0.08) 1px,
+    transparent 1px,
+    transparent 12px
+  );
+}
+
+.trading-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #38BDF8 0%, #0284C7 100%);
+  border-radius: 4px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+  transition: all 0.2s ease;
+}
+
+.trading-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #7DD3FC 0%, #38BDF8 100%);
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.75);
+}
+
+.trading-scrollbar-bullish::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #4ADE80 0%, #16A34A 100%);
+  border: 1px solid rgba(74, 222, 128, 0.4);
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+}
+
+.trading-scrollbar-bullish::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #86EFAC 0%, #22C55E 100%);
+  box-shadow: 0 0 16px rgba(34, 197, 94, 0.8);
+}
+
+.trading-scrollbar-bearish::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #F87171 0%, #DC2626 100%);
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+}
+
+.trading-scrollbar-bearish::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #FCA5A5 0%, #EF4444 100%);
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.8);
 }
 
 /* Hide horizontal scrollbar where explicitly desired */

@@ -1,8 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { placeMarketOrder, OrderFill, assessPreTradeRisk, PreTradeRiskResponse } from '../api/trading';
-import { useToast, AnimatedModal, OrbitalSpinner, AssetLogo } from './ui';
+import { useToast, AnimatedModal, OrbitalSpinner, AssetLogo, TradingScrollArea, TradingScrollSection } from './ui';
 import { PreTradeRiskPanel } from './risk/PreTradeRiskPanel';
+
+const ORDER_SECTIONS: TradingScrollSection[] = [
+  { id: 'section-quote', label: 'Cours' },
+  { id: 'section-side', label: 'Sens' },
+  { id: 'section-qty', label: 'Quantité' },
+  { id: 'section-protection', label: 'SL / TP' },
+  { id: 'section-risk', label: 'Risque' },
+];
 import {
   X,
   TrendingUp,
@@ -307,10 +315,15 @@ export const OrderModal: React.FC<OrderModalProps> = ({
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-          {/* Scrollable form body */}
-          <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4">
+          {/* Animated Trading Candlestick Scroll Area */}
+          <TradingScrollArea
+            side={side}
+            sections={ORDER_SECTIONS}
+            scrollCueLabel="Défiler vers l'évaluation du Risque"
+            targetCueSectionId="section-risk"
+          >
             {/* Live Quote Banner */}
-              <div className="bg-[#070B14] border border-subtle rounded-xl px-4 py-3 flex items-center justify-between">
+            <div id="section-quote" className="bg-[#070B14] border border-subtle rounded-xl px-4 py-3 flex items-center justify-between">
                 <span className="text-[11px] font-medium text-slate-400">Prix marché live</span>
                 {lastPrice != null ? (
                   <span className="text-base font-bold font-mono tabular-nums text-white">
@@ -326,7 +339,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
               </div>
 
               {/* Buy / Sell Tabs */}
-              <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-[#070B14] border border-subtle">
+              <div id="section-side" className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-[#070B14] border border-subtle">
                 <button
                   type="button"
                   onClick={() => setSide('BUY')}
@@ -366,7 +379,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
               </div>
 
               {/* Quantity + Presets */}
-              <div>
+              <div id="section-qty">
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="text-[11px] font-medium text-slate-300">Quantité</label>
                   <div className="flex items-center gap-1">
@@ -402,7 +415,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
 
               {/* Stop-Loss & Take-Profit Toggle & Inputs (For BUY orders) */}
               {side === 'BUY' && (
-                <div className="rounded-xl border border-subtle bg-[#070B14]/40 overflow-hidden">
+                <div id="section-protection" className="rounded-xl border border-subtle bg-[#070B14]/40 overflow-hidden">
                   <button
                     type="button"
                     onClick={() => setShowSlTp(!showSlTp)}
@@ -543,15 +556,17 @@ export const OrderModal: React.FC<OrderModalProps> = ({
               )}
 
               {/* Pre-Trade Risk Engine Panel */}
-              <PreTradeRiskPanel
-                assessment={riskAssessment}
-                loading={evaluatingRisk}
-                entryPrice={lastPrice}
-                stopLoss={numSL}
-                symbol={symbol}
-                onApplyQuantity={(newQ) => setQty(newQ)}
-              />
-            </div>
+              <div id="section-risk">
+                <PreTradeRiskPanel
+                  assessment={riskAssessment}
+                  loading={evaluatingRisk}
+                  entryPrice={lastPrice}
+                  stopLoss={numSL}
+                  symbol={symbol}
+                  onApplyQuantity={(newQ) => setQty(newQ)}
+                />
+              </div>
+          </TradingScrollArea>
 
             {/* Pinned / Sticky Footer Action Bar */}
             <div className="shrink-0 px-5 py-3.5 border-t border-subtle bg-[#070B14] space-y-2">

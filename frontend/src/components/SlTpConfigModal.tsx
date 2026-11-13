@@ -177,7 +177,7 @@ export const SlTpConfigModal: React.FC<SlTpConfigModalProps> = ({
       </div>
 
       <form onSubmit={handleSave} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-        <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4 trading-scrollbar trading-scrollbar-bullish">
           {/* Position Context Card */}
           <div className="grid grid-cols-3 gap-2 p-2.5 rounded-lg bg-[#070B14]/60 border border-subtle text-xs font-mono">
             <div>

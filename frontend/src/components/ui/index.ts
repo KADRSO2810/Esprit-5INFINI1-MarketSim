@@ -20,6 +20,8 @@ export { PageTransition, PremiumPageTransition } from './PageTransition';
 export { OrbitalSpinner, LivePulseDot, AiProcessingBanner } from './Loaders';
 export { AnimatedPriceIndicator } from './AnimatedPriceIndicator';
 export { AIProcessingAnimation } from './AIProcessingAnimation';
+export { TradingScrollArea } from './TradingScrollArea';
+export type { TradingScrollSection } from './TradingScrollArea';
 export {
   MotionStagger,
   MotionItem,

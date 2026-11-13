@@ -224,7 +224,9 @@ export const FullscreenOrderDock: React.FC<FullscreenOrderDockProps> = ({
   const isPositive = changePct != null ? changePct >= 0 : true;
 
   return (
-    <aside className="w-full lg:w-[300px] xl:w-[320px] shrink-0 bg-[#0B1120]/95 border-t lg:border-t-0 lg:border-l border-subtle flex flex-col overflow-y-auto">
+    <aside className={`w-full lg:w-[300px] xl:w-[320px] shrink-0 bg-[#0B1120]/95 border-t lg:border-t-0 lg:border-l border-subtle flex flex-col overflow-y-auto ${
+      side === 'BUY' ? 'trading-scrollbar trading-scrollbar-bullish' : 'trading-scrollbar trading-scrollbar-bearish'
+    }`}>
       {/* Quick Watchlist Switcher */}
       {watchlist.length > 0 && onSelectSymbol && (
         <div className="p-3 border-b border-subtle">

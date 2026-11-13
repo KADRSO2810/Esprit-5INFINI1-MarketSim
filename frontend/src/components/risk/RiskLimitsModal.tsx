@@ -109,7 +109,7 @@ export const RiskLimitsModal: React.FC<RiskLimitsModalProps> = ({
         </div>
       ) : (
         <form onSubmit={handleSave} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-          <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4">
+          <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4 trading-scrollbar">
             {error && (
               <div className="flex items-start gap-2 text-rose-300 text-xs bg-rose-500/10 border border-rose-500/25 rounded-xl px-3 py-2.5">
                 <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
