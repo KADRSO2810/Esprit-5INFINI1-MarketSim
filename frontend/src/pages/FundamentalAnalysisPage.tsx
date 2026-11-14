@@ -16,6 +16,8 @@ import {
   AlertTriangle,
   X,
   Plus,
+  Printer,
+  Download,
 } from 'lucide-react';
 import { AppShell } from '../components/layout/AppShell';
 import {
@@ -183,6 +185,146 @@ export const FundamentalAnalysisPage: React.FC = () => {
     return `$${m.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}M`;
   };
 
+  // Helper pour télécharger du texte/CSV avec BOM UTF-8 (compatibilité universelle Excel/Sheets)
+  const downloadBlob = (content: string, filename: string, mimeType = 'text/csv;charset=utf-8;') => {
+    const blob = new Blob(['\uFEFF' + content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Export Excel structuré (.csv haute fidélité)
+  const handleExportExcel = () => {
+    try {
+      let csv = 'sep=;\r\n'; // Séparateur explicite pour Microsoft Excel
+
+      if (mode === 'deepdive') {
+        if (!data || !data.available) {
+          toast.warning('Export impossible', "Aucune donnée fondamentale valide disponible pour l'export.");
+          return;
+        }
+
+        const dateStr = new Date().toLocaleString('fr-FR');
+        csv += `RAPPORT D'ANALYSE FONDAMENTALE INSTITUTIONNELLE;MARKET SIMULATOR\r\n`;
+        csv += `Société;${data.profile?.name || symbol} (${symbol})\r\n`;
+        csv += `Bourse;${data.profile?.exchange || 'US'}\r\n`;
+        csv += `Secteur;${data.profile?.finnhubIndustry || data.profile?.sector || 'Général'}\r\n`;
+        csv += `Cours Live;$${data.currentPrice != null ? data.currentPrice.toFixed(2) : 'N/A'}\r\n`;
+        csv += `Capitalisation;$${data.profile?.marketCapitalization != null ? (data.profile.marketCapitalization / 1000).toFixed(2) + 'B' : 'N/A'}\r\n`;
+        csv += `Source Certifiée;Finnhub Stock API & US SEC EDGAR Filings (Forms 10-K & 10-Q)\r\n`;
+        csv += `Fréquence Déclarative;${statementFreq === 'ANNUAL' ? 'Form 10-K (Annuel)' : 'Form 10-Q (Trimestriel)'}\r\n`;
+        csv += `Date d'Extraction;${dateStr}\r\n\r\n`;
+
+        // KPIs
+        csv += `--- INDICATEURS CLÉS DE PERFORMANCE (KPIS) ---\r\n`;
+        csv += `Indicateur;Valeur;Unité;Description\r\n`;
+        csv += `Chiffre d'Affaires;$${data.latestRevenue != null ? (data.latestRevenue / 1_000_000_000).toFixed(2) + 'B' : 'N/A'};USD;Chiffre d'affaires annuel le plus récent\r\n`;
+        csv += `Résultat Net;$${data.latestNetIncome != null ? (data.latestNetIncome / 1_000_000_000).toFixed(2) + 'B' : 'N/A'};USD;Bénéfice net attribuable aux actionnaires\r\n`;
+        csv += `Bénéfice par Action (EPS);$${data.latestEps != null ? data.latestEps.toFixed(2) : 'N/A'};USD;BPA dilué\r\n`;
+        csv += `P/E Ratio;${data.peRatio != null ? data.peRatio.toFixed(2) + 'x' : 'N/A'};Multiple;Cours / Bénéfice\r\n`;
+        csv += `ROE (Return on Equity);${data.roe != null ? (data.roe * 100).toFixed(2) + '%' : 'N/A'};%;Rendement des capitaux propres\r\n`;
+        csv += `Debt-to-Equity (D/E);${data.debtToEquity != null ? data.debtToEquity.toFixed(2) : 'N/A'};Ratio;Dette totale / Capitaux propres\r\n`;
+        csv += `Croissance CA YoY;${data.revenueGrowthYoY != null ? (data.revenueGrowthYoY * 100).toFixed(2) + '%' : 'N/A'};%;Croissance sur 12 mois\r\n`;
+        csv += `Free Cash Flow (FCF);$${data.freeCashFlow != null ? (data.freeCashFlow / 1_000_000_000).toFixed(2) + 'B' : 'N/A'};USD;Flux de trésorerie disponible\r\n\r\n`;
+
+        // Income Statement
+        if (statements?.incomeStatements && statements.incomeStatements.length > 0) {
+          const periods = statements.incomeStatements.map((s) => s.periodLabel);
+          csv += `--- COMPTE DE RÉSULTAT (EN MILLIONS USD) ---\r\n`;
+          csv += `Ligne / Métrique;${periods.join(';')}\r\n`;
+          csv += `Chiffre d'Affaires (CA);${statements.incomeStatements.map((s) => s.revenue != null ? (s.revenue / 1_000_000).toFixed(1) : 'N/A').join(';')}\r\n`;
+          csv += `Marge Brute;${statements.incomeStatements.map((s) => s.grossProfit != null ? (s.grossProfit / 1_000_000).toFixed(1) : 'N/A').join(';')}\r\n`;
+          csv += `Résultat d'Exploitation;${statements.incomeStatements.map((s) => s.operatingIncome != null ? (s.operatingIncome / 1_000_000).toFixed(1) : 'N/A').join(';')}\r\n`;
+          csv += `EBITDA;${statements.incomeStatements.map((s) => s.ebitda != null ? (s.ebitda / 1_000_000).toFixed(1) : 'N/A').join(';')}\r\n`;
+          csv += `Résultat Net;${statements.incomeStatements.map((s) => s.netIncome != null ? (s.netIncome / 1_000_000).toFixed(1) : 'N/A').join(';')}\r\n`;
+          csv += `BPA Dilué (EPS);${statements.incomeStatements.map((s) => s.epsDiluted != null ? s.epsDiluted.toFixed(2) : 'N/A').join(';')}\r\n`;
+          csv += `Marge Brute (%);${statements.incomeStatements.map((s) => s.grossMarginPct != null ? (s.grossMarginPct * 100).toFixed(1) + '%' : 'N/A').join(';')}\r\n`;
+          csv += `Marge d'Exploitation (%);${statements.incomeStatements.map((s) => s.operatingMarginPct != null ? (s.operatingMarginPct * 100).toFixed(1) + '%' : 'N/A').join(';')}\r\n`;
+          csv += `Marge Nette (%);${statements.incomeStatements.map((s) => s.netMarginPct != null ? (s.netMarginPct * 100).toFixed(1) + '%' : 'N/A').join(';')}\r\n\r\n`;
+        }
+
+        // Balance Sheet
+        if (statements?.balanceSheets && statements.balanceSheets.length > 0) {
+          const periods = statements.balanceSheets.map((s) => s.periodLabel);
+          csv += `--- BILAN (EN MILLIONS USD) ---\r\n`;
+          csv += `Ligne / Métrique;${periods.join(';')}\r\n`;
+          csv += `Actif Total;${statements.balanceSheets.map((s) => s.totalAssets != null ? (s.totalAssets / 1_000_000).toFixed(1) : 'N/A').join(';')}\r\n`;
+          csv += `Passif Total;${statements.balanceSheets.map((s) => s.totalLiabilities != null ? (s.totalLiabilities / 1_000_000).toFixed(1) : 'N/A').join(';')}\r\n`;
+          csv += `Capitaux Propres;${statements.balanceSheets.map((s) => s.totalStockholdersEquity != null ? (s.totalStockholdersEquity / 1_000_000).toFixed(1) : 'N/A').join(';')}\r\n`;
+          csv += `Dette Totale;${statements.balanceSheets.map((s) => s.totalDebt != null ? (s.totalDebt / 1_000_000).toFixed(1) : 'N/A').join(';')}\r\n`;
+          csv += `Trésorerie & Équivalents;${statements.balanceSheets.map((s) => s.cashAndEquivalents != null ? (s.cashAndEquivalents / 1_000_000).toFixed(1) : 'N/A').join(';')}\r\n`;
+          csv += `Actif Circulant;${statements.balanceSheets.map((s) => s.currentAssets != null ? (s.currentAssets / 1_000_000).toFixed(1) : 'N/A').join(';')}\r\n`;
+          csv += `Passif Circulant;${statements.balanceSheets.map((s) => s.currentLiabilities != null ? (s.currentLiabilities / 1_000_000).toFixed(1) : 'N/A').join(';')}\r\n\r\n`;
+        }
+
+        // Cash Flow
+        if (statements?.cashFlowStatements && statements.cashFlowStatements.length > 0) {
+          const periods = statements.cashFlowStatements.map((s) => s.periodLabel);
+          csv += `--- FLUX DE TRÉSORERIE (EN MILLIONS USD) ---\r\n`;
+          csv += `Ligne / Métrique;${periods.join(';')}\r\n`;
+          csv += `Flux Opérationnel (OCF);${statements.cashFlowStatements.map((s) => s.operatingCashFlow != null ? (s.operatingCashFlow / 1_000_000).toFixed(1) : 'N/A').join(';')}\r\n`;
+          csv += `Flux d'Investissement;${statements.cashFlowStatements.map((s) => s.investingCashFlow != null ? (s.investingCashFlow / 1_000_000).toFixed(1) : 'N/A').join(';')}\r\n`;
+          csv += `Flux de Financement;${statements.cashFlowStatements.map((s) => s.financingCashFlow != null ? (s.financingCashFlow / 1_000_000).toFixed(1) : 'N/A').join(';')}\r\n`;
+          csv += `CapEx;${statements.cashFlowStatements.map((s) => s.capitalExpenditures != null ? (s.capitalExpenditures / 1_000_000).toFixed(1) : 'N/A').join(';')}\r\n`;
+          csv += `Free Cash Flow (FCF);${statements.cashFlowStatements.map((s) => s.freeCashFlow != null ? (s.freeCashFlow / 1_000_000).toFixed(1) : 'N/A').join(';')}\r\n\r\n`;
+        }
+
+        // Ratios
+        if (data.ratios) {
+          csv += `--- GRILLE COMPLÈTE DES RATIOS FINANCIERS ---\r\n`;
+          csv += `Catégorie;Code Ratio;Nom;Valeur;Unité;Benchmark;Statut;Formule;Interprétation\r\n`;
+          const allRatios = [
+            ...(data.ratios.valuationRatios || []),
+            ...(data.ratios.profitabilityRatios || []),
+            ...(data.ratios.healthRatios || []),
+            ...(data.ratios.growthRatios || []),
+          ];
+          allRatios.forEach((r) => {
+            csv += `"${r.category}";"${r.key}";"${r.label}";"${r.formattedValue}";"${r.unit}";"${r.benchmarkText || 'N/A'}";"${r.status}";"${r.formula || ''}";"${r.tooltip?.replace(/"/g, '""') || ''}"\r\n`;
+          });
+        }
+
+        const fileName = `${symbol}_Analyse_Fondamentale_${statementFreq}_${new Date().toISOString().slice(0, 10)}.csv`;
+        downloadBlob(csv, fileName);
+        toast.success('Export Excel réussi', `Fichier généré : ${fileName}`);
+      } else {
+        // Mode Comparatif
+        if (!comparisonData || comparisonData.symbols.length === 0) {
+          toast.warning('Export impossible', "Aucune donnée de comparaison disponible.");
+          return;
+        }
+
+        const syms = comparisonData.symbols;
+        csv += `MATRICE COMPARATIVE MULTI-ENTREPRISES;MARKET SIMULATOR INSTITUTIONAL\r\n`;
+        csv += `Date d'Extraction;${new Date().toLocaleString('fr-FR')}\r\n`;
+        csv += `Sociétés Comparées;${syms.join(';')}\r\n`;
+        csv += `Source Certifiée;Finnhub Stock Metrics & SEC Filings\r\n\r\n`;
+
+        csv += `Indicateur Financier;Catégorie;Unité;${syms.join(';')};Meilleure Performance (Best)\r\n`;
+        comparisonData.comparisonRows.forEach((row) => {
+          const values = syms.map((s) => row.valuesBySymbol[s] || 'N/A').join(';');
+          const best = row.bestSymbol ? `${row.bestSymbol} (${row.valuesBySymbol[row.bestSymbol] || ''})` : 'N/A';
+          csv += `"${row.label}";"${row.category}";"${row.unit}";${values};"${best}"\r\n`;
+        });
+
+        const fileName = `Comparaison_${syms.join('_')}_${new Date().toISOString().slice(0, 10)}.csv`;
+        downloadBlob(csv, fileName);
+        toast.success('Export Excel réussi', `Matrice comparative exportée : ${fileName}`);
+      }
+    } catch (err) {
+      toast.error("Erreur d'export", "Impossible de générer le fichier Excel.");
+    }
+  };
+
+  const handlePrintPdf = () => {
+    window.print();
+  };
+
   return (
     <AppShell
       title="Analyse Fondamentale & États Financiers"
@@ -190,9 +332,52 @@ export const FundamentalAnalysisPage: React.FC = () => {
       badge="SEC 10-K / 10-Q"
       maxWidthClass="max-w-7xl"
     >
+      <style>{`
+        @media print {
+          /* Masquer la navigation globale de l'app, le header et les contrôles interactifs */
+          aside, header, nav, .no-print {
+            display: none !important;
+          }
+          body, main {
+            background-color: #070B14 !important;
+            color: #F8FAFC !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            max-width: 100% !important;
+          }
+          /* Éviter de couper les cartes et sections en plein milieu d'une page */
+          .print-avoid-break {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          /* Afficher l'intégralité des tableaux sans scrollbars */
+          .overflow-x-auto {
+            overflow: visible !important;
+          }
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+        }
+      `}</style>
+
+      {/* Bannière d'en-tête pour l'impression / PDF */}
+      <div className="hidden print:block pb-5 mb-5 border-b border-slate-700 font-mono">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-white tracking-tight">RAPPORT OFFICIEL D'ANALYSE FONDAMENTALE</h1>
+            <p className="text-xs text-emerald-400 font-semibold">Market Simulator Institutional Quant Terminal</p>
+          </div>
+          <div className="text-right text-[11px] text-slate-300">
+            <div>Date : {new Date().toLocaleDateString('fr-FR')} {new Date().toLocaleTimeString('fr-FR')}</div>
+            <div className="text-slate-400">Source : SEC Forms 10-K/10-Q & Finnhub Live</div>
+          </div>
+        </div>
+      </div>
+
       <div className="space-y-6">
         {/* Top Header & Search Bar */}
-        <div className="bg-[#0B1220] border border-subtle rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="bg-[#0B1220] border border-subtle rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-400/30 flex items-center justify-center text-emerald-400 shadow-[0_0_20px_-4px_rgba(34,197,94,0.4)]">
               <Building2 className="w-5 h-5" />
@@ -246,12 +431,34 @@ export const FundamentalAnalysisPage: React.FC = () => {
             >
               <RefreshCw className={`w-4 h-4 ${refreshing || compareLoading ? 'animate-spin text-emerald-400' : ''}`} />
             </button>
+
+            {/* Export Excel (.csv structuré) Button */}
+            <button
+              onClick={handleExportExcel}
+              disabled={loading || compareLoading || (mode === 'deepdive' && !data?.available)}
+              className="px-3 py-1.5 rounded-xl bg-[#070B14] hover:bg-[#101A2B] border border-emerald-500/30 text-emerald-300 hover:text-emerald-200 text-xs font-mono font-medium transition flex items-center gap-1.5 shadow-sm disabled:opacity-40"
+              title="Exporter les données financières complètes sous format Excel (.csv)"
+            >
+              <Download className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Export Excel</span>
+            </button>
+
+            {/* Print / PDF Button */}
+            <button
+              onClick={handlePrintPdf}
+              disabled={loading || compareLoading || (mode === 'deepdive' && !data?.available)}
+              className="px-3 py-1.5 rounded-xl bg-[#070B14] hover:bg-[#101A2B] border border-sky-500/30 text-sky-300 hover:text-sky-200 text-xs font-mono font-medium transition flex items-center gap-1.5 shadow-sm disabled:opacity-40"
+              title="Imprimer ou enregistrer au format PDF"
+            >
+              <Printer className="w-3.5 h-3.5 text-sky-400" />
+              <span>Imprimer / PDF</span>
+            </button>
           </div>
         </div>
 
         {/* Ticker Search & Quick Pills (Only in deepdive mode) */}
         {mode === 'deepdive' && (
-          <div className="bg-[#0B1220] border border-subtle rounded-2xl p-4 space-y-3">
+          <div className="bg-[#0B1220] border border-subtle rounded-2xl p-4 space-y-3 no-print">
             <div className="relative">
               <div className="flex items-center gap-2 bg-[#070B14] border border-subtle focus-within:border-emerald-400/50 rounded-xl px-3.5 py-2.5 transition">
                 <Search className="w-4 h-4 text-slate-400" />
@@ -294,7 +501,7 @@ export const FundamentalAnalysisPage: React.FC = () => {
                             <div className="text-[11px] text-slate-400">{item.name}</div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 no-print">
                           <span className="text-[10px] font-mono text-slate-500 uppercase">{item.exchange}</span>
                           <span
                             className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold ${
@@ -515,7 +722,7 @@ export const FundamentalAnalysisPage: React.FC = () => {
                 </div>
 
                 {/* Sub-Navigation Tabs */}
-                <div className="flex items-center justify-between border-b border-subtle gap-2 overflow-x-auto no-scrollbar">
+                <div className="flex items-center justify-between border-b border-subtle gap-2 overflow-x-auto no-scrollbar no-print">
                   <div className="flex items-center gap-1">
                     {[
                       { id: 'statements', label: 'États Financiers Officiels', icon: FileSpreadsheet },
@@ -573,7 +780,7 @@ export const FundamentalAnalysisPage: React.FC = () => {
                   <div className="bg-[#0B1220] border border-subtle rounded-2xl p-5 space-y-4">
                     {/* Statement Type Pills */}
                     <div className="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-subtle">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 no-print">
                         {[
                           { id: 'income', label: 'Compte de Résultat (Income Statement)' },
                           { id: 'balance', label: 'Bilan Comptable (Balance Sheet)' },
@@ -1221,7 +1428,7 @@ export const FundamentalAnalysisPage: React.FC = () => {
               </div>
 
               {/* Add Ticker Input */}
-              <form onSubmit={handleAddCompareSymbol} className="flex items-center gap-2">
+              <form onSubmit={handleAddCompareSymbol} className="flex items-center gap-2 no-print">
                 <input
                   type="text"
                   value={newCompareTicker}
