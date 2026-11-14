@@ -34,6 +34,7 @@ public class OrderService {
     private final PortfolioService portfolioService;
     @Lazy private final PreTradeRiskService preTradeRiskService;
     @Lazy private final PortfolioRiskAnalyticsService riskAnalyticsService;
+    @Lazy private final com.marketsimulator.service.multiasset.MultiAssetMarketService multiAssetMarketService;
 
     @Value("${app.trading.max-quote-age-sec:30}")
     private long maxQuoteAgeSec;
@@ -53,7 +54,7 @@ public class OrderService {
         BigDecimal quantity = request.getQuantity();
 
         // 1. Resolve execution price (must be recent real price)
-        BigDecimal price = resolvePrice(symbol);
+        BigDecimal price = resolvePrice(symbol, side);
 
         // 2. Ensure portfolio exists and lock it
         portfolioService.ensurePortfolio(userId, sId);
@@ -163,11 +164,26 @@ public class OrderService {
                 .build();
     }
 
-    private BigDecimal resolvePrice(String symbol) {
+    private BigDecimal resolvePrice(String symbol, String side) {
+        if (multiAssetMarketService != null) {
+            try {
+                com.marketsimulator.domain.AssetClass ac = multiAssetMarketService.resolveAssetClass(symbol);
+                if (ac == com.marketsimulator.domain.AssetClass.FOREX || ac == com.marketsimulator.domain.AssetClass.BOND || ac == com.marketsimulator.domain.AssetClass.COMMODITY) {
+                    return multiAssetMarketService.resolveExecutionPrice(symbol, side);
+                }
+            } catch (Exception ex) {
+                log.warn("[ORDER] Échec résolution multi-actif pour {}: {}", symbol, ex.getMessage());
+            }
+        }
+
         var quote = ingestionService.getLatestQuote(symbol);
         if (quote == null) {
+            if (multiAssetMarketService != null) {
+                return multiAssetMarketService.resolveExecutionPrice(symbol, side);
+            }
             throw new NoRecentPriceException("No price available for symbol: " + symbol);
         }
+
         long ageSeconds = Duration.between(quote.getTs(), Instant.now()).getSeconds();
         if (ageSeconds > maxQuoteAgeSec) {
             throw new NoRecentPriceException(

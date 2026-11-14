@@ -323,7 +323,8 @@ export const OrderModal: React.FC<OrderModalProps> = ({
             targetCueSectionId="section-risk"
           >
             {/* Live Quote Banner */}
-            <div id="section-quote" className="bg-[#070B14] border border-subtle rounded-xl px-4 py-3 flex items-center justify-between">
+            <div id="section-quote" className="space-y-2">
+              <div className="bg-[#070B14] border border-subtle rounded-xl px-4 py-3 flex items-center justify-between">
                 <span className="text-[11px] font-medium text-slate-400">Prix marché live</span>
                 {lastPrice != null ? (
                   <span className="text-base font-bold font-mono tabular-nums text-white">
@@ -337,6 +338,29 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                   <span className="text-slate-500 text-xs font-mono">Indisponible</span>
                 )}
               </div>
+
+              {/* Multi-Asset Convention Badge */}
+              <div className="flex items-center justify-between px-3 py-1.5 rounded-lg border border-slate-800 bg-[#0B1220] text-[11px]">
+                <span className="font-semibold text-slate-400">
+                  {symbol.includes('/') || (symbol.length === 6 && (symbol.endsWith('USD') || symbol.endsWith('JPY') || symbol.endsWith('EUR')))
+                    ? 'FOREX'
+                    : ['TLT', 'IEF', 'SHY', 'BND', 'LQD', 'HYG', 'TIP'].includes(symbol)
+                    ? 'OBLIGATION'
+                    : ['GLD', 'SLV', 'USO', 'BNO', 'UNG', 'CPER', 'DBA'].includes(symbol)
+                    ? 'MATIÈRE PREM.'
+                    : symbol.includes(':') || symbol.endsWith('USDT')
+                    ? 'CRYPTO'
+                    : 'ACTION'}
+                </span>
+                <span className="text-[10px] text-slate-400 font-mono">
+                  {symbol.includes('/')
+                    ? (side === 'BUY' ? 'Exécution Ask (Achat)' : 'Exécution Bid (Vente)')
+                    : ['TLT', 'IEF', 'SHY', 'BND', 'LQD', 'HYG', 'TIP'].includes(symbol)
+                    ? 'Clean Price ($100 Par)'
+                    : 'Prix de marché direct'}
+                </span>
+              </div>
+            </div>
 
               {/* Buy / Sell Tabs */}
               <div id="section-side" className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-[#070B14] border border-subtle">

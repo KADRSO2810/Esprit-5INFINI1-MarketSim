@@ -40,6 +40,7 @@ public class PreTradeRiskService {
     private final UserRepository userRepository;
     @Lazy private final MarketDataIngestionService ingestionService;
     @Lazy private final PortfolioService portfolioService;
+    @Lazy private final com.marketsimulator.service.multiasset.MultiAssetMarketService multiAssetMarketService;
 
     // =========================================================================
     // 1. Configuration des Limites de Risque (Consultation / Mise à jour)
@@ -426,6 +427,13 @@ public class PreTradeRiskService {
         var quote = ingestionService.getLatestQuote(symbol);
         if (quote != null && quote.getPrice() != null && quote.getPrice().compareTo(BigDecimal.ZERO) > 0) {
             return quote.getPrice();
+        }
+        if (multiAssetMarketService != null) {
+            try {
+                return multiAssetMarketService.resolveExecutionPrice(symbol, "BUY");
+            } catch (Exception ex) {
+                // fall through
+            }
         }
         throw new NoRecentPriceException("Aucune cotation temps réel disponible pour: " + symbol);
     }

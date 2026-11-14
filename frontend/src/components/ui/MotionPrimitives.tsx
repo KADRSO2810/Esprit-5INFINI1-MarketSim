@@ -11,6 +11,7 @@ import {
   CornerDownLeft,
   X,
   FileSpreadsheet,
+  Globe,
 } from 'lucide-react';
 
 // =========================================================================
@@ -213,6 +214,14 @@ const COMMAND_ROUTES: CommandRoute[] = [
     keywords: 'dashboard trading terminal portfolio var orders chart',
     icon: Activity,
     accent: 'text-sky-400',
+  },
+  {
+    path: '/app/markets',
+    label: 'Marchés Multi-Actifs (Forex, Obligations, Matières Premières)',
+    section: 'Overview & Trading',
+    keywords: 'multi asset forex devises ecb bce obligations bonds tlt ief yield ytm duration commodities gold oil gld uso allocation',
+    icon: Globe,
+    accent: 'text-amber-400',
   },
   {
     path: '/app/backtesting',

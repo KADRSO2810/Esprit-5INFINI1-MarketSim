@@ -29,6 +29,7 @@ public class PortfolioService {
     private final TradeRepository tradeRepository;
     private final UserRepository userRepository;
     private final MarketDataIngestionService ingestionService;
+    @Lazy private final com.marketsimulator.service.multiasset.MultiAssetMarketService multiAssetMarketService;
 
     @Value("${app.trading.initial-cash:100000}")
     private BigDecimal initialCash;
@@ -215,6 +216,16 @@ public class PortfolioService {
 
     private BigDecimal resolvePriceForPortfolio(long sessionId, String symbol) {
         var quote = ingestionService.getLatestQuote(symbol);
-        return quote != null ? quote.getPrice() : null;
+        if (quote != null) {
+            return quote.getPrice();
+        }
+        if (multiAssetMarketService != null) {
+            try {
+                return multiAssetMarketService.resolveExecutionPrice(symbol, "SELL");
+            } catch (Exception ex) {
+                // Ignore fallback to cost basis
+            }
+        }
+        return null;
     }
 }

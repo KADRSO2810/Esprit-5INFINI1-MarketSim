@@ -54,6 +54,7 @@ import {
   BarChart3,
   Briefcase,
   ArrowUpRight,
+  Globe,
 } from 'lucide-react';
 
 function isUSMarketOpen(): boolean {
@@ -164,6 +165,18 @@ const TickerCard: React.FC<TickerCardProps> = ({
           <span className="text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-300 border border-violet-500/25 flex items-center gap-0.5">
             <Zap className="w-2.5 h-2.5" />
             24/7
+          </span>
+        ) : symbol.includes('/') ? (
+          <span className="text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 flex items-center gap-0.5">
+            FX 24/5
+          </span>
+        ) : ['TLT', 'IEF', 'SHY', 'BND', 'LQD', 'HYG', 'TIP'].includes(symbol) ? (
+          <span className="text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/25 flex items-center gap-0.5">
+            BOND
+          </span>
+        ) : ['GLD', 'SLV', 'USO', 'BNO', 'UNG', 'CPER', 'DBA'].includes(symbol) ? (
+          <span className="text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded bg-pink-500/15 text-pink-300 border border-pink-500/25 flex items-center gap-0.5">
+            CMDTY
           </span>
         ) : usOpen ? (
           <span className="text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 flex items-center gap-1">
@@ -628,21 +641,30 @@ export const Dashboard: React.FC = () => {
                 {filteredWatchlist.length}/{watchlist.length}
               </span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => scroll('left')}
-                className="p-1.5 rounded-lg bg-[#070B14] border border-subtle hover:border-strong text-slate-400 hover:text-white transition"
-                aria-label="Défiler à gauche"
+            <div className="flex items-center gap-2">
+              <Link
+                to="/app/markets"
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 text-xs font-semibold transition"
               >
-                <ChevronLeft className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => scroll('right')}
-                className="p-1.5 rounded-lg bg-[#070B14] border border-subtle hover:border-strong text-slate-400 hover:text-white transition"
-                aria-label="Défiler à droite"
-              >
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
+                <Globe className="w-3.5 h-3.5" />
+                Multi-Actifs Hub
+              </Link>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => scroll('left')}
+                  className="p-1.5 rounded-lg bg-[#070B14] border border-subtle hover:border-strong text-slate-400 hover:text-white transition"
+                  aria-label="Défiler à gauche"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => scroll('right')}
+                  className="p-1.5 rounded-lg bg-[#070B14] border border-subtle hover:border-strong text-slate-400 hover:text-white transition"
+                  aria-label="Défiler à droite"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
           </div>
 

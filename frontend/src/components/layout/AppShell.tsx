@@ -21,6 +21,7 @@ import {
   Activity,
   Command,
   FileSpreadsheet,
+  Globe,
 } from 'lucide-react';
 
 export interface AppShellProps {
@@ -56,6 +57,7 @@ const NAV_SECTIONS: NavSection[] = [
     group: 'Overview & Trading',
     items: [
       { to: '/app', label: 'Terminal Live', icon: Activity, accent: 'text-sky-400' },
+      { to: '/app/markets', label: 'Marchés Multi-Actifs', icon: Globe, matchPrefix: '/app/markets', accent: 'text-amber-400' },
     ],
   },
   {

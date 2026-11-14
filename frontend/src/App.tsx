@@ -13,6 +13,7 @@ import { StressTesting } from './pages/StressTesting';
 import { NewsSentimentPage } from './pages/NewsSentimentPage';
 import { StrategyLab } from './pages/StrategyLab';
 import { FundamentalAnalysisPage } from './pages/FundamentalAnalysisPage';
+import { MultiAssetHubPage } from './pages/MultiAssetHubPage';
 
 export const App: React.FC = () => {
   return (
@@ -33,6 +34,14 @@ export const App: React.FC = () => {
             element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/app/markets"
+            element={
+              <ProtectedRoute>
+                <MultiAssetHubPage />
               </ProtectedRoute>
             }
           />
