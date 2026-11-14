@@ -25,7 +25,7 @@ import {
   RefreshCw,
   PieChart as PieChartIcon,
 } from 'lucide-react';
-import { useToast } from '../components/ui';
+import { useToast, PageTransition, QuantOrbitalLoader } from '../components/ui';
 
 export const MultiAssetHubPage: React.FC = () => {
   const toast = useToast();
@@ -121,7 +121,7 @@ export const MultiAssetHubPage: React.FC = () => {
 
   return (
     <AppShell title="Marchés Multi-Actifs" section="Trading Multi-Classes" badge="Forex • Bonds • Cmdty">
-      <div className="space-y-6 pb-12">
+      <PageTransition className="space-y-6 pb-12">
         {/* Top Header & Market Clocks */}
         <div className="relative overflow-hidden rounded-2xl border border-sky-500/20 bg-gradient-to-r from-[#0B1220] via-[#0E172B] to-[#101A2B] p-6 shadow-2xl backdrop-blur-md">
           <div className="absolute right-0 top-0 -mr-16 -mt-16 h-64 w-64 rounded-full bg-sky-500/10 blur-3xl" />
@@ -198,7 +198,43 @@ export const MultiAssetHubPage: React.FC = () => {
           </div>
         </div>
 
-        {/* ── CONVERTISSEUR DEVISES EN DIRECT (BCE) ───────────────────────── */}
+        {/* ── CHARGEMENT ANIMÉ INSTITUTIONNEL ─────────────────────────────── */}
+        {loading ? (
+          <div className="space-y-6">
+            <div className="rounded-2xl border border-amber-500/25 bg-[#0B1220]/95 p-8 shadow-2xl flex flex-col items-center justify-center text-center relative overflow-hidden backdrop-blur-md">
+              <div className="absolute inset-x-0 top-0 h-[3px] bg-slate-800 overflow-hidden">
+                <div className="h-full w-1/3 bg-gradient-to-r from-amber-500 via-sky-400 to-emerald-400 animate-pulse rounded-full" />
+              </div>
+              <QuantOrbitalLoader
+                size="lg"
+                tone="amber"
+                icon={Globe}
+                badge="SYNCHRONISATION DES MARCHÉS EN COURS"
+                title="Chargement des Marchés Multi-Actifs..."
+                subtitle="Interrogation des taux interbancaires BCE (EUR/USD, GBP/USD), des obligations US (TLT, IEF) et des matières premières physiques..."
+              />
+            </div>
+
+            {/* Skeletons preview */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="rounded-2xl border border-slate-800/80 bg-[#0B1220] p-4 space-y-3 animate-pulse">
+                  <div className="flex justify-between items-center">
+                    <div className="h-4 w-20 bg-slate-800 rounded" />
+                    <div className="h-4 w-12 bg-slate-800 rounded" />
+                  </div>
+                  <div className="h-6 w-28 bg-slate-800 rounded" />
+                  <div className="grid grid-cols-2 gap-2 pt-2">
+                    <div className="h-8 bg-slate-800/60 rounded-xl" />
+                    <div className="h-8 bg-slate-800/60 rounded-xl" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* ── CONVERTISSEUR DEVISES EN DIRECT (BCE) ───────────────────────── */}
         <div className="rounded-2xl border border-slate-800 bg-[#0B1220]/90 p-5 shadow-xl backdrop-blur-sm">
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
             <div className="flex items-center gap-2.5">
@@ -651,6 +687,8 @@ export const MultiAssetHubPage: React.FC = () => {
             </div>
           </div>
         )}
+          </>
+        )}
 
         {/* Modal d'Ordre pour tous les actifs */}
         {orderState.isOpen && (
@@ -668,7 +706,7 @@ export const MultiAssetHubPage: React.FC = () => {
             }}
           />
         )}
-      </div>
+      </PageTransition>
     </AppShell>
   );
 };

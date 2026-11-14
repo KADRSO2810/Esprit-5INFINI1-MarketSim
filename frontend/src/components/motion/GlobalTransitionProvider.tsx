@@ -3,7 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import { QuantOrbitalLoader, QuantOrbitalTone } from './QuantOrbitalLoader';
 import { EASE_INSTITUTIONAL } from './presets';
-import { Activity, BarChart3, Bot, Newspaper, ShieldAlert } from 'lucide-react';
+import { Activity, BarChart3, Bot, Newspaper, ShieldAlert, Globe, FileSpreadsheet } from 'lucide-react';
 
 interface SectionMeta {
   label: string;
@@ -52,6 +52,26 @@ const ROUTE_META: Array<{ match: (p: string) => boolean; meta: SectionMeta }> = 
       subtitle: 'Chargement du laboratoire de risque et explicabilité SHAP...',
       tone: 'violet',
       icon: ShieldAlert,
+    },
+  },
+  {
+    match: (p) => p.startsWith('/app/markets'),
+    meta: {
+      label: 'Marchés Multi-Actifs (Forex • Bonds • Cmdty)',
+      section: 'Cross-Asset Trading Desk',
+      subtitle: 'Connexion aux flux interbancaires BCE et obligations souveraines...',
+      tone: 'amber',
+      icon: Globe,
+    },
+  },
+  {
+    match: (p) => p.startsWith('/app/fundamentals'),
+    meta: {
+      label: 'Analyse Fondamentale & États Financiers SEC',
+      section: 'Corporate SEC Intelligence',
+      subtitle: 'Extraction des bilans, ratios financiers et flux de trésorerie...',
+      tone: 'emerald',
+      icon: FileSpreadsheet,
     },
   },
   {

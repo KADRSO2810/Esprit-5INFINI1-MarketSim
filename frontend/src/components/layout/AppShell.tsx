@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { CommandPalette, LivePulseDot } from '../ui';
+import { usePageTransition } from '../motion';
 import {
   TrendingUp,
   BarChart3,
@@ -121,6 +122,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const { isTransitioning } = usePageTransition();
 
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     return localStorage.getItem('sidebar_collapsed') === 'true';
@@ -250,7 +252,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                     <Link
                       key={item.to}
                       to={item.to}
-                      className={`group relative z-0 flex items-center gap-3 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors duration-150 ${
+                      className={`group relative z-0 flex items-center gap-3 px-2.5 py-2 rounded-lg text-xs font-medium transition-all duration-150 active:scale-95 ${
                         isCompact ? 'justify-center' : ''
                       } ${
                         active
@@ -399,7 +401,17 @@ export const AppShell: React.FC<AppShellProps> = ({
       {/* Main Content Area */}
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Topbar */}
-        <header className="h-14 glass-header sticky top-0 z-20 px-4 sm:px-6 flex items-center justify-between gap-3">
+        <header className="relative h-14 glass-header sticky top-0 z-20 px-4 sm:px-6 flex items-center justify-between gap-3">
+          {isTransitioning && (
+            <div className="absolute inset-x-0 top-0 h-[2.5px] bg-[#142035] overflow-hidden z-50">
+              <motion.div
+                initial={{ x: '-100%' }}
+                animate={{ x: '100%' }}
+                transition={{ repeat: Infinity, duration: 0.9, ease: 'easeInOut' }}
+                className="h-full w-1/3 rounded-full bg-gradient-to-r from-transparent via-amber-400 to-emerald-400 shadow-[0_0_12px_rgba(245,158,11,0.8)]"
+              />
+            </div>
+          )}
           {/* Left: Mobile Trigger + Breadcrumb + Page Title */}
           <div className="flex items-center gap-3 min-w-0">
             <button

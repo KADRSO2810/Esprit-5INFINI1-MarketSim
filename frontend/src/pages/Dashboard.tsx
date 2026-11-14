@@ -55,6 +55,7 @@ import {
   Briefcase,
   ArrowUpRight,
   Globe,
+  FileSpreadsheet,
 } from 'lucide-react';
 
 function isUSMarketOpen(): boolean {
@@ -644,10 +645,19 @@ export const Dashboard: React.FC = () => {
             <div className="flex items-center gap-2">
               <Link
                 to="/app/markets"
-                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 text-xs font-semibold transition"
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 active:scale-95 text-xs font-semibold transition"
+                title="Accéder au terminal multi-actifs (Forex, Obligations, Matières Premières)"
               >
                 <Globe className="w-3.5 h-3.5" />
-                Multi-Actifs Hub
+                Multi-Actifs
+              </Link>
+              <Link
+                to="/app/fundamentals"
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 active:scale-95 text-xs font-semibold transition"
+                title="Accéder à l'analyse fondamentale et aux états financiers SEC"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                Fondamentaux
               </Link>
               <div className="flex items-center gap-1.5">
                 <button

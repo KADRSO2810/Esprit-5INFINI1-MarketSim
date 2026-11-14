@@ -32,7 +32,7 @@ import {
   searchCompanies,
 } from '../api/fundamentals';
 import { generateCompanyFundamentalPdf, generateComparisonPdf } from '../utils/fundamentalPdfReport';
-import { AssetLogo, OrbitalSpinner, useToast } from '../components/ui';
+import { AssetLogo, useToast, QuantOrbitalLoader, PageTransition } from '../components/ui';
 
 const POPULAR_TICKERS = ['AAPL', 'MSFT', 'GOOGL', 'NVDA', 'AMZN', 'META', 'TSLA', 'JPM', 'NFLX', 'AMD'];
 
@@ -411,7 +411,7 @@ export const FundamentalAnalysisPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="space-y-6">
+      <PageTransition className="space-y-6">
         {/* Top Header & Search Bar */}
         <div className="bg-[#0B1220] border border-subtle rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
           <div className="flex items-center gap-3">
@@ -588,14 +588,31 @@ export const FundamentalAnalysisPage: React.FC = () => {
 
         {/* Loading State */}
         {loading && (
-          <div className="flex flex-col items-center justify-center min-h-[380px] p-8 text-center bg-[#070B14] rounded-2xl border border-subtle">
-            <OrbitalSpinner size="lg" tone="cyan" />
-            <p className="mt-4 text-xs font-mono text-slate-300 font-semibold">
-              Récupération des états financiers officiels SEC pour {symbol}...
-            </p>
-            <p className="mt-1 text-[11px] font-mono text-slate-500">
-              Extraction des bilans, comptes de résultats et calcul des ratios financiers en cours...
-            </p>
+          <div className="space-y-6">
+            <div className="rounded-2xl border border-emerald-500/25 bg-[#0B1220]/95 p-8 shadow-2xl flex flex-col items-center justify-center text-center relative overflow-hidden backdrop-blur-md">
+              <div className="absolute inset-x-0 top-0 h-[3px] bg-slate-800 overflow-hidden">
+                <div className="h-full w-1/3 bg-gradient-to-r from-emerald-500 via-sky-400 to-cyan-400 animate-pulse rounded-full" />
+              </div>
+              <QuantOrbitalLoader
+                size="lg"
+                tone="emerald"
+                icon={FileSpreadsheet}
+                badge="MOTEUR FONDAMENTAL SEC & FINNHUB"
+                title={`Extraction des États Financiers pour ${symbol}...`}
+                subtitle="Récupération des bilans certifiés (10-K, 10-Q), comptes de résultats et calcul des ratios financiers en cours..."
+              />
+            </div>
+
+            {/* Skeletons Preview */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="rounded-2xl border border-slate-800/80 bg-[#0B1220] p-4 space-y-3 animate-pulse">
+                  <div className="h-4 w-24 bg-slate-800 rounded" />
+                  <div className="h-7 w-32 bg-slate-800 rounded" />
+                  <div className="h-3 w-40 bg-slate-800/60 rounded" />
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -1495,11 +1512,18 @@ export const FundamentalAnalysisPage: React.FC = () => {
 
             {/* Comparison Loading */}
             {compareLoading && (
-              <div className="flex flex-col items-center justify-center min-h-[300px] p-8 text-center bg-[#070B14] rounded-2xl border border-subtle">
-                <OrbitalSpinner size="lg" tone="cyan" />
-                <p className="mt-4 text-xs font-mono text-slate-300 font-semibold">
-                  Agrégation et normalisation des métriques comparatives...
-                </p>
+              <div className="rounded-2xl border border-sky-500/25 bg-[#0B1220]/95 p-8 shadow-2xl flex flex-col items-center justify-center text-center relative overflow-hidden backdrop-blur-md">
+                <div className="absolute inset-x-0 top-0 h-[3px] bg-slate-800 overflow-hidden">
+                  <div className="h-full w-1/3 bg-gradient-to-r from-sky-500 via-cyan-400 to-emerald-400 animate-pulse rounded-full" />
+                </div>
+                <QuantOrbitalLoader
+                  size="lg"
+                  tone="cyan"
+                  icon={Building2}
+                  badge="COMPARATEUR MULTI-ENTREPRISES"
+                  title="Agrégation et Normalisation des Métriques..."
+                  subtitle="Extraction simultanée des ratios P/E, marge opérationnelle, ROE et dette/fonds propres..."
+                />
               </div>
             )}
 
@@ -1571,7 +1595,7 @@ export const FundamentalAnalysisPage: React.FC = () => {
             )}
           </div>
         )}
-      </div>
+      </PageTransition>
     </AppShell>
   );
 };

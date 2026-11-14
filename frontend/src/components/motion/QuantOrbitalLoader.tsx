@@ -3,7 +3,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { TrendingUp } from 'lucide-react';
 import { EASE_INSTITUTIONAL } from './presets';
 
-export type QuantOrbitalTone = 'cyan' | 'violet' | 'emerald' | 'rose';
+export type QuantOrbitalTone = 'cyan' | 'violet' | 'emerald' | 'rose' | 'amber';
 export type QuantOrbitalSize = 'sm' | 'md' | 'lg';
 
 interface QuantOrbitalLoaderProps {
@@ -58,6 +58,14 @@ const TONE_COLORS: Record<
     border: 'border-rose-500/30',
     badgeText: 'text-rose-300',
     iconText: 'text-rose-400',
+  },
+  amber: {
+    primary: '#F59E0B',
+    secondary: '#38BDF8',
+    glow: 'from-amber-500/20 via-orange-500/10 to-sky-500/15',
+    border: 'border-amber-500/30',
+    badgeText: 'text-amber-300',
+    iconText: 'text-amber-400',
   },
 };
 
