@@ -36,6 +36,7 @@ import {
   Trash2,
   PanelRight,
   X,
+  FileSpreadsheet,
 } from 'lucide-react';
 
 interface TradingViewChartProps {
@@ -802,6 +803,17 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({
                 <PanelRight className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Trading Dock</span>
               </button>
+            )}
+
+            {!symbol.includes(':') && (
+              <a
+                href={`/app/fundamentals?symbol=${encodeURIComponent(symbol)}`}
+                className="px-2.5 py-1.5 rounded-lg border text-[11px] font-semibold flex items-center gap-1.5 transition bg-emerald-500/10 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20"
+                title="Consulter l'analyse fondamentale (bilans, ratios, 10-K)"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Fondamentaux</span>
+              </a>
             )}
 
             <button

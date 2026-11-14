@@ -20,6 +20,7 @@ import {
   ExternalLink,
   Activity,
   Command,
+  FileSpreadsheet,
 } from 'lucide-react';
 
 export interface AppShellProps {
@@ -69,6 +70,12 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { to: '/app/news', label: 'News & FinBERT', icon: Newspaper, matchPrefix: '/app/news', accent: 'text-cyan-400' },
       { to: '/app/stress-testing', label: 'AI Stress Testing', icon: ShieldAlert, matchPrefix: '/app/stress-testing', accent: 'text-violet-400' },
+    ],
+  },
+  {
+    group: 'Research & Fundamentals',
+    items: [
+      { to: '/app/fundamentals', label: 'Analyse Fondamentale', icon: FileSpreadsheet, matchPrefix: '/app/fundamentals', accent: 'text-emerald-400' },
     ],
   },
 ];

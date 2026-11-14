@@ -10,6 +10,7 @@ import {
   Search,
   CornerDownLeft,
   X,
+  FileSpreadsheet,
 } from 'lucide-react';
 
 // =========================================================================
@@ -244,6 +245,14 @@ const COMMAND_ROUTES: CommandRoute[] = [
     keywords: 'stress test xai shap random forest banks basel',
     icon: ShieldAlert,
     accent: 'text-violet-400',
+  },
+  {
+    path: '/app/fundamentals',
+    label: 'Analyse Fondamentale & États Financiers',
+    section: 'Research & Fundamentals',
+    keywords: 'fundamental analysis bilan compte resultat cash flow ratios valuation pe roe debtequity finnhub 10k 10q sec',
+    icon: FileSpreadsheet,
+    accent: 'text-emerald-400',
   },
 ];
 

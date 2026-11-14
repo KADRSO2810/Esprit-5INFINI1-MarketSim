@@ -12,6 +12,7 @@ import { Backtesting } from './pages/Backtesting';
 import { StressTesting } from './pages/StressTesting';
 import { NewsSentimentPage } from './pages/NewsSentimentPage';
 import { StrategyLab } from './pages/StrategyLab';
+import { FundamentalAnalysisPage } from './pages/FundamentalAnalysisPage';
 
 export const App: React.FC = () => {
   return (
@@ -64,6 +65,14 @@ export const App: React.FC = () => {
             element={
               <ProtectedRoute>
                 <StressTesting />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/app/fundamentals"
+            element={
+              <ProtectedRoute>
+                <FundamentalAnalysisPage />
               </ProtectedRoute>
             }
           />
