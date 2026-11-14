@@ -18,6 +18,7 @@ import {
   Plus,
   Printer,
   Download,
+  FileDown,
 } from 'lucide-react';
 import { AppShell } from '../components/layout/AppShell';
 import {
@@ -30,6 +31,7 @@ import {
   compareCompanies,
   searchCompanies,
 } from '../api/fundamentals';
+import { generateCompanyFundamentalPdf, generateComparisonPdf } from '../utils/fundamentalPdfReport';
 import { AssetLogo, OrbitalSpinner, useToast } from '../components/ui';
 
 const POPULAR_TICKERS = ['AAPL', 'MSFT', 'GOOGL', 'NVDA', 'AMZN', 'META', 'TSLA', 'JPM', 'NFLX', 'AMD'];
@@ -321,6 +323,40 @@ export const FundamentalAnalysisPage: React.FC = () => {
     }
   };
 
+  // Export PDF Institutionnel Structuré (Génère un vrai document PDF complet sans coupures ni barres de défilement)
+  const handleDownloadPdfReport = async () => {
+    try {
+      if (mode === 'deepdive') {
+        if (!data || !data.available) {
+          toast.warning('PDF impossible', "Aucune donnée fondamentale disponible pour générer le rapport PDF.");
+          return;
+        }
+
+        let curStatements = statements;
+        if (!curStatements) {
+          try {
+            curStatements = await getCompanyFinancialStatements(symbol, statementFreq);
+            setStatements(curStatements);
+          } catch (e) {
+            // tolérance
+          }
+        }
+
+        const fileName = generateCompanyFundamentalPdf(data, curStatements, statementFreq);
+        toast.success('Rapport PDF Généré', `Document téléchargé : ${fileName}`);
+      } else {
+        if (!comparisonData || comparisonData.symbols.length === 0) {
+          toast.warning('PDF impossible', "Aucune donnée de comparaison disponible.");
+          return;
+        }
+        const fileName = generateComparisonPdf(comparisonData);
+        toast.success('Rapport PDF Généré', `Matrice comparative téléchargée : ${fileName}`);
+      }
+    } catch (err) {
+      toast.error('Erreur PDF', "Impossible de générer le document PDF.");
+    }
+  };
+
   const handlePrintPdf = () => {
     window.print();
   };
@@ -432,6 +468,17 @@ export const FundamentalAnalysisPage: React.FC = () => {
               <RefreshCw className={`w-4 h-4 ${refreshing || compareLoading ? 'animate-spin text-emerald-400' : ''}`} />
             </button>
 
+            {/* Download Professional PDF Report */}
+            <button
+              onClick={handleDownloadPdfReport}
+              disabled={loading || compareLoading || (mode === 'deepdive' && !data?.available)}
+              className="px-3 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/40 text-sky-300 hover:text-white text-xs font-mono font-medium transition flex items-center gap-1.5 shadow-sm disabled:opacity-40"
+              title="Télécharger le rapport complet d'analyse fondamentale en PDF institutionnel"
+            >
+              <FileDown className="w-3.5 h-3.5 text-sky-400" />
+              <span>Rapport PDF</span>
+            </button>
+
             {/* Export Excel (.csv structuré) Button */}
             <button
               onClick={handleExportExcel}
@@ -443,15 +490,14 @@ export const FundamentalAnalysisPage: React.FC = () => {
               <span>Export Excel</span>
             </button>
 
-            {/* Print / PDF Button */}
+            {/* Print Button */}
             <button
               onClick={handlePrintPdf}
               disabled={loading || compareLoading || (mode === 'deepdive' && !data?.available)}
-              className="px-3 py-1.5 rounded-xl bg-[#070B14] hover:bg-[#101A2B] border border-sky-500/30 text-sky-300 hover:text-sky-200 text-xs font-mono font-medium transition flex items-center gap-1.5 shadow-sm disabled:opacity-40"
-              title="Imprimer ou enregistrer au format PDF"
+              className="p-2 rounded-xl bg-[#070B14] hover:bg-[#101A2B] border border-subtle text-slate-300 hover:text-white text-xs transition disabled:opacity-40"
+              title="Imprimer directement"
             >
-              <Printer className="w-3.5 h-3.5 text-sky-400" />
-              <span>Imprimer / PDF</span>
+              <Printer className="w-4 h-4 text-slate-400" />
             </button>
           </div>
         </div>
