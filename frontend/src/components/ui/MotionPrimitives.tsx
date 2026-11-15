@@ -13,6 +13,7 @@ import {
   FileSpreadsheet,
   Globe,
   ShieldCheck,
+  GraduationCap,
 } from 'lucide-react';
 
 // =========================================================================
@@ -271,6 +272,14 @@ const COMMAND_ROUTES: CommandRoute[] = [
     keywords: 'actuaire assurance prime pure prime commerciale chain ladder ibnr sinistres monte carlo glm tarification solvency',
     icon: ShieldCheck,
     accent: 'text-violet-400',
+  },
+  {
+    path: '/app/academy',
+    label: 'Académie Financière & Quiz',
+    section: 'Formation & Apprentissage',
+    keywords: 'cours academie formation apprentissage quiz qcm scoring badges certifications lecons trading finance',
+    icon: GraduationCap,
+    accent: 'text-indigo-400',
   },
 ];
 

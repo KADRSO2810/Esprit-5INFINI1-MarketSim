@@ -15,6 +15,7 @@ import { StrategyLab } from './pages/StrategyLab';
 import { FundamentalAnalysisPage } from './pages/FundamentalAnalysisPage';
 import { MultiAssetHubPage } from './pages/MultiAssetHubPage';
 import { ActuarialPage } from './pages/ActuarialPage';
+import { AcademyPage } from './pages/AcademyPage';
 
 export const App: React.FC = () => {
   return (
@@ -91,6 +92,14 @@ export const App: React.FC = () => {
             element={
               <ProtectedRoute>
                 <ActuarialPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/app/academy"
+            element={
+              <ProtectedRoute>
+                <AcademyPage />
               </ProtectedRoute>
             }
           />

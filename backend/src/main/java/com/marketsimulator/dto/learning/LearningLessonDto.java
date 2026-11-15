@@ -1,0 +1,23 @@
+package com.marketsimulator.dto.learning;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class LearningLessonDto {
+    private String id;
+    private String moduleId;
+    private String title;
+    private String summary;
+    private String contentMarkdown;
+    private List<String> keyTakeaways;
+    private int durationMinutes;
+    private int orderIndex;
+}

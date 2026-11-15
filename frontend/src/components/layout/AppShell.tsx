@@ -24,6 +24,7 @@ import {
   FileSpreadsheet,
   Globe,
   ShieldCheck,
+  GraduationCap,
 } from 'lucide-react';
 
 export interface AppShellProps {
@@ -86,6 +87,12 @@ const NAV_SECTIONS: NavSection[] = [
     group: 'Actuariat & Assurance',
     items: [
       { to: '/app/actuary', label: 'Laboratoire Actuariel', icon: ShieldCheck, matchPrefix: '/app/actuary', accent: 'text-purple-400' },
+    ],
+  },
+  {
+    group: 'Formation & Apprentissage',
+    items: [
+      { to: '/app/academy', label: 'Académie Financière', icon: GraduationCap, matchPrefix: '/app/academy', accent: 'text-indigo-400' },
     ],
   },
 ];

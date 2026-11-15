@@ -3,7 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import { QuantOrbitalLoader, QuantOrbitalTone } from './QuantOrbitalLoader';
 import { EASE_INSTITUTIONAL } from './presets';
-import { Activity, BarChart3, Bot, Newspaper, ShieldAlert, Globe, FileSpreadsheet, ShieldCheck } from 'lucide-react';
+import { Activity, BarChart3, Bot, Newspaper, ShieldAlert, Globe, FileSpreadsheet, ShieldCheck, GraduationCap } from 'lucide-react';
 
 interface SectionMeta {
   label: string;
@@ -82,6 +82,16 @@ const ROUTE_META: Array<{ match: (p: string) => boolean; meta: SectionMeta }> = 
       subtitle: 'Tarification GLM, simulations Monte Carlo et provisions Chain-Ladder...',
       tone: 'violet',
       icon: ShieldCheck,
+    },
+  },
+  {
+    match: (p) => p.startsWith('/app/academy'),
+    meta: {
+      label: 'Académie Financière & Certifications',
+      section: 'Formation & Apprentissage',
+      subtitle: 'Chargement des fiches pédagogiques, quiz QCM et scénarios de marché...',
+      tone: 'cyan',
+      icon: GraduationCap,
     },
   },
   {
