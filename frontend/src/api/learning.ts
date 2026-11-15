@@ -96,6 +96,35 @@ export interface UserLearningProfile {
   userTitle: string;
 }
 
+export interface LeaderboardTrader {
+  rank: number;
+  userId: number;
+  displayName: string;
+  email: string;
+  totalPnl: number;
+  returnPercentage: number;
+  winRate: number;
+  tradesCount: number;
+  badgesCount: number;
+  tier: 'DIAMOND' | 'PLATINUM' | 'GOLD' | 'SILVER';
+  scoreTotal: number;
+}
+
+export interface TradingChallenge {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  difficulty: string;
+  rewardBadgeCode: string;
+  rewardPoints: number;
+  participantsCount: number;
+  daysRemaining: number;
+  status: 'ACTIVE' | 'UPCOMING' | 'COMPLETED';
+  objective: string;
+  joined: boolean;
+}
+
 export const learningApi = {
   getModules: async (): Promise<LearningModule[]> => {
     const res = await api.get<LearningModule[]>('/api/learning/modules');
@@ -141,6 +170,21 @@ export const learningApi = {
 
   getUserProfile: async (): Promise<UserLearningProfile> => {
     const res = await api.get<UserLearningProfile>('/api/learning/profile');
+    return res.data;
+  },
+
+  getLeaderboard: async (): Promise<LeaderboardTrader[]> => {
+    const res = await api.get<LeaderboardTrader[]>('/api/learning/leaderboard');
+    return res.data;
+  },
+
+  getChallenges: async (): Promise<TradingChallenge[]> => {
+    const res = await api.get<TradingChallenge[]>('/api/learning/challenges');
+    return res.data;
+  },
+
+  joinChallenge: async (challengeId: string): Promise<{ success: boolean; challengeId: string }> => {
+    const res = await api.post<{ success: boolean; challengeId: string }>(`/api/learning/challenges/${challengeId}/join`);
     return res.data;
   },
 };

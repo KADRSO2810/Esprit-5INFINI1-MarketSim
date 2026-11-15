@@ -26,6 +26,8 @@ interface OrderModalProps {
   symbol: string;
   lastPrice: number | null;
   initialSide?: 'BUY' | 'SELL';
+  initialOrderType?: 'MARKET' | 'LIMIT';
+  initialLimitPrice?: number | null;
   sessionId?: number;
   onClose: () => void;
   onFilled: (fill: OrderFill) => void;
@@ -36,11 +38,15 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   symbol,
   lastPrice,
   initialSide = 'BUY',
+  initialOrderType = 'MARKET',
+  initialLimitPrice = null,
   sessionId = 0,
   onClose,
   onFilled,
 }) => {
   const [side, setSide] = useState<'BUY' | 'SELL'>(initialSide);
+  const [orderType, setOrderType] = useState<'MARKET' | 'LIMIT'>(initialOrderType);
+  const [limitPrice, setLimitPrice] = useState<string>(initialLimitPrice ? String(initialLimitPrice) : '');
   const [qty, setQty] = useState<string>('1');
   const [stopLoss, setStopLoss] = useState<string>('');
   const [takeProfit, setTakeProfit] = useState<string>('');
@@ -55,6 +61,8 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setSide(initialSide);
+      setOrderType(initialOrderType);
+      setLimitPrice(initialLimitPrice ? String(initialLimitPrice) : '');
       setFill(null);
       setError(null);
       setStopLoss('');
@@ -62,7 +70,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
       setShowSlTp(false);
       setRiskAssessment(null);
     }
-  }, [isOpen, symbol, initialSide]);
+  }, [isOpen, symbol, initialSide, initialOrderType, initialLimitPrice]);
 
   const numQty = Number(qty);
   const numSL = stopLoss ? parseFloat(stopLoss) : null;
@@ -191,21 +199,37 @@ export const OrderModal: React.FC<OrderModalProps> = ({
     setLoading(true);
     setError(null);
     try {
+      const numLimit = orderType === 'LIMIT' ? parseFloat(limitPrice) : null;
+      if (orderType === 'LIMIT' && (!numLimit || numLimit <= 0)) {
+        setError('Le prix limite est obligatoire pour un ordre LIMIT.');
+        setLoading(false);
+        return;
+      }
+
       const result = await placeMarketOrder(
         symbol,
         side,
         q,
         sessionId,
         side === 'BUY' ? numSL : null,
-        side === 'BUY' ? numTP : null
+        side === 'BUY' ? numTP : null,
+        orderType,
+        numLimit
       );
       setFill(result);
-      toast.trade(
-        `Ordre ${result.side} exécuté`,
-        `${result.quantity} ${result.symbol} @ $${Number(result.price).toFixed(4)}${
-          result.stopLoss ? ' | SL: $' + Number(result.stopLoss).toFixed(2) : ''
-        }${result.takeProfit ? ' | TP: $' + Number(result.takeProfit).toFixed(2) : ''}`
-      );
+      if (result.status === 'PENDING') {
+        toast.info(
+          `Ordre Limite inscrit au carnet`,
+          `${result.side} ${result.quantity} ${result.symbol} @ $${Number(result.price).toFixed(4)}`
+        );
+      } else {
+        toast.trade(
+          `Ordre ${result.side} exécuté`,
+          `${result.quantity} ${result.symbol} @ $${Number(result.price).toFixed(4)}${
+            result.stopLoss ? ' | SL: $' + Number(result.stopLoss).toFixed(2) : ''
+          }${result.takeProfit ? ' | TP: $' + Number(result.takeProfit).toFixed(2) : ''}`
+        );
+      }
       onFilled(result);
     } catch (err: unknown) {
       const msg =
@@ -401,6 +425,57 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                   <TrendingDown className="w-3.5 h-3.5" /> Vendre (SELL)
                 </button>
               </div>
+
+              {/* Type d'ordre : Au Marché (Market) vs Cours Limité (Limit) */}
+              <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-[#070B14] border border-subtle text-xs">
+                <button
+                  type="button"
+                  onClick={() => setOrderType('MARKET')}
+                  className={`py-1.5 rounded-lg font-bold transition ${
+                    orderType === 'MARKET'
+                      ? 'bg-sky-500 text-slate-950 shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Au Marché (Market)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOrderType('LIMIT');
+                    if (!limitPrice && lastPrice) setLimitPrice(String(lastPrice));
+                  }}
+                  className={`py-1.5 rounded-lg font-bold transition ${
+                    orderType === 'LIMIT'
+                      ? 'bg-sky-500 text-slate-950 shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Cours Limité (Limit)
+                </button>
+              </div>
+
+              {/* Si LIMIT, champ Prix Limite avec indicateur carnet d'ordres */}
+              {orderType === 'LIMIT' && (
+                <div className="rounded-xl border border-sky-500/30 bg-sky-500/5 p-3 space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <label className="font-semibold text-sky-300">Prix Limite ($)</label>
+                    <span className="text-[10px] text-slate-400 font-mono">Inscrit au Carnet L2</span>
+                  </div>
+                  <input
+                    type="number"
+                    step="any"
+                    value={limitPrice}
+                    onChange={(e) => setLimitPrice(e.target.value)}
+                    placeholder={lastPrice ? String(lastPrice) : '0.00'}
+                    className="w-full bg-[#070B14] border border-slate-700 text-white font-mono tabular-nums text-sm px-3.5 py-2 rounded-lg focus:outline-none focus:border-sky-400 transition"
+                    required
+                  />
+                  <p className="text-[10px] text-slate-400">
+                    L'ordre sera exécuté automatiquement si le marché touche ou franchit votre cours limite.
+                  </p>
+                </div>
+              )}
 
               {/* Quantity + Presets */}
               <div id="section-qty">

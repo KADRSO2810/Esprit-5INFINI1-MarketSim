@@ -2429,4 +2429,171 @@ La directive européenne impose un capital de solvabilité requis garantissant q
                 .primarySymbol("COMMODITY")
                 .build());
     }
+
+    private final Set<String> joinedChallengeKeys = Collections.synchronizedSet(new HashSet<>());
+
+    public List<LeaderboardTraderDto> getLeaderboard(User currentUser) {
+        long badgesCount = badgeRepository.findByUserIdOrderByUnlockedAtDesc(currentUser.getId()).size();
+        long passedQuizzes = quizAttemptRepository.countByUserIdAndPassedTrue(currentUser.getId());
+        long completedLessons = progressRepository.countByUserId(currentUser.getId());
+
+        int currentScore = (int) (badgesCount * 500 + passedQuizzes * 250 + completedLessons * 100);
+        String currentEmail = currentUser.getEmail();
+        String currentName = currentEmail.split("@")[0].toUpperCase();
+
+        List<LeaderboardTraderDto> list = new ArrayList<>(List.of(
+                LeaderboardTraderDto.builder()
+                        .rank(1)
+                        .userId(901L)
+                        .displayName("Yassine Mansour (Quant Desk)")
+                        .email("yassine.mansour@esprit.tn")
+                        .totalPnl(new BigDecimal("18450.00"))
+                        .returnPercentage(new BigDecimal("18.45"))
+                        .winRate(new BigDecimal("78.50"))
+                        .tradesCount(42)
+                        .badgesCount(6)
+                        .tier("DIAMOND")
+                        .scoreTotal(4250)
+                        .build(),
+                LeaderboardTraderDto.builder()
+                        .rank(2)
+                        .userId(currentUser.getId())
+                        .displayName(currentName + " (Vous)")
+                        .email(currentEmail)
+                        .totalPnl(new BigDecimal("12800.50"))
+                        .returnPercentage(new BigDecimal("12.80"))
+                        .winRate(new BigDecimal("72.00"))
+                        .tradesCount(28)
+                        .badgesCount((int) badgesCount)
+                        .tier(badgesCount >= 4 ? "DIAMOND" : badgesCount >= 2 ? "PLATINUM" : "GOLD")
+                        .scoreTotal(Math.max(2850, currentScore))
+                        .build(),
+                LeaderboardTraderDto.builder()
+                        .rank(3)
+                        .userId(902L)
+                        .displayName("Sarra Trabelsi (Risk & Solvency)")
+                        .email("sarra.trabelsi@esprit.tn")
+                        .totalPnl(new BigDecimal("10950.20"))
+                        .returnPercentage(new BigDecimal("10.95"))
+                        .winRate(new BigDecimal("69.40"))
+                        .tradesCount(35)
+                        .badgesCount(5)
+                        .tier("GOLD")
+                        .scoreTotal(3400)
+                        .build(),
+                LeaderboardTraderDto.builder()
+                        .rank(4)
+                        .userId(903L)
+                        .displayName("Amine Ben Salem (Forex Desk)")
+                        .email("amine.bensalem@esprit.tn")
+                        .totalPnl(new BigDecimal("8420.00"))
+                        .returnPercentage(new BigDecimal("8.42"))
+                        .winRate(new BigDecimal("64.20"))
+                        .tradesCount(19)
+                        .badgesCount(4)
+                        .tier("GOLD")
+                        .scoreTotal(2950)
+                        .build(),
+                LeaderboardTraderDto.builder()
+                        .rank(5)
+                        .userId(904L)
+                        .displayName("Khadija Ouerghi (Actuarial Lead)")
+                        .email("khadija.ouerghi@esprit.tn")
+                        .totalPnl(new BigDecimal("6200.00"))
+                        .returnPercentage(new BigDecimal("6.20"))
+                        .winRate(new BigDecimal("61.00"))
+                        .tradesCount(15)
+                        .badgesCount(3)
+                        .tier("SILVER")
+                        .scoreTotal(2400)
+                        .build(),
+                LeaderboardTraderDto.builder()
+                        .rank(6)
+                        .userId(905L)
+                        .displayName("Mehdi Dridi (Multi-Asset Trader)")
+                        .email("mehdi.dridi@esprit.tn")
+                        .totalPnl(new BigDecimal("4150.00"))
+                        .returnPercentage(new BigDecimal("4.15"))
+                        .winRate(new BigDecimal("57.50"))
+                        .tradesCount(22)
+                        .badgesCount(2)
+                        .tier("SILVER")
+                        .scoreTotal(1850)
+                        .build()
+        ));
+
+        list.sort((a, b) -> Integer.compare(b.getScoreTotal(), a.getScoreTotal()));
+        for (int i = 0; i < list.size(); i++) {
+            list.get(i).setRank(i + 1);
+        }
+        return list;
+    }
+
+    public List<TradingChallengeDto> getTradingChallenges(User currentUser) {
+        String uid = String.valueOf(currentUser.getId());
+        return List.of(
+                TradingChallengeDto.builder()
+                        .id("CHAL_FOREX_48H")
+                        .title("Grand Prix Forex & Arbitrage de Devises (48h)")
+                        .description("Générez un PnL positif sur au moins 5 positions Forex majeures (EUR/USD, GBP/USD, USD/JPY) en respectant un Stop-Loss strict.")
+                        .category("FOREX")
+                        .difficulty("AVANCÉ")
+                        .rewardBadgeCode("BADGE_FOREX_CHAMPION")
+                        .rewardPoints(500)
+                        .participantsCount(48)
+                        .daysRemaining(3)
+                        .status("ACTIVE")
+                        .objective("Rentabilité > 4% avec Maximum Drawdown < 2.5%")
+                        .joined(joinedChallengeKeys.contains(uid + "_CHAL_FOREX_48H"))
+                        .build(),
+                TradingChallengeDto.builder()
+                        .id("CHAL_RISK_SHARPE")
+                        .title("Tournoi Maîtrise du Risque & Ratio de Sharpe Maximal")
+                        .description("Bâtissez un portefeuille équilibré minimisant la volatilité avec un ratio de Sharpe annualisé supérieur à 2.0.")
+                        .category("RISK")
+                        .difficulty("EXPERT")
+                        .rewardBadgeCode("BADGE_SHARPE_MASTER")
+                        .rewardPoints(450)
+                        .participantsCount(36)
+                        .daysRemaining(5)
+                        .status("ACTIVE")
+                        .objective("Sharpe Ratio >= 2.00 et VaR 99% < 5%")
+                        .joined(joinedChallengeKeys.contains(uid + "_CHAL_RISK_SHARPE"))
+                        .build(),
+                TradingChallengeDto.builder()
+                        .id("CHAL_MULTI_ASSET")
+                        .title("Championnat d'Arbitrage Multi-Actifs ESPRIT")
+                        .description("Allouez du capital sur 4 classes d'actifs simultanées (Actions, Obligations US10Y, Or et Pétrole) pour battre l'indice de référence.")
+                        .category("MULTI_ASSET")
+                        .difficulty("INTERMÉDIAIRE")
+                        .rewardBadgeCode("BADGE_MULTI_ASSET_ELITE")
+                        .rewardPoints(600)
+                        .participantsCount(62)
+                        .daysRemaining(7)
+                        .status("ACTIVE")
+                        .objective("Allocation sur 4 classes avec corrélation croisée < 0.40")
+                        .joined(joinedChallengeKeys.contains(uid + "_CHAL_MULTI_ASSET"))
+                        .build(),
+                TradingChallengeDto.builder()
+                        .id("CHAL_ACTUARY_STORM")
+                        .title("Défi Solvabilité II & Résilience Choc Centennal")
+                        .description("Ajustez les primes pures, chargements de sécurité et provisions IBNR pour restaurer la rentabilité technique face à une tempête.")
+                        .category("ACTUARY")
+                        .difficulty("EXPERT")
+                        .rewardBadgeCode("BADGE_ACTUARIAL_EXCELLENCE")
+                        .rewardPoints(550)
+                        .participantsCount(29)
+                        .daysRemaining(4)
+                        .status("ACTIVE")
+                        .objective("Ramener le ratio combiné sous 95% avec couverture SCR > 130%")
+                        .joined(joinedChallengeKeys.contains(uid + "_CHAL_ACTUARY_STORM"))
+                        .build()
+        );
+    }
+
+    public boolean joinChallenge(User currentUser, String challengeId) {
+        String key = currentUser.getId() + "_" + challengeId;
+        joinedChallengeKeys.add(key);
+        return true;
+    }
 }

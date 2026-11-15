@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { AppShell } from '../components/layout/AppShell';
 import { OrderModal } from '../components/OrderModal';
+import { OrderBookWidget } from '../components/trading/OrderBookWidget';
 import {
   multiAssetApi,
   ForexQuote,
@@ -46,16 +47,20 @@ export const MultiAssetHubPage: React.FC = () => {
   const [convLoading, setConvLoading] = useState<boolean>(false);
 
   // Order modal state
+  const [orderBookSymbol, setOrderBookSymbol] = useState<string>('EUR/USD');
   const [orderState, setOrderState] = useState<{
     isOpen: boolean;
     symbol: string;
     side: 'BUY' | 'SELL';
     price: number | null;
+    orderType?: 'MARKET' | 'LIMIT';
+    limitPrice?: number;
   }>({
     isOpen: false,
     symbol: 'EUR/USD',
     side: 'BUY',
     price: null,
+    orderType: 'MARKET',
   });
 
   const loadAllData = async () => {
@@ -100,12 +105,20 @@ export const MultiAssetHubPage: React.FC = () => {
     handleConvert();
   }, [convFrom, convTo]);
 
-  const handleOpenOrder = (symbol: string, side: 'BUY' | 'SELL', price: number) => {
+  const handleOpenOrder = (
+    symbol: string,
+    side: 'BUY' | 'SELL',
+    price: number,
+    orderType: 'MARKET' | 'LIMIT' = 'MARKET',
+    limitPrice?: number
+  ) => {
     setOrderState({
       isOpen: true,
       symbol,
       side,
       price,
+      orderType,
+      limitPrice: limitPrice ?? price,
     });
   };
 
@@ -395,6 +408,58 @@ export const MultiAssetHubPage: React.FC = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── CARNET D'ORDRES LEVEL 2 & CARTE DE PROFONDEUR ─────────────── */}
+        {(activeTab === 'ALL' || activeTab === 'FOREX' || activeTab === 'COMMODITY') && (
+          <div className="rounded-2xl border border-slate-800 bg-[#0B1220]/95 p-5 shadow-2xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500/20 text-sky-400">
+                  <Layers className="h-4 w-4" />
+                </span>
+                <div>
+                  <h2 className="text-base font-bold text-white flex items-center gap-2">
+                    Carnet d'Ordres Level 2 & Profondeur du Marché (Market Depth)
+                    <span className="rounded bg-sky-500/20 px-2 py-0.5 text-[10px] font-bold text-sky-300 border border-sky-500/30">
+                      L2 Live Engine
+                    </span>
+                  </h2>
+                  <p className="text-xs text-slate-400">
+                    Visualisation dynamique des offres (Asks) et demandes (Bids) avec passage direct d'ordres au marché ou à cours limité.
+                  </p>
+                </div>
+              </div>
+
+              {/* Sélecteur d'actif pour le carnet */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400">Actif surveillé :</span>
+                <select
+                  value={orderBookSymbol}
+                  onChange={(e) => setOrderBookSymbol(e.target.value)}
+                  className="rounded-xl border border-slate-800 bg-[#070B14] px-3 py-1.5 font-mono text-xs font-bold text-sky-400 focus:outline-none"
+                >
+                  <option value="EUR/USD">EUR/USD (Forex Major)</option>
+                  <option value="GBP/USD">GBP/USD (Forex Cable)</option>
+                  <option value="USD/JPY">USD/JPY (Forex Yen)</option>
+                  <option value="USD/CHF">USD/CHF (Forex Swiss)</option>
+                  <option value="XAU/USD">XAU/USD (Or Spot)</option>
+                  <option value="BRENT">BRENT (Pétrole Brut)</option>
+                  <option value="OAT-10Y">OAT-10Y (Obligation France)</option>
+                  <option value="BUND-10Y">BUND-10Y (Obligation Allemagne)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <OrderBookWidget
+                symbol={orderBookSymbol}
+                onSelectPrice={(price, side) => {
+                  handleOpenOrder(orderBookSymbol, side, price, 'LIMIT', price);
+                }}
+              />
             </div>
           </div>
         )}
@@ -697,6 +762,8 @@ export const MultiAssetHubPage: React.FC = () => {
             symbol={orderState.symbol}
             lastPrice={orderState.price}
             initialSide={orderState.side}
+            initialOrderType={orderState.orderType || 'MARKET'}
+            initialLimitPrice={orderState.limitPrice}
             sessionId={0}
             onClose={() => setOrderState(prev => ({ ...prev, isOpen: false }))}
             onFilled={() => {

@@ -13,6 +13,8 @@ import {
   QuizResult,
   MarketScenario,
   UserLearningProfile,
+  LeaderboardTrader,
+  TradingChallenge,
 } from '../api/learning';
 import {
   GraduationCap,
@@ -34,6 +36,10 @@ import {
   ExternalLink,
   Download,
   AlertTriangle,
+  Trophy,
+  Target,
+  Crown,
+  Medal,
 } from 'lucide-react';
 
 export const AcademyPage: React.FC = () => {
@@ -41,12 +47,15 @@ export const AcademyPage: React.FC = () => {
   const toast = useToast();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<'COURS' | 'QUIZ' | 'SCENARIOS' | 'BADGES'>('COURS');
+  const [activeTab, setActiveTab] = useState<'COURS' | 'QUIZ' | 'SCENARIOS' | 'BADGES' | 'CLASSEMENT'>('COURS');
 
   const [modules, setModules] = useState<LearningModule[]>([]);
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [scenarios, setScenarios] = useState<MarketScenario[]>([]);
   const [profile, setProfile] = useState<UserLearningProfile | null>(null);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardTrader[]>([]);
+  const [challenges, setChallenges] = useState<TradingChallenge[]>([]);
+  const [joiningChallengeId, setJoiningChallengeId] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   // Active lesson reading modal
@@ -64,20 +73,38 @@ export const AcademyPage: React.FC = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [mods, qzs, scens, prof] = await Promise.all([
+      const [mods, qzs, scens, prof, lb, chals] = await Promise.all([
         learningApi.getModules(),
         learningApi.getQuizzes(),
         learningApi.getMarketScenarios(),
         learningApi.getUserProfile(),
+        learningApi.getLeaderboard().catch(() => [] as LeaderboardTrader[]),
+        learningApi.getChallenges().catch(() => [] as TradingChallenge[]),
       ]);
       setModules(mods);
       setQuizzes(qzs);
       setScenarios(scens);
       setProfile(prof);
+      setLeaderboard(lb);
+      setChallenges(chals);
     } catch (err: any) {
       toast.error('Erreur de chargement', err?.message || 'Impossible de joindre le serveur pédagogique');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleJoinChallenge = async (challengeId: string) => {
+    try {
+      setJoiningChallengeId(challengeId);
+      await learningApi.joinChallenge(challengeId);
+      toast.success('Défi Rejoint !', 'Vous êtes officiellement inscrit au tournoi de trading.');
+      const updated = await learningApi.getChallenges();
+      setChallenges(updated);
+    } catch (err: any) {
+      toast.error('Erreur', err?.message || 'Impossible de rejoindre le défi');
+    } finally {
+      setJoiningChallengeId(null);
     }
   };
 
@@ -394,6 +421,18 @@ export const AcademyPage: React.FC = () => {
             >
               <Award className="h-4 w-4" />
               Badges & Certifications ({profile?.badges?.length ?? 0})
+            </button>
+
+            <button
+              onClick={() => setActiveTab('CLASSEMENT')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition ${
+                activeTab === 'CLASSEMENT'
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
+              }`}
+            >
+              <Trophy className="h-4 w-4" />
+              Concours & Classement
             </button>
           </div>
 
@@ -1071,6 +1110,270 @@ export const AcademyPage: React.FC = () => {
                       </div>
                     );
                   })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* ONGLET 5 : CLASSEMENT GÉNÉRAL & DÉFIS DE TRADING (CONCOURS) */}
+          {/* ========================================================================= */}
+          {activeTab === 'CLASSEMENT' && (
+            <div className="space-y-8">
+              {/* Podium Top 3 */}
+              <div className="relative overflow-hidden rounded-3xl border border-amber-500/30 bg-gradient-to-b from-[#0F172A] via-[#0B1220] to-[#070B14] p-6 shadow-2xl">
+                <div className="text-center mb-8">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-300">
+                    <Trophy className="h-4 w-4 text-amber-400" />
+                    <span>Salle des Marchés ESPRIT · Saison 2026-2027</span>
+                  </div>
+                  <h2 className="mt-2 text-2xl font-black tracking-tight text-white md:text-3xl">
+                    Podium d'Excellence & Top Traders
+                  </h2>
+                  <p className="mt-1 text-xs text-slate-400 max-w-lg mx-auto">
+                    Classement algorithmique basé sur le PnL, la constance (Win Rate), les trades exécutés et les certifications académiques validées.
+                  </p>
+                </div>
+
+                {/* Podium Cards */}
+                {leaderboard.length >= 3 && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end max-w-4xl mx-auto pt-4">
+                    {/* 2nd Place */}
+                    <div className="order-2 md:order-1 rounded-2xl border border-slate-700 bg-slate-800/40 p-5 text-center relative backdrop-blur">
+                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-slate-300 text-slate-900 font-black text-sm shadow-lg">
+                        2
+                      </div>
+                      <div className="mt-2 text-slate-400 text-xs font-mono">Médaille d'Argent</div>
+                      <div className="mt-1 font-bold text-white text-base truncate">{leaderboard[1].displayName}</div>
+                      <div className="mt-1 inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-700 text-slate-200">
+                        {leaderboard[1].tier}
+                      </div>
+                      <div className="mt-4 pt-3 border-t border-slate-800 flex justify-around text-xs">
+                        <div>
+                          <div className="text-[10px] text-slate-500">PnL</div>
+                          <div className="font-mono font-bold text-emerald-400">+${leaderboard[1].totalPnl.toLocaleString()}</div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-slate-500">Win Rate</div>
+                          <div className="font-mono font-bold text-sky-400">{leaderboard[1].winRate}%</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 1st Place (Gold) */}
+                    <div className="order-1 md:order-2 rounded-2xl border-2 border-amber-500/60 bg-gradient-to-b from-amber-500/10 via-slate-900 to-slate-900 p-6 text-center relative shadow-2xl shadow-amber-500/10 -translate-y-2">
+                      <div className="absolute -top-5 left-1/2 -translate-x-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-tr from-amber-400 to-yellow-300 text-slate-950 font-black text-lg shadow-xl ring-4 ring-amber-500/30">
+                        <Crown className="h-5 w-5 text-slate-950" />
+                      </div>
+                      <div className="mt-3 text-amber-400 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1">
+                        Champion ESPRIT
+                      </div>
+                      <div className="mt-1 font-black text-white text-lg truncate">{leaderboard[0].displayName}</div>
+                      <div className="mt-1 inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                        {leaderboard[0].tier} TRADER
+                      </div>
+                      <div className="mt-4 pt-4 border-t border-amber-500/20 flex justify-around text-xs">
+                        <div>
+                          <div className="text-[10px] text-slate-400">Score Global</div>
+                          <div className="font-mono font-black text-amber-300 text-sm">{leaderboard[0].scoreTotal} pts</div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-slate-400">PnL Cumulé</div>
+                          <div className="font-mono font-black text-emerald-400 text-sm">+${leaderboard[0].totalPnl.toLocaleString()}</div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-slate-400">Win Rate</div>
+                          <div className="font-mono font-black text-sky-400 text-sm">{leaderboard[0].winRate}%</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 3rd Place */}
+                    <div className="order-3 md:order-3 rounded-2xl border border-amber-800/40 bg-amber-950/20 p-5 text-center relative backdrop-blur">
+                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-amber-700 text-amber-100 font-black text-sm shadow-lg">
+                        3
+                      </div>
+                      <div className="mt-2 text-amber-500 text-xs font-mono">Médaille de Bronze</div>
+                      <div className="mt-1 font-bold text-white text-base truncate">{leaderboard[2].displayName}</div>
+                      <div className="mt-1 inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-900/40 text-amber-300">
+                        {leaderboard[2].tier}
+                      </div>
+                      <div className="mt-4 pt-3 border-t border-slate-800 flex justify-around text-xs">
+                        <div>
+                          <div className="text-[10px] text-slate-500">PnL</div>
+                          <div className="font-mono font-bold text-emerald-400">+${leaderboard[2].totalPnl.toLocaleString()}</div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-slate-500">Win Rate</div>
+                          <div className="font-mono font-bold text-sky-400">{leaderboard[2].winRate}%</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Tableau du Classement Complet */}
+              <div className="rounded-3xl border border-slate-800 bg-[#0B1220] p-6 shadow-xl">
+                <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <Medal className="h-5 w-5 text-amber-400" />
+                    <h3 className="text-base font-bold text-white">Classement Général des Traders ({leaderboard.length})</h3>
+                  </div>
+                  <span className="text-xs text-slate-400 font-mono">Calculé en temps réel</span>
+                </div>
+
+                <div className="overflow-x-auto mt-4">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider text-[10px]">
+                        <th className="py-3 px-3">Rang</th>
+                        <th className="py-3 px-3">Trader</th>
+                        <th className="py-3 px-3">Niveau</th>
+                        <th className="py-3 px-3 text-right">PnL Net ($)</th>
+                        <th className="py-3 px-3 text-right">Rendement</th>
+                        <th className="py-3 px-3 text-right">Win Rate</th>
+                        <th className="py-3 px-3 text-center">Trades</th>
+                        <th className="py-3 px-3 text-center">Badges</th>
+                        <th className="py-3 px-3 text-right">Score Total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60 font-mono">
+                      {leaderboard.map(trader => {
+                        const isMe = user?.email === trader.email;
+                        return (
+                          <tr
+                            key={trader.userId}
+                            className={`transition ${isMe ? 'bg-sky-500/10 font-bold' : 'hover:bg-slate-800/40'}`}
+                          >
+                            <td className="py-3 px-3">
+                              <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full font-bold ${
+                                trader.rank === 1 ? 'bg-amber-400 text-black' :
+                                trader.rank === 2 ? 'bg-slate-300 text-black' :
+                                trader.rank === 3 ? 'bg-amber-700 text-white' :
+                                'bg-slate-800 text-slate-300'
+                              }`}>
+                                {trader.rank}
+                              </span>
+                            </td>
+                            <td className="py-3 px-3 font-sans">
+                              <div className="flex items-center gap-2">
+                                <span className="text-white font-semibold">{trader.displayName}</span>
+                                {isMe && (
+                                  <span className="rounded bg-sky-500/20 px-1.5 py-0.5 text-[9px] font-bold text-sky-300 border border-sky-500/40">
+                                    VOUS
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-3 px-3 font-sans">
+                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                                trader.tier === 'DIAMOND' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' :
+                                trader.tier === 'PLATINUM' ? 'bg-violet-500/20 text-violet-300 border border-violet-500/40' :
+                                trader.tier === 'GOLD' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' :
+                                'bg-slate-700 text-slate-300'
+                              }`}>
+                                {trader.tier}
+                              </span>
+                            </td>
+                            <td className="py-3 px-3 text-right text-emerald-400 font-bold">
+                              +${trader.totalPnl.toLocaleString()}
+                            </td>
+                            <td className="py-3 px-3 text-right text-emerald-300">
+                              +{trader.returnPercentage}%
+                            </td>
+                            <td className="py-3 px-3 text-right text-sky-300">
+                              {trader.winRate}%
+                            </td>
+                            <td className="py-3 px-3 text-center text-slate-300">
+                              {trader.tradesCount}
+                            </td>
+                            <td className="py-3 px-3 text-center text-amber-300 font-bold">
+                              {trader.badgesCount} 🏅
+                            </td>
+                            <td className="py-3 px-3 text-right text-amber-400 font-bold">
+                              {trader.scoreTotal.toLocaleString()}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Concours & Défis de Trading ESPRIT */}
+              <div className="rounded-3xl border border-sky-500/20 bg-[#0B1220] p-6 shadow-xl">
+                <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <Target className="h-5 w-5 text-sky-400" />
+                    <div>
+                      <h3 className="text-base font-bold text-white">Défis & Tournois de Trading en Direct</h3>
+                      <p className="text-xs text-slate-400">Rejoignez un challenge institutionnel pour booster votre rang et débloquer des trophées exclusifs.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-6">
+                  {challenges.map(chal => (
+                    <div
+                      key={chal.id}
+                      className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 flex flex-col justify-between hover:border-sky-500/40 transition group shadow-lg"
+                    >
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30 px-2.5 py-0.5 text-[10px] font-bold">
+                            {chal.category}
+                          </span>
+                          <span className="flex items-center gap-1 text-[11px] font-mono text-amber-400">
+                            ⏱️ {chal.daysRemaining}j restants
+                          </span>
+                        </div>
+
+                        <div>
+                          <h4 className="text-sm font-bold text-white group-hover:text-sky-300 transition">
+                            {chal.title}
+                          </h4>
+                          <p className="mt-1 text-xs text-slate-400 line-clamp-2">
+                            {chal.description}
+                          </p>
+                        </div>
+
+                        <div className="rounded-xl bg-[#070B14] p-3 border border-slate-800 text-xs space-y-1.5 font-mono">
+                          <div className="flex justify-between text-slate-400">
+                            <span>Objectif :</span>
+                            <span className="text-emerald-400 font-bold">{chal.objective}</span>
+                          </div>
+                          <div className="flex justify-between text-slate-400">
+                            <span>Récompense :</span>
+                            <span className="text-amber-400 font-bold">+{chal.rewardPoints} pts & Badge</span>
+                          </div>
+                          <div className="flex justify-between text-slate-400">
+                            <span>Participants :</span>
+                            <span className="text-slate-200">{chal.participantsCount} inscrits</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-4 mt-4 border-t border-slate-800">
+                        {chal.joined ? (
+                          <div className="w-full text-center py-2 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold flex items-center justify-center gap-1.5">
+                            <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                            Défi Rejoint · En Cours
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handleJoinChallenge(chal.id)}
+                            disabled={joiningChallengeId === chal.id}
+                            className="w-full py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 text-white text-xs font-bold shadow-lg shadow-sky-500/20 hover:brightness-110 active:scale-[0.98] transition flex items-center justify-center gap-2"
+                          >
+                            <Target className="h-4 w-4" />
+                            {joiningChallengeId === chal.id ? 'Inscription...' : 'Rejoindre le Défi'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

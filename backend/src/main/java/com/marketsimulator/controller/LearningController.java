@@ -15,6 +15,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/learning")
@@ -96,6 +97,32 @@ public class LearningController {
             @AuthenticationPrincipal UserDetails userDetails) {
         User user = resolveUser(userDetails);
         return ResponseEntity.ok(learningService.getUserLearningProfile(user));
+    }
+
+    @Operation(summary = "Récupérer le classement compétitif des traders (Leaderboard)")
+    @GetMapping("/leaderboard")
+    public ResponseEntity<List<LeaderboardTraderDto>> getLeaderboard(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User user = resolveUser(userDetails);
+        return ResponseEntity.ok(learningService.getLeaderboard(user));
+    }
+
+    @Operation(summary = "Lister les concours et défis de trading actifs")
+    @GetMapping("/challenges")
+    public ResponseEntity<List<TradingChallengeDto>> getChallenges(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User user = resolveUser(userDetails);
+        return ResponseEntity.ok(learningService.getTradingChallenges(user));
+    }
+
+    @Operation(summary = "Rejoindre un concours ou défi de trading")
+    @PostMapping("/challenges/{challengeId}/join")
+    public ResponseEntity<Map<String, Object>> joinChallenge(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable String challengeId) {
+        User user = resolveUser(userDetails);
+        boolean joined = learningService.joinChallenge(user, challengeId);
+        return ResponseEntity.ok(Map.of("success", joined, "challengeId", challengeId));
     }
 
     private User resolveUser(UserDetails userDetails) {

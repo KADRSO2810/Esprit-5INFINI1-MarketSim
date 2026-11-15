@@ -33,4 +33,10 @@ public class MarketOrderRequest {
 
     @DecimalMin(value = "0.000001", message = "Take-profit must be positive")
     private BigDecimal takeProfit;
+
+    @Pattern(regexp = "^(MARKET|LIMIT)$", message = "Order type must be MARKET or LIMIT")
+    private String orderType; // MARKET or LIMIT (defaults to MARKET)
+
+    @DecimalMin(value = "0.000001", message = "Limit price must be positive")
+    private BigDecimal limitPrice;
 }

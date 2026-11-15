@@ -55,6 +55,45 @@ export interface OrderFill {
   tradeReason?: string | null;
 }
 
+export interface OrderBookEntry {
+  price: number;
+  quantity: number;
+  total: number;
+  depthPercentage: number;
+  orderCount: number;
+}
+
+export interface OrderBook {
+  symbol: string;
+  lastPrice: number;
+  bestBid: number;
+  bestAsk: number;
+  spread: number;
+  spreadPercentage: number;
+  bids: OrderBookEntry[];
+  asks: OrderBookEntry[];
+  totalBidVolume: number;
+  totalAskVolume: number;
+  timestamp: string;
+  assetClass: string;
+}
+
+export interface LimitOrder {
+  id: number;
+  userId: number;
+  sessionId: number;
+  symbol: string;
+  side: 'BUY' | 'SELL';
+  orderType: 'LIMIT';
+  quantity: number;
+  limitPrice: number;
+  stopLoss?: number | null;
+  takeProfit?: number | null;
+  status: 'PENDING' | 'FILLED' | 'CANCELLED';
+  createdAt: string;
+  filledAt?: string | null;
+}
+
 export interface ExposureEntry {
   symbol: string;
   weight: number;
@@ -94,11 +133,14 @@ export const placeMarketOrder = async (
   quantity: number,
   sessionId = 0,
   stopLoss?: number | null,
-  takeProfit?: number | null
+  takeProfit?: number | null,
+  orderType: 'MARKET' | 'LIMIT' = 'MARKET',
+  limitPrice?: number | null
 ): Promise<OrderFill> => {
-  const payload: Record<string, unknown> = { symbol, side, quantity };
+  const payload: Record<string, unknown> = { symbol, side, quantity, orderType };
   if (stopLoss != null && stopLoss > 0) payload.stopLoss = stopLoss;
   if (takeProfit != null && takeProfit > 0) payload.takeProfit = takeProfit;
+  if (orderType === 'LIMIT' && limitPrice != null && limitPrice > 0) payload.limitPrice = limitPrice;
 
   const res = await api.post<OrderFill>(
     '/api/orders/market',
@@ -106,6 +148,20 @@ export const placeMarketOrder = async (
     { params: { sessionId } }
   );
   return res.data;
+};
+
+export const getOrderBook = async (symbol: string): Promise<OrderBook> => {
+  const res = await api.get<OrderBook>('/api/orders/orderbook', { params: { symbol } });
+  return res.data;
+};
+
+export const getPendingOrders = async (sessionId = 0): Promise<LimitOrder[]> => {
+  const res = await api.get<LimitOrder[]>('/api/orders/pending', { params: { sessionId } });
+  return res.data;
+};
+
+export const cancelPendingOrder = async (orderId: number): Promise<void> => {
+  await api.delete(`/api/orders/pending/${orderId}`);
 };
 
 export const updateSlTp = async (
