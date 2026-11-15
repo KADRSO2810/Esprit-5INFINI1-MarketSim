@@ -12,6 +12,7 @@ import {
   X,
   FileSpreadsheet,
   Globe,
+  ShieldCheck,
 } from 'lucide-react';
 
 // =========================================================================
@@ -262,6 +263,14 @@ const COMMAND_ROUTES: CommandRoute[] = [
     keywords: 'fundamental analysis bilan compte resultat cash flow ratios valuation pe roe debtequity finnhub 10k 10q sec',
     icon: FileSpreadsheet,
     accent: 'text-emerald-400',
+  },
+  {
+    path: '/app/actuary',
+    label: 'Laboratoire Actuariat & Assurance',
+    section: 'Actuariat & Assurance',
+    keywords: 'actuaire assurance prime pure prime commerciale chain ladder ibnr sinistres monte carlo glm tarification solvency',
+    icon: ShieldCheck,
+    accent: 'text-violet-400',
   },
 ];
 

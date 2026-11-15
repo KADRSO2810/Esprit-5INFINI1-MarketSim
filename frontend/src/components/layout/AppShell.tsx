@@ -23,6 +23,7 @@ import {
   Command,
   FileSpreadsheet,
   Globe,
+  ShieldCheck,
 } from 'lucide-react';
 
 export interface AppShellProps {
@@ -79,6 +80,12 @@ const NAV_SECTIONS: NavSection[] = [
     group: 'Research & Fundamentals',
     items: [
       { to: '/app/fundamentals', label: 'Analyse Fondamentale', icon: FileSpreadsheet, matchPrefix: '/app/fundamentals', accent: 'text-emerald-400' },
+    ],
+  },
+  {
+    group: 'Actuariat & Assurance',
+    items: [
+      { to: '/app/actuary', label: 'Laboratoire Actuariel', icon: ShieldCheck, matchPrefix: '/app/actuary', accent: 'text-purple-400' },
     ],
   },
 ];

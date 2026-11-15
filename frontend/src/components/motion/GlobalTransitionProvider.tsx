@@ -3,7 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import { QuantOrbitalLoader, QuantOrbitalTone } from './QuantOrbitalLoader';
 import { EASE_INSTITUTIONAL } from './presets';
-import { Activity, BarChart3, Bot, Newspaper, ShieldAlert, Globe, FileSpreadsheet } from 'lucide-react';
+import { Activity, BarChart3, Bot, Newspaper, ShieldAlert, Globe, FileSpreadsheet, ShieldCheck } from 'lucide-react';
 
 interface SectionMeta {
   label: string;
@@ -72,6 +72,16 @@ const ROUTE_META: Array<{ match: (p: string) => boolean; meta: SectionMeta }> = 
       subtitle: 'Extraction des bilans, ratios financiers et flux de trésorerie...',
       tone: 'emerald',
       icon: FileSpreadsheet,
+    },
+  },
+  {
+    match: (p) => p.startsWith('/app/actuary'),
+    meta: {
+      label: 'Laboratoire d’Actuariat & Modélisation',
+      section: 'Actuarial & Risk Intelligence',
+      subtitle: 'Tarification GLM, simulations Monte Carlo et provisions Chain-Ladder...',
+      tone: 'violet',
+      icon: ShieldCheck,
     },
   },
   {

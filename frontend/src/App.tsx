@@ -14,6 +14,7 @@ import { NewsSentimentPage } from './pages/NewsSentimentPage';
 import { StrategyLab } from './pages/StrategyLab';
 import { FundamentalAnalysisPage } from './pages/FundamentalAnalysisPage';
 import { MultiAssetHubPage } from './pages/MultiAssetHubPage';
+import { ActuarialPage } from './pages/ActuarialPage';
 
 export const App: React.FC = () => {
   return (
@@ -82,6 +83,14 @@ export const App: React.FC = () => {
             element={
               <ProtectedRoute>
                 <FundamentalAnalysisPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/app/actuary"
+            element={
+              <ProtectedRoute>
+                <ActuarialPage />
               </ProtectedRoute>
             }
           />
