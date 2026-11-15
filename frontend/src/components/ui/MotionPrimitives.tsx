@@ -281,6 +281,14 @@ const COMMAND_ROUTES: CommandRoute[] = [
     icon: GraduationCap,
     accent: 'text-indigo-400',
   },
+  {
+    path: '/app/admin',
+    label: 'Console d’Administration & Supervision',
+    section: 'Supervision & Contrôle',
+    keywords: 'admin supervision plateforme utilisateurs roles permissions metrics feeds logs',
+    icon: ShieldCheck,
+    accent: 'text-violet-400',
+  },
 ];
 
 export const CommandPalette: React.FC<{

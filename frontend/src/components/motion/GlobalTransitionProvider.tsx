@@ -95,6 +95,16 @@ const ROUTE_META: Array<{ match: (p: string) => boolean; meta: SectionMeta }> = 
     },
   },
   {
+    match: (p) => p.startsWith('/app/admin'),
+    meta: {
+      label: 'Console d’Administration & Supervision',
+      section: 'Supervision & Contrôle',
+      subtitle: 'Audit des comptes, état des connecteurs et métriques globales...',
+      tone: 'violet',
+      icon: ShieldCheck,
+    },
+  },
+  {
     match: (p) => p === '/app' || p === '/app/',
     meta: {
       label: 'Terminal Live & Paper Desk',

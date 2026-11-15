@@ -16,6 +16,7 @@ import { FundamentalAnalysisPage } from './pages/FundamentalAnalysisPage';
 import { MultiAssetHubPage } from './pages/MultiAssetHubPage';
 import { ActuarialPage } from './pages/ActuarialPage';
 import { AcademyPage } from './pages/AcademyPage';
+import { AdminPage } from './pages/AdminPage';
 
 export const App: React.FC = () => {
   return (
@@ -100,6 +101,14 @@ export const App: React.FC = () => {
             element={
               <ProtectedRoute>
                 <AcademyPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/app/admin"
+            element={
+              <ProtectedRoute>
+                <AdminPage />
               </ProtectedRoute>
             }
           />

@@ -95,6 +95,12 @@ const NAV_SECTIONS: NavSection[] = [
       { to: '/app/academy', label: 'Académie Financière', icon: GraduationCap, matchPrefix: '/app/academy', accent: 'text-indigo-400' },
     ],
   },
+  {
+    group: 'Supervision & Contrôle',
+    items: [
+      { to: '/app/admin', label: 'Console d\'Administration', icon: ShieldCheck, matchPrefix: '/app/admin', accent: 'text-violet-400' },
+    ],
+  },
 ];
 
 function isUSMarketOpen(): boolean {
