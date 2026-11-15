@@ -33,6 +33,7 @@ import {
   RefreshCw,
   ExternalLink,
   Download,
+  AlertTriangle,
 } from 'lucide-react';
 
 export const AcademyPage: React.FC = () => {
@@ -57,6 +58,7 @@ export const AcademyPage: React.FC = () => {
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>({});
   const [quizSubmitting, setQuizSubmitting] = useState<boolean>(false);
   const [quizResult, setQuizResult] = useState<QuizResult | null>(null);
+  const [tabSwitchCount, setTabSwitchCount] = useState<number>(0);
 
   // Load initial data
   const fetchData = async () => {
@@ -105,12 +107,98 @@ export const AcademyPage: React.FC = () => {
       setActiveQuiz(q);
       setSelectedAnswers({});
       setQuizResult(null);
+      setTabSwitchCount(0);
       setActiveTab('QUIZ');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
       toast.error('Erreur', err?.message || 'Impossible de charger le quiz');
     }
   };
+
+  // Anti-Cheat protection: Block copy/paste, DevTools, print shortcuts & detect tab switching
+  useEffect(() => {
+    if (!activeQuiz || quizResult) return;
+
+    let lastWarningTime = 0;
+    const notifyAntiCheat = (msg: string) => {
+      const now = Date.now();
+      if (now - lastWarningTime > 2500) {
+        lastWarningTime = now;
+        toast.warning('Protocole Anti-Fraude Actif', msg);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Block Ctrl/Cmd + C (copy), Ctrl/Cmd + V (paste), Ctrl/Cmd + X (cut), Ctrl/Cmd + A (select all), Ctrl/Cmd + P (print), Ctrl/Cmd + U (view source), Ctrl/Cmd + S (save)
+      if (e.ctrlKey || e.metaKey) {
+        const key = e.key.toLowerCase();
+        if (['c', 'v', 'x', 'a', 'p', 'u', 's'].includes(key)) {
+          e.preventDefault();
+          e.stopPropagation();
+          notifyAntiCheat("Raccourci bloqué : L'utilisation du presse-papier et des raccourcis est interdite pendant l'évaluation académique.");
+          return;
+        }
+      }
+
+      // Block F12 and Ctrl+Shift+I / Cmd+Option+I (DevTools)
+      if (e.key === 'F12' || ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'i')) {
+        e.preventDefault();
+        e.stopPropagation();
+        notifyAntiCheat("Inspection bloquée : Les outils de développement sont verrouillés en mode examen.");
+        return;
+      }
+    };
+
+    const handleCopy = (e: ClipboardEvent) => {
+      e.preventDefault();
+      notifyAntiCheat("Copie bloquée : La copie de texte est strictement interdite pour prévenir l'usage de LLM externes.");
+    };
+
+    const handleCut = (e: ClipboardEvent) => {
+      e.preventDefault();
+      notifyAntiCheat("Coupe bloquée : Action non autorisée pendant le quiz.");
+    };
+
+    const handlePaste = (e: ClipboardEvent) => {
+      e.preventDefault();
+      notifyAntiCheat("Collage bloqué : L'insertion de texte externe est interdite.");
+    };
+
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+      notifyAntiCheat("Clic droit désactivé : Le menu contextuel est verrouillé pour garantir l'intégrité de l'examen.");
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        setTabSwitchCount(prev => prev + 1);
+        notifyAntiCheat("Avertissement Anti-Triche : Changement d'onglet détecté ! Tous les écarts de fenêtre sont tracés.");
+      }
+    };
+
+    const handleWindowBlur = () => {
+      setTabSwitchCount(prev => prev + 1);
+      notifyAntiCheat("Avertissement Anti-Triche : Perte de focus de la fenêtre d'examen.");
+    };
+
+    window.addEventListener('keydown', handleKeyDown, true);
+    document.addEventListener('copy', handleCopy, true);
+    document.addEventListener('cut', handleCut, true);
+    document.addEventListener('paste', handlePaste, true);
+    document.addEventListener('contextmenu', handleContextMenu, true);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleWindowBlur);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, true);
+      document.removeEventListener('copy', handleCopy, true);
+      document.removeEventListener('cut', handleCut, true);
+      document.removeEventListener('paste', handlePaste, true);
+      document.removeEventListener('contextmenu', handleContextMenu, true);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleWindowBlur);
+    };
+  }, [activeQuiz, quizResult]);
 
   // Submit quiz answers
   const handleSubmitQuiz = async () => {
@@ -485,11 +573,19 @@ export const AcademyPage: React.FC = () => {
 
               {/* Quiz en cours de passage */}
               {activeQuiz && (
-                <div className="max-w-3xl mx-auto rounded-3xl border border-sky-500/30 bg-[#0B1220] p-6 shadow-2xl space-y-6">
+                <div
+                  className="max-w-3xl mx-auto rounded-3xl border border-sky-500/30 bg-[#0B1220] p-6 shadow-2xl space-y-6 select-none"
+                  style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
+                  onCopy={(e) => e.preventDefault()}
+                  onCut={(e) => e.preventDefault()}
+                  onPaste={(e) => e.preventDefault()}
+                  onContextMenu={(e) => e.preventDefault()}
+                  onDragStart={(e) => e.preventDefault()}
+                >
                   {/* Top Bar du quiz */}
                   <div className="flex items-center justify-between border-b border-slate-800 pb-4">
                     <div>
-                      <span className="text-[11px] font-mono uppercase text-sky-400 font-semibold block">Évaluation QCM</span>
+                      <span className="text-[11px] font-mono uppercase text-sky-400 font-semibold block">Évaluation QCM — 20 Questions</span>
                       <h2 className="text-xl font-bold text-white">{activeQuiz.title}</h2>
                     </div>
                     <button
@@ -501,6 +597,63 @@ export const AcademyPage: React.FC = () => {
                     >
                       <X className="h-5 w-5" />
                     </button>
+                  </div>
+
+                  {/* Bandeau de sécurité institutionnel anti-triche & anti-LLM */}
+                  <div className="rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-sky-500/10 to-indigo-500/10 p-4 shadow-inner">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400 ring-1 ring-amber-400/30 shrink-0">
+                          <ShieldAlert className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-amber-300">PROTOCOLE ANTI-FRAUDE & ANTI-LLM ACTIF</span>
+                            <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" title="Surveillance active" />
+                          </div>
+                          <p className="text-[11px] text-slate-300 mt-0.5">
+                            Sélection et copier-coller désactivés • Raccourcis LLM verrouillés • Détection de changement de fenêtre
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2 self-start sm:self-center">
+                        {tabSwitchCount > 0 ? (
+                          <span className="flex items-center gap-1 rounded-lg border border-red-500/50 bg-red-500/20 px-2.5 py-1 text-[11px] font-bold text-red-300 animate-pulse">
+                            <AlertTriangle className="h-3.5 w-3.5" />
+                            {tabSwitchCount} sortie{tabSwitchCount > 1 ? 's' : ''} d'écran
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1 rounded-lg border border-emerald-500/30 bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-300">
+                            <ShieldCheck className="h-3.5 w-3.5" />
+                            Session Conforme
+                          </span>
+                        )}
+                        <span className="rounded-lg border border-slate-700 bg-slate-800/80 px-2.5 py-1 text-[11px] font-mono text-slate-300">
+                          Seuil : 75% ({Math.ceil(activeQuiz.questions.length * 0.75)}/{activeQuiz.questions.length})
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Barre de progression des réponses */}
+                    {!quizResult && (
+                      <div className="mt-3.5 pt-3 border-t border-slate-800/70">
+                        <div className="flex items-center justify-between text-[11px] mb-1.5 font-mono">
+                          <span className="text-slate-400">Progression des réponses :</span>
+                          <span className="text-sky-300 font-bold">
+                            {Object.keys(selectedAnswers).length} / {activeQuiz.questions.length} renseignées
+                          </span>
+                        </div>
+                        <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-sky-500 to-indigo-500 transition-all duration-300 rounded-full"
+                            style={{
+                              width: `${(Object.keys(selectedAnswers).length / Math.max(1, activeQuiz.questions.length)) * 100}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Résultat après soumission */}
@@ -574,7 +727,8 @@ export const AcademyPage: React.FC = () => {
                       return (
                         <div
                           key={q.id}
-                          className="rounded-2xl border border-slate-800 bg-[#070B14] p-5 space-y-3"
+                          className="rounded-2xl border border-slate-800 bg-[#070B14] p-5 space-y-3 select-none"
+                          style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
                         >
                           <div className="flex items-start justify-between gap-3">
                             <span className="text-xs font-bold text-sky-400 font-mono">
@@ -589,7 +743,7 @@ export const AcademyPage: React.FC = () => {
                             )}
                           </div>
 
-                          <h4 className="text-sm font-semibold text-white leading-relaxed">{q.question}</h4>
+                          <h4 className="text-sm font-semibold text-white leading-relaxed select-none">{q.question}</h4>
 
                           {/* Options */}
                           <div className="space-y-2 pt-1">
@@ -661,7 +815,7 @@ export const AcademyPage: React.FC = () => {
                         ) : (
                           <>
                             <CheckCircle2 className="h-4 w-4" />
-                            Soumettre mes Réponses
+                            Soumettre mes Réponses ({Object.keys(selectedAnswers).length}/{activeQuiz.questions.length})
                           </>
                         )}
                       </button>

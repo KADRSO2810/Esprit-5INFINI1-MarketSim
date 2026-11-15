@@ -825,12 +825,12 @@ La directive européenne impose un capital de solvabilité requis garantissant q
     }
 
     private void initQuizzes() {
-        // Quiz 1 : Market Basics
+        // Quiz 1 : Validation : Mécanismes d'Ordres & Microstructure
         QuizDto q1 = QuizDto.builder()
                 .id("QUIZ_MARKET_BASICS")
                 .moduleId("MOD_MARKET_BASICS")
                 .title("Validation : Mécanismes d'Ordres & Microstructure")
-                .description("Évaluez vos compétences sur le carnet d'ordres, l'exécution limite vs marché et les ordres stop.")
+                .description("Évaluez vos compétences sur le carnet d'ordres, l'exécution limite vs marché et les ordres stop (20 questions).")
                 .passingScorePct(75)
                 .questions(List.of(
                         QuizQuestionDto.builder()
@@ -880,17 +880,209 @@ La directive européenne impose un capital de solvabilité requis garantissant q
                                 ))
                                 .correctOptionIndex(2)
                                 .explanation("Le slippage est la différence entre le cours attendu d'une transaction et le cours auquel elle est effectivement exécutée.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q1_5")
+                                .question("Dans un ordre Stop-Limit, quelle est la fonction du prix Stop ?")
+                                .options(List.of(
+                                        "Le prix maximal auquel l'ordre sera exécuté",
+                                        "Le seuil de cours qui déclenche l'envoi d'un ordre à cours limité dans le carnet",
+                                        "Le prix d'ouverture garanti par la bourse",
+                                        "Le niveau de dividende obligatoire"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Le prix Stop est le niveau de déclenchement : dès qu'il est touché, l'ordre devient actif sous forme d'ordre limite au cours Limit spécifié.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q1_6")
+                                .question("Quelle information additionnelle fournit un carnet d'ordres de Niveau 2 (Level 2) par rapport au Niveau 1 ?")
+                                .options(List.of(
+                                        "Uniquement le dernier cours négocié et le volume journalier",
+                                        "La profondeur complète du carnet avec les quantités offertes et demandées sur plusieurs paliers de prix",
+                                        "Le nom et l'adresse IP de chaque investisseur",
+                                        "Le bilan comptable certifié de l'émetteur"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Le carnet L2 affiche la profondeur du marché (Market Depth) sur plusieurs niveaux de prix de part et d'autre du spread.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q1_7")
+                                .question("Comment se comporte un ordre assorti de la validité IOC (Immediate-or-Cancel) ?")
+                                .options(List.of(
+                                        "Il reste dans le carnet jusqu'à la fin du mois sans jamais être annulé",
+                                        "Il exécute immédiatement toute quantité disponible à son prix et annule le solde non exécuté",
+                                        "Il n'est exécuté que si la totalité absolue de la quantité est disponible immédiatement, sinon rien",
+                                        "Il ne s'exécute que lors des enchères de clôture"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("L'ordre IOC exécute immédiatement autant de titres que possible au cours limite et annule instantanément le reliquat.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q1_8")
+                                .question("Quel est le rôle principal d'un Teneur de Marché (Market Maker) dans la microstructure financière ?")
+                                .options(List.of(
+                                        "Interdire les ventes à découvert lors des crises",
+                                        "Cotiser en continu des prix d'achat et de vente pour apporter de la liquidité en contrepartie du spread",
+                                        "Fixer arbitrairement le dividende des entreprises cotées",
+                                        "Gérer les faillites bancaires pour le compte de l'État"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Le Market Maker assure la liquidité du marché en affichant simultanément des ordres d'achat (Bid) et de vente (Ask), se rémunérant sur le spread.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q1_9")
+                                .question("Quelle est la condition stricte d'un ordre FOK (Fill-or-Kill) ?")
+                                .options(List.of(
+                                        "Exécution partielle acceptée, le reste reste dans le carnet",
+                                        "Exécution intégrale et immédiate de toute la taille de l'ordre, sinon annulation totale sans aucune exécution partielle",
+                                        "Exécution étalée sur une durée de 24 heures",
+                                        "Remplacement automatique par un ordre au marché à la clôture"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Un ordre FOK exige que la totalité des titres soit négociée immédiatement, à défaut de quoi l'ordre est intégralement annulé.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q1_10")
+                                .question("Pourquoi un investisseur institutionnel utilise-t-il un ordre Iceberg (ordre caché) ?")
+                                .options(List.of(
+                                        "Pour ne pas payer de taxes sur les transactions financières",
+                                        "Pour dissimuler la taille réelle d'un bloc massif d'actions et limiter l'impact de marché néfaste sur les cours",
+                                        "Pour garantir un rendement de 10% annuel sans risque",
+                                        "Pour empêcher le régulateur de voir la transaction"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("L'ordre Iceberg ne dévoile qu'une fraction visible (la pointe) dans le carnet pour éviter que les autres traders n'ajustent agressivement leurs cours.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q1_11")
+                                .question("À quoi sert un mécanisme de coupe-circuit (Circuit Breaker ou LULD - Limit Up / Limit Down) sur une bourse ?")
+                                .options(List.of(
+                                        "À couper l'électricité des salles de marché en fin de journée",
+                                        "À suspendre temporairement la cotation d'un titre ou de l'indice pour calmer la panique lors de variations extrêmes anormales",
+                                        "À forcer la vente des actions des petits porteurs",
+                                        "À doubler la valeur des ordres d'achat en cas de krach"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Les coupe-circuits interrompent brièvement la négociation pour permettre aux participants d'assimiler les informations et restaurer la liquidité.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q1_12")
+                                .question("Qu'est-ce qu'un 'Dark Pool' dans l'écosystème boursier moderne ?")
+                                .options(List.of(
+                                        "Un virus informatique visant les terminaux Bloomberg",
+                                        "Une plateforme privée de négociation de blocs d'actions sans transparence pré-négociation du carnet d'ordres",
+                                        "Un fonds spéculatif non régulé basé dans un paradis fiscal",
+                                        "Un compte d'épargne bloqué"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Les Dark Pools permettent aux institutionnels de négocier de volumineux blocs sans révéler leurs intentions avant l'exécution, évitant ainsi le slippage.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q1_13")
+                                .question("Pourquoi les firmes de Trading Haute Fréquence (HFT) paient-elles pour la co-localisation de leurs serveurs ?")
+                                .options(List.of(
+                                        "Pour économiser sur la facture de climatisation",
+                                        "Pour réduire la latence réseau à quelques microsecondes en plaçant leurs serveurs dans le même centre de données que le moteur de matching boursier",
+                                        "Pour obtenir des actions gratuites de la part de l'opérateur boursier",
+                                        "Pour contourner les fuseaux horaires"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("La co-localisation élimine les délais de transit par fibre optique, permettant de réagir en microsecondes aux modifications du carnet d'ordres.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q1_14")
+                                .question("Dans un carnet d'ordres fonctionnant selon la règle FIFO (Price-Time Priority), comment deux ordres au même prix sont-ils priorisés ?")
+                                .options(List.of(
+                                        "L'ordre de la plus grande taille passe en premier",
+                                        "L'ordre arrivé le premier chronologiquement dans le carnet est exécuté en premier",
+                                        "L'ordre d'un client particulier a toujours la priorité sur un institutionnel",
+                                        "Le moteur tire au sort de manière aléatoire"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("La priorité Prix-Temps garantit d'abord le meilleur prix, et à prix égal, le premier ordre enregistré dans le système est exécuté en priorité.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q1_15")
+                                .question("Quelle est la garantie offerte par un ordre 'Post-Only' (ou Maker-Only) ?")
+                                .options(List.of(
+                                        "Il est certain de s'exécuter dans les 5 secondes",
+                                        "Il est rejeté s'il devait s'exécuter immédiatement comme Taker, garantissant d'ajouter de la liquidité et de bénéficier du tarif Maker",
+                                        "Il ne peut être annulé sous aucun prétexte",
+                                        "Il ne s'applique qu'aux crypto-monnaies non régulées"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("L'ordre Post-Only évite les frais de prise de liquidité (taker fees) en s'assurant qu'il est toujours inscrit au carnet en tant que pourvoyeur de liquidité (maker).")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q1_16")
+                                .question("Comment fonctionne un ordre Stop Suiveur (Trailing Stop) sur une position longue ?")
+                                .options(List.of(
+                                        "Il augmente le prix limite de vente à chaque seconde de manière aléatoire",
+                                        "Il remonte automatiquement son seuil de vente au fur et à mesure que le cours monte, mais reste fixe en cas de baisse du cours",
+                                        "Il descend son niveau de stop pour donner plus d'espace aux pertes",
+                                        "Il vend automatiquement à découvert quand l'actif monte"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Le Trailing Stop suit la hausse des prix à distance constante, verrouillant les profits tout en protégeant contre un retournement baissier.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q1_17")
+                                .question("Qu'est-ce que le 'Bid-Ask Bounce' en analyse de données tick-by-tick ?")
+                                .options(List.of(
+                                        "Le rebond d'un indice sur sa moyenne mobile 200",
+                                        "Une oscillation artificielle des cours enregistrés due à l'alternance de transactions au Bid puis à l'Ask sans changement de valeur fondamentale",
+                                        "La faillite simultanée de deux teneurs de marché",
+                                        "Un saut de prix provoqué par un dividende exceptionnel"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Le Bid-Ask bounce est un bruit de microstructure : les transactions se font alternativement au prix d'achat et de vente, simulant une volatilité factice.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q1_18")
+                                .question("En quoi consiste la manipulation de marché interdite appelée 'Spoofing' ?")
+                                .options(List.of(
+                                        "Voler le mot de passe d'un courtier en ligne",
+                                        "Placer de volumineux ordres d'achat ou de vente sans intention de les exécuter pour créer une fausse impression de pression acheteuse/vendeuse, puis les annuler",
+                                        "Publier des articles d'analyse financière sous un pseudonyme",
+                                        "Acheter des actions d'une entreprise le jour de ses résultats"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Le spoofing est une manipulation boursière frauduleuse visant à tromper les algorithmes et intervenants en envoyant des ordres fictifs promptement annulés.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q1_19")
+                                .question("Quel est le cycle standard de règlement-livraison des actions américaines (SEC) en vigueur depuis mai 2024 ?")
+                                .options(List.of(
+                                        "T+0 (instantané en temps réel)",
+                                        "T+1 (un jour ouvré après la négociation)",
+                                        "T+2 (deux jours ouvrés)",
+                                        "T+5 (cinq jours ouvrés)"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Depuis mai 2024, la SEC a réduit le délai de règlement-livraison à T+1 pour minimiser le risque de contrepartie et de liquidité sur les marchés US.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q1_20")
+                                .question("Que déclenche un 'Appel de Marge' (Margin Call) sur un compte de trading avec effet de levier ?")
+                                .options(List.of(
+                                        "Une félicitation de la banque pour des gains exceptionnels",
+                                        "L'obligation de déposer des fonds ou de liquider des positions car les capitaux propres sont tombés sous la marge de maintien minimale",
+                                        "L'attribution gratuite de bons de souscription d'actions",
+                                        "Le transfert du compte vers un livret d'épargne réglementé"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("L'appel de marge survient lorsque les pertes entament la garantie exigée par le courtier, imposant une recapitalisation immédiate sous peine de liquidation forcée.")
                                 .build()
                 ))
                 .build();
         quizzesMap.put(q1.getId(), q1);
 
-        // Quiz 2 : Analyse Technique
+        // Quiz 2 : Validation : Analyse Technique & Indicateurs Chartistes
         QuizDto q2 = QuizDto.builder()
                 .id("QUIZ_TECHNICAL")
                 .moduleId("MOD_TECHNICAL_ANALYSIS")
                 .title("Validation : Analyse Technique & Indicateurs Chartistes")
-                .description("Vérifiez votre compréhension des moyennes mobiles, de l'indicateur RSI et des métriques de backtesting.")
+                .description("Vérifiez votre compréhension des moyennes mobiles, de l'indicateur RSI et des métriques de backtesting (20 questions).")
                 .passingScorePct(75)
                 .questions(List.of(
                         QuizQuestionDto.builder()
@@ -919,7 +1111,7 @@ La directive européenne impose un capital de solvabilité requis garantissant q
                                 .build(),
                         QuizQuestionDto.builder()
                                 .id("Q2_3")
-                                .question("Quelle stratégie présente le meilleur ratio rendement/risque ?")
+                                .question("Quelle stratégie présente le meilleur ratio rendement/risque ajusté ?")
                                 .options(List.of(
                                         "Rendement 15%, Volatilité 25% (Sharpe = 0.6)",
                                         "Rendement 12%, Volatilité 6% (Sharpe = 2.0)",
@@ -940,22 +1132,214 @@ La directive européenne impose un capital de solvabilité requis garantissant q
                                 ))
                                 .correctOptionIndex(1)
                                 .explanation("Le Maximum Drawdown est la baisse maximale en pourcentage subie par le portefeuille entre son plus haut historique et son creux suivant.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q2_5")
+                                .question("Comment est calculée la ligne principale de l'indicateur MACD classique ?")
+                                .options(List.of(
+                                        "Différence entre l'EMA 12 périodes et l'EMA 26 périodes",
+                                        "Moyenne mobile simple des cours de clôture sur 200 jours",
+                                        "Division du volume d'échange par le cours le plus haut",
+                                        "Différence entre le prix actuel et le plus bas sur 52 semaines"
+                                ))
+                                .correctOptionIndex(0)
+                                .explanation("La ligne MACD est obtenue en soustrayant l'EMA 26 de l'EMA 12. La ligne de signal est ensuite l'EMA 9 de cette ligne MACD.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q2_6")
+                                .question("Que préfigure un resserrement extrême des Bandes de Bollinger (Bollinger Squeeze) ?")
+                                .options(List.of(
+                                        "La fermeture définitive du marché financier",
+                                        "Une phase de faible volatilité qui précède généralement une forte expansion directionnelle des cours",
+                                        "Un dividende obligatoire versé par l'entreprise",
+                                        "Une certitude mathématique que les cours vont chuter"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Le Bollinger Squeeze signale une compression anormale de la volatilité, prélude fréquent à une violente cassure haussière ou baissière.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q2_7")
+                                .question("Que stipule le principe de 'polarité' en analyse des supports et résistances ?")
+                                .options(List.of(
+                                        "Les prix oscillent toujours entre le pôle nord et le pôle sud",
+                                        "Un niveau de support franchi à la baisse a tendance à devenir un niveau de résistance future lors des rebonds ultérieurs",
+                                        "Les volumes sont nuls lors des changements de tendance",
+                                        "Toute hausse est automatiquement suivie d'une baisse symétrique"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("La polarité traduit la psychologie du marché : les acheteurs pris au piège sur un ancien support cherchent à sortir 'flat' dès que le cours revient sur ce niveau, le transformant en résistance.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q2_8")
+                                .question("Quelle information fournit un chandelier japonais de type 'Doji' ?")
+                                .options(List.of(
+                                        "Un volume de transaction nul sur la séance",
+                                        "Une forte hésitation du marché, caractérisée par un cours d'ouverture et un cours de clôture quasi identiques",
+                                        "Un krach boursier irréversible",
+                                        "Une distribution de dividendes"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Le Doji présente un corps très étroit ou inexistant avec des mèches, traduisant un équilibre temporaire parfait entre acheteurs et vendeurs.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q2_9")
+                                .question("Quelle est l'utilité première de l'indicateur ATR (Average True Range) développé par Welles Wilder ?")
+                                .options(List.of(
+                                        "Prédire la direction future des cours (hausse ou baisse)",
+                                        "Quantifier le degré de volatilité absolue d'un actif financier sur une période donnée",
+                                        "Calculer le rendement net de dividendes",
+                                        "Estimer le nombre de contrats à terme en circulation"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("L'ATR mesure l'amplitude moyenne des mouvements de prix en tenant compte des gaps d'ouverture, sans aucune indication sur la direction.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q2_10")
+                                .question("Parmi les ratios de retracement de Fibonacci suivants, lequel correspond au ratio d'or dérivé de la suite phi ?")
+                                .options(List.of(
+                                        "15.5%",
+                                        "61.8%",
+                                        "78.6%",
+                                        "95.0%"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("61.8% (0.618) est le ratio d'or majeur de Fibonacci, largement utilisé par les traders pour identifier les zones de rebond technique.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q2_11")
+                                .question("Qu'indique un cours de transaction qui se situe nettement en dessous de la ligne VWAP (Volume Weighted Average Price) intraday ?")
+                                .options(List.of(
+                                        "Les acheteurs ont payé plus cher que la moyenne des volumes du jour",
+                                        "L'actif se négocie avec une décote par rapport au prix moyen pondéré par les volumes échangés depuis le début de la séance",
+                                        "Le marché est fermé pour maintenance",
+                                        "Le carnet d'ordres est entièrement vide"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Le VWAP est la référence des institutionnels : un cours sous le VWAP signale un prix d'achat inférieur au prix moyen effectif du marché.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q2_12")
+                                .question("Quelle est la différence fondamentale entre le ratio de Sortino et le ratio de Sharpe ?")
+                                .options(List.of(
+                                        "Le ratio de Sortino utilise uniquement la volatilité baissière (Downside Deviation) au dénominateur, ne pénalisant pas la volatilité à la hausse",
+                                        "Le ratio de Sortino ne prend pas en compte le taux sans risque",
+                                        "Le ratio de Sortino s'exprime obligatoirement en dollars et non en ratio",
+                                        "Le ratio de Sortino est réservé exclusivement aux matières premières"
+                                ))
+                                .correctOptionIndex(0)
+                                .explanation("Contrairement au Sharpe qui pénalise toute variabilité (même les fortes hausses), le Sortino n'isole que les rendements inférieurs au seuil cible (downside risk).")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q2_13")
+                                .question("Qu'est-ce que le 'sur-apprentissage' (Overfitting) dans le développement d'une stratégie algorithmique de trading ?")
+                                .options(List.of(
+                                        "Passer trop d'heures à étudier les marchés financiers",
+                                        "Optimiser à l'excès les paramètres sur des données historiques passées au point que le modèle capture le bruit statistique et échoue en trading réel",
+                                        "Utiliser plus de 10 serveurs de calcul en parallèle",
+                                        "Ne trader que les valeurs du CAC 40"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("L'overfitting produit d'excellents résultats trompeurs sur l'historique de test mais des pertes sévères en conditions réelles car la stratégie manque de robustesse.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q2_14")
+                                .question("Pourquoi sépare-t-on les données de backtest en échantillons 'In-Sample' et 'Out-of-Sample' ?")
+                                .options(List.of(
+                                        "Pour diviser les commissions de courtage par deux",
+                                        "Pour calibrer la stratégie sur l'échantillon d'apprentissage (In-Sample) puis tester sa capacité réelle de généralisation sur des données non vues (Out-of-Sample)",
+                                        "Pour satisfaire à une exigence fiscale",
+                                        "Pour trader simultanément à New York et à Tokyo"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Le test hors échantillon (Out-of-Sample) est la règle d'or pour vérifier qu'un modèle quantitatif n'est pas le fruit d'un simple ajustement de courbe (data mining).")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q2_15")
+                                .question("Qu'est-ce que le biais d'anticipation (Look-ahead bias) en modélisation financière ?")
+                                .options(List.of(
+                                        "Avoir une intuition exacte sur les décisions de la Fed",
+                                        "L'utilisation accidentelle dans le calcul d'un signal passé d'informations qui n'étaient pas encore connues ou publiées à cette date précise",
+                                        "Passer des ordres avec 10 minutes d'avance sur les annonces",
+                                        "L'utilisation de graphiques en barres au lieu de chandeliers"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Le look-ahead bias biaise positivement et artificiellement les backtests en utilisant par exemple le cours de clôture pour décider d'un achat à l'ouverture du même jour.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q2_16")
+                                .question("En quoi consiste le 'Biais du Survivant' (Survivorship bias) dans une base de données de backtest actions ?")
+                                .options(List.of(
+                                        "Prendre en compte uniquement les traders ayant survécu à un krach",
+                                        "Exclure de l'historique les entreprises ayant fait faillite ou été radiées, ce qui surévalue artificiellement la performance historique moyenne",
+                                        "Calculer la rentabilité sur une période de guerre",
+                                        "Ignorer les entreprises du secteur de la santé"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Ne tester que les actions cotées aujourd'hui élimine toutes les firmes défaillantes du passé, donnant une fausse impression de performance élevée.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q2_17")
+                                .question("Comment est calculé le ratio de Calmar d'un portefeuille quantitatif ?")
+                                .options(List.of(
+                                        "Rendement annualisé divisé par le Maximum Drawdown absolu sur 36 mois",
+                                        "Volatilité mensuelle multipliée par la racine carrée de 252",
+                                        "Dividende par action divisé par le cours moyen",
+                                        "Nombre de positions gagnantes sur nombre de positions perdantes"
+                                ))
+                                .correctOptionIndex(0)
+                                .explanation("Le ratio de Calmar (Rendement composé / MDD) mesure la capacité d'un fonds ou d'une stratégie à générer du rendement par rapport à ses creux historiques.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q2_18")
+                                .question("Quelle est la particularité mathématique de la Moyenne Mobile Exponentielle (EMA) comparée à la Moyenne Mobile Simple (SMA) ?")
+                                .options(List.of(
+                                        "L'EMA accorde un poids mathématique plus important aux cours récents tout en intégrant l'historique complet",
+                                        "L'EMA ne prend en compte que les 3 derniers jours ouvrés",
+                                        "L'EMA est insensible aux cours extrêmes",
+                                        "L'EMA nécessite un volume d'échange supérieur à 1 million de titres"
+                                ))
+                                .correctOptionIndex(0)
+                                .explanation("L'EMA applique une pondération décroissante exponentielle, la rendant plus réactive aux changements récents de tendance que la SMA arithmétique.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q2_19")
+                                .question("Quel principe régit l'indicateur On-Balance Volume (OBV) ?")
+                                .options(List.of(
+                                        "Le volume du jour est ajouté à l'OBV cumulé si le cours de clôture progresse, et retranché s'il régresse",
+                                        "L'OBV mesure la quantité d'or détenue par la banque centrale",
+                                        "L'OBV est toujours égal au cours de clôture divisé par 100",
+                                        "L'OBV ne se calcule que sur les obligations d'État"
+                                ))
+                                .correctOptionIndex(0)
+                                .explanation("L'OBV relie les volumes aux variations de prix : une divergence entre un cours en hausse et un OBV en baisse signale un essoufflement acheteur.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q2_20")
+                                .question("Dans une figure chartiste en 'Tête et Épaules' (Head and Shoulders), quel événement valide définitivement le signal de retournement baissier ?")
+                                .options(List.of(
+                                        "La formation du sommet de l'épaule gauche",
+                                        "La cassure franche à la baisse de la 'ligne de cou' (neckline) support avec hausse des volumes",
+                                        "Le franchissement du sommet de la tête par un nouvel ordre d'achat",
+                                        "L'ouverture du marché en gap haussier"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("La configuration n'est confirmée que lorsque les vendeurs parviennent à briser la ligne de cou reliant les creux intermédiaires, amorçant la vague de baisse.")
                                 .build()
                 ))
                 .build();
         quizzesMap.put(q2.getId(), q2);
 
-        // Quiz 3 : Multi-Actifs
+        // Quiz 3 : Validation : Marchés Multi-Actifs (Forex, Obligations, Commodities)
         QuizDto q3 = QuizDto.builder()
                 .id("QUIZ_MULTI_ASSET")
                 .moduleId("MOD_MULTI_ASSET")
                 .title("Validation : Marchés Multi-Actifs (Forex, Obligations, Commodities)")
-                .description("Testez vos connaissances sur les paires de devises, les pips, le comportement des obligations et l'or.")
+                .description("Testez vos connaissances sur les paires de devises, les pips, le comportement des obligations et l'or (20 questions).")
                 .passingScorePct(75)
                 .questions(List.of(
                         QuizQuestionDto.builder()
                                 .id("Q3_1")
-                                .question("Sur la paire EUR/USD, que vaut 1 pip de variation sur une position de 100 000 EUR ?")
+                                .question("Sur la paire EUR/USD, que vaut 1 pip de variation sur une position de 100 000 EUR (1 lot standard) ?")
                                 .options(List.of(
                                         "1.00 USD",
                                         "10.00 USD",
@@ -1000,17 +1384,209 @@ La directive européenne impose un capital de solvabilité requis garantissant q
                                 ))
                                 .correctOptionIndex(1)
                                 .explanation("L'or est un actif de réserve millénaire sans risque de défaut de contrepartie, souvent décorrélé des marchés actions en période de stress.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q3_5")
+                                .question("Dans la cotation de la paire Forex GBP/USD = 1.3000, quelle devise est la devise de base et quelle devise est la devise de contrepartie ?")
+                                .options(List.of(
+                                        "GBP est la devise de contrepartie et USD est la devise de base",
+                                        "GBP est la devise de base et USD est la devise de contrepartie (quote currency)",
+                                        "Les deux devises sont interchangeables sans ordre précis",
+                                        "La cotation dépend de la banque centrale européenne"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("La devise de base est toujours celle située à gauche (1 GBP). La devise de contrepartie à droite exprime la quantité nécessaire pour acheter une unité de base (1.30 USD).")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q3_6")
+                                .question("À combien d'unités de devise de base correspond un 'Mini Lot' standard sur le marché Forex ?")
+                                .options(List.of(
+                                        "1 000 unités",
+                                        "10 000 unités",
+                                        "100 000 unités",
+                                        "1 000 000 unités"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Un lot standard = 100 000 unités, un mini lot = 10 000 unités (0.10 lot), et un micro lot = 1 000 unités (0.01 lot).")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q3_7")
+                                .question("En quoi consiste la stratégie de 'Carry Trade' sur les marchés des devises ?")
+                                .options(List.of(
+                                        "Acheter des devises virtuelles dans les jeux vidéo",
+                                        "Emprunter dans une devise à faible taux d'intérêt (devise de financement) pour investir dans une devise à fort rendement d'intérêt (devise cible)",
+                                        "Convertir l'intégralité de son cash en lingots de platine",
+                                        "Parier sur la faillite conjointe de deux banques centrales"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Le Carry Trade capture le différentiel de taux d'intérêt (swap positif) entre deux devises, tant que le taux de change reste stable ou favorable.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q3_8")
+                                .question("Que signifie la situation de 'Contango' sur les marchés des contrats à terme de matières premières ?")
+                                .options(List.of(
+                                        "Le prix au comptant (Spot) est supérieur au prix des contrats à terme",
+                                        "Le prix des contrats à terme (Futures) est supérieur au cours Spot, reflétant les coûts de stockage, d'assurance et de portage (Cost of Carry)",
+                                        "La production mondiale de pétrole est arrêtée",
+                                        "Le métal précieux est exempté de TVA"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("En situation de Contango, la courbe des futures est ascendante avec le temps. Les investisseurs passifs subissent un coût de roulement (roll yield négatif).")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q3_9")
+                                .question("Quelle condition caractérise la situation de 'Backwardation' sur une matière première comme le pétrole brut ?")
+                                .options(List.of(
+                                        "Le prix Spot immédiat est supérieur aux prix des futures à échéance éloignée, souvent en raison d'une forte tension ou pénurie physique immédiate",
+                                        "Les prix à terme tendent vers zéro",
+                                        "L'offre est excessive et tous les entrepôts sont saturés",
+                                        "L'or est moins cher que le cuivre"
+                                ))
+                                .correctOptionIndex(0)
+                                .explanation("La backwardation traduit une prime d'immédiateté (convenience yield) : le marché est prêt à payer plus cher pour avoir la marchandise immédiatement.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q3_10")
+                                .question("Quelle est la définition exacte du Yield to Maturity (YTM - Rendement à l'Échéance) d'une obligation ?")
+                                .options(List.of(
+                                        "Le montant total des coupons divisé par le prix de remboursement",
+                                        "Le taux d'actualisation interne qui égalise le prix de marché actuel de l'obligation à la somme de tous ses flux futurs actualisés (coupons et principal)",
+                                        "Le taux de croissance du PIB du pays émetteur",
+                                        "La commission annuelle prélevée par la banque dépositaire"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Le YTM est le taux de rentabilité interne (TRI) espéré si l'investisseur conserve l'obligation jusqu'à son terme et réinvestit les coupons au même taux.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q3_11")
+                                .question("Si une obligation possède une Duration Modifiée de 7.5, quelle sera la variation approximative de son cours pour une hausse des taux de 1% (+100 bps) ?")
+                                .options(List.of(
+                                        "Hausse de 7.5%",
+                                        "Baisse d'environ 7.5%",
+                                        "Baisse de 1.0%",
+                                        "Aucune variation car le coupon est fixe"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("La relation fondamentale est : Delta P / P = - Duration_modifiée * Delta y = -7.5 * (+1%) = -7.5%.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q3_12")
+                                .question("Pourquoi la 'Convexité' d'une obligation classique est-elle considérée comme une propriété favorable pour un investisseur ?")
+                                .options(List.of(
+                                        "Car elle annule les impôts sur les coupons",
+                                        "Car lorsque les taux baissent, le cours monte plus vite que la duration ne le prévoyait ; et lorsque les taux montent, le cours baisse moins vite",
+                                        "Car elle garantit le remboursement en cas de faillite souveraine",
+                                        "Car elle permet d'échanger l'obligation contre des actions à tout moment"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("La convexité est la dérivée seconde du prix par rapport au rendement. Une convexité positive apporte une asymétrie de gain favorable face à la volatilité des taux.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q3_13")
+                                .question("Quelles sont les deux principales références mondiales (benchmarks) de prix pour le pétrole brut ?")
+                                .options(List.of(
+                                        "Brent de Mer du Nord et WTI (West Texas Intermediate)",
+                                        "Ural russe et Dubaï Gold",
+                                        "OPEP Basket et TotalEnergies Fuel",
+                                        "Standard Oil et Shell Liquid"
+                                ))
+                                .correctOptionIndex(0)
+                                .explanation("Le Brent (Europe/international) et le WTI (États-Unis) sont les deux pétroles légers doux les plus négociés sur les marchés dérivés.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q3_14")
+                                .question("Dans le système de notation des agences de crédit (S&P, Fitch, Moody's), quelle est la frontière entre la catégorie 'Investissement' (Investment Grade) et la catégorie 'Spéculative' (High Yield) ?")
+                                .options(List.of(
+                                        "Entre AAA et AA+",
+                                        "Entre BBB- (Baa3) et BB+ (Ba1)",
+                                        "Entre B- et CCC",
+                                        "Entre la dette publique et la dette privée"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("La note BBB- (ou Baa3 chez Moody's) est la note plancher de la catégorie Investment Grade. En dessous (BB+, BB, etc.), les titres sont dits High Yield ou Junk Bonds.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q3_15")
+                                .question("Quelle est la duration de Macaulay d'une obligation 'Zéro-Coupon' remboursable dans exactement 10 ans ?")
+                                .options(List.of(
+                                        "5 ans",
+                                        "0 an",
+                                        "Exactement 10 ans",
+                                        "7.5 ans"
+                                ))
+                                .correctOptionIndex(2)
+                                .explanation("Pour une obligation zéro-coupon, l'intégralité du flux financier survient à la maturité. La duration de Macaulay est donc strictement égale à son échéance (10 ans).")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q3_16")
+                                .question("Quelle est la différence entre le 'Prix Clean' et le 'Prix Dirty' (plein coupon) d'une obligation cotée ?")
+                                .options(List.of(
+                                        "Le Prix Dirty inclut le coupon couru depuis la dernière date de détachement, alors que le Prix Clean exclut ce coupon couru",
+                                        "Le Prix Clean est réservé aux investisseurs institutionnels sans frais de courtage",
+                                        "Le Prix Dirty s'applique uniquement aux obligations en défaut de paiement",
+                                        "Le Prix Clean ne comprend pas la TVA locale"
+                                ))
+                                .correctOptionIndex(0)
+                                .explanation("Sur les marchés, les cours sont affichés en Clean Price pour éviter les à-coups du coupon couru, mais le règlement effectif s'effectue au Dirty Price (Clean + Coupon couru).")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q3_17")
+                                .question("Qu'est-ce que le 'Roll Yield' lors de la gestion d'un portefeuille de matières premières via des contrats à terme ?")
+                                .options(List.of(
+                                        "La commission versée à la chambre de compensation",
+                                        "Le gain ou la perte résultant du renouvellement des contrats arrivant à échéance vers le contrat de l'échéance suivante",
+                                        "Le dividende versé par les compagnies minières",
+                                        "La taxe sur le carburant maritime"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Le roll yield est positif en backwardation (vendre cher l'échéance proche pour acheter moins cher la lointaine) et négatif en contango.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q3_18")
+                                .question("Qu'appelle-t-on une 'Paire Croisée' (Cross Currency Pair) sur le marché des changes ?")
+                                .options(List.of(
+                                        "Une paire impliquant deux crypto-monnaies",
+                                        "Une paire de devises qui ne contient pas le dollar américain USD (ex: EUR/GBP, CAD/JPY, AUD/NZD)",
+                                        "Une transaction illégale non déclarée",
+                                        "Une transaction réglée uniquement en espèces"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Le terme Cross Pair désigne tout croisement direct entre deux devises majeures ou mineures sans passage direct par le dollar américain.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q3_19")
+                                .question("Qu'est-ce qu'un 'Super-cycle des matières premières' en histoire économique ?")
+                                .options(List.of(
+                                        "Une journée de hausse de 10% sur le cours du blé",
+                                        "Une phase pluriannuelle (souvent 10 à 20 ans) de hausse structurelle des cours provoquée par une forte demande globale face à une offre inélastique",
+                                        "La durée de vie d'un baril de pétrole raffiné",
+                                        "Le cycle de rotation des cultures agricoles"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Les super-cycles résultent de chocs d'urbanisation et d'industrialisation massive (comme la Chine dans les années 2000) mettant des décennies à être approvisionnés.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q3_20")
+                                .question("Comment fonctionnent les obligations indexées sur l'inflation (ex: TIPS aux États-Unis, OATi en France) ?")
+                                .options(List.of(
+                                        "Le taux de coupon passe à 50% en cas d'inflation",
+                                        "La valeur nominale (principal) du titre est régulièrement ajustée à la hausse ou à la baisse en fonction de l'évolution de l'indice des prix à la consommation",
+                                        "Le remboursement est effectué sous forme de barils de pétrole",
+                                        "L'émetteur a le droit d'annuler la dette en cas de déflation"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Les TIPS protègent le pouvoir d'achat : leur capital est indexé sur l'IPC, et le coupon fixe s'applique sur ce principal revalorisé.")
                                 .build()
                 ))
                 .build();
         quizzesMap.put(q3.getId(), q3);
 
-        // Quiz 4 : Analyse Fondamentale
+        // Quiz 4 : Validation : Analyse Fondamentale & États Financiers SEC
         QuizDto q4 = QuizDto.builder()
                 .id("QUIZ_FUNDAMENTAL")
                 .moduleId("MOD_FUNDAMENTAL")
                 .title("Validation : Analyse Fondamentale & États Financiers SEC")
-                .description("Vérifiez vos compétences d'analyse financière sur les dépôts 10-K, ratios de valorisation et trésorerie.")
+                .description("Vérifiez vos compétences d'analyse financière sur les dépôts 10-K, ratios de valorisation et trésorerie (20 questions).")
                 .passingScorePct(75)
                 .questions(List.of(
                         QuizQuestionDto.builder()
@@ -1060,17 +1636,209 @@ La directive européenne impose un capital de solvabilité requis garantissant q
                                 ))
                                 .correctOptionIndex(1)
                                 .explanation("Le ROE (Résultat Net / Capitaux Propres) mesure l'efficacité avec laquelle le management génère du profit à partir des fonds propres.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q4_5")
+                                .question("Quelle est la fréquence de publication du rapport financier SEC Form 10-Q ?")
+                                .options(List.of(
+                                        "Hebdomadaire",
+                                        "Trimestrielle (trois fois par an, le quatrième trimestre étant couvert par le 10-K)",
+                                        "Semestrielle",
+                                        "Tous les 5 ans"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Le Form 10-Q est déposé à la fin de chacun des trois premiers trimestres fiscaux de l'exercice.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q4_6")
+                                .question("Quelle est la vocation première du formulaire SEC Form 8-K ?")
+                                .options(List.of(
+                                        "Déclarer les impôts fonciers de l'entreprise",
+                                        "Divulguer sans délai (sous 4 jours ouvrés) tout événement matériel imprévu et majeur pour les actionnaires (démission du CEO, acquisition majeure, faillite)",
+                                        "Déposer la liste des brevets logiciels",
+                                        "Lister les cadeaux reçus par les membres du conseil"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Le Form 8-K est le rapport d'événements actuels matériels assurant une information équitable et instantanée du public investisseur.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q4_7")
+                                .question("Quels intervenants de marché sont obligés de déposer le rapport trimestriel Form 13-F auprès de la SEC ?")
+                                .options(List.of(
+                                        "Tous les particuliers ouvrant un compte de trading",
+                                        "Les gestionnaires d'investissement institutionnels gérant au moins 100 millions de dollars en actifs éligibles",
+                                        "Uniquement les banques d'affaires en faillite",
+                                        "Les journalistes économiques"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Le 13-F dévoile les positions longues en actions US détenues par les grands fonds spéculatifs et gestionnaires de capitaux (ex: Berkshire Hathaway).")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q4_8")
+                                .question("Quelle est la signification exacte de l'acronyme financier EBITDA ?")
+                                .options(List.of(
+                                        "Earnings Before Interest, Taxes, Depreciation, and Amortization",
+                                        "Equity Book Income Total Distributed Annually",
+                                        "Estimated Bank Interest Total Due Amount",
+                                        "European Bank Internal Transaction Data Agreement"
+                                ))
+                                .correctOptionIndex(0)
+                                .explanation("L'EBITDA correspond au bénéfice d'exploitation avant prise en compte des charges d'intérêts, impôts, dépréciations et amortissements.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q4_9")
+                                .question("Comment s'interprète un Current Ratio (Ratio de liquidité générale) égal à 2.2 ?")
+                                .options(List.of(
+                                        "L'entreprise est en situation d'insolvabilité imminente",
+                                        "L'entreprise possède 2.20 $ d'actifs à court terme pour chaque dollar de dette exigible à moins d'un an, ce qui indique une saine liquidité",
+                                        "L'entreprise a doublé son endettement bancaire",
+                                        "Le cours de l'action est surévalué de 220%"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Un ratio de liquidité supérieur à 1.5 - 2.0 démontre une capacité confortable à honorer ses engagements à court terme.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q4_10")
+                                .question("Pourquoi le Quick Ratio (Acid Test) exclut-il les stocks des actifs circulants au numérateur ?")
+                                .options(List.of(
+                                        "Parce que les stocks ne figurent jamais au bilan comptable",
+                                        "Parce que les stocks sont les actifs circulants les moins liquides et les plus difficiles à monétiser rapidement sans consentir de fortes remises",
+                                        "Pour éviter de payer des taxes sur la valeur ajoutée",
+                                        "Parce que les stocks appartiennent légalement aux clients"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Le ratio de liquidité réduite (Acid Test) mesure la solvabilité immédiate sans compter sur l'hypothèse de revente rapide des marchandises en stock.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q4_11")
+                                .question("Selon la formule de décomposition DuPont à 3 facteurs, le Return on Equity (ROE) est le produit de :")
+                                .options(List.of(
+                                        "Marge Nette x Rotation des Actifs x Levier Financier (Actifs / Fonds Propres)",
+                                        "Chiffre d'affaires x Nombre d'actions x Cours de bourse",
+                                        "EBITDA x Taux d'intérêt x Marge brute",
+                                        "Dividende par action x P/E ratio x Bêta"
+                                ))
+                                .correctOptionIndex(0)
+                                .explanation("L'identité DuPont décompose le ROE en rentabilité opérationnelle (Marge Nette), efficacité d'utilisation du capital (Asset Turnover) et structure d'endettement (Leverage).")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q4_12")
+                                .question("Comment calcule-t-on le Besoin en Fonds de Roulement d'exploitation (BFR) ?")
+                                .options(List.of(
+                                        "Dettes financières long terme - Trésorerie active",
+                                        "Stocks + Créances clients - Dettes fournisseurs",
+                                        "Chiffre d'affaires - Dividendes versés",
+                                        "Immobilisations corporelles + Dépenses de R&D"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Le BFR représente le décalage de trésorerie net issu du cycle d'exploitation entre le stockage/crédit accordé aux clients et les facilités obtenues des fournisseurs.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q4_13")
+                                .question("Dans un modèle de valorisation intrinsèque DCF (Discounted Cash Flow), quel taux est généralement utilisé pour actualiser les Free Cash Flows de la firme ?")
+                                .options(List.of(
+                                        "Le taux du livret A",
+                                        "Le WACC (Weighted Average Cost of Capital - Coût Moyen Pondéré du Capital)",
+                                        "Le taux de croissance du résultat net",
+                                        "Le taux d'inflation américain anticipé à 5 ans"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Le WACC reflète le rendement moyen exigé par l'ensemble des pourvoyeurs de capitaux de l'entreprise (actionnaires et créanciers financiers).")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q4_14")
+                                .question("Que mesure le bêta (Beta) d'une action dans le modèle CAPM (MEDAF) ?")
+                                .options(List.of(
+                                        "Le dividende annuel divisé par le résultat net",
+                                        "La sensibilité des rendements de l'action par rapport aux fluctuations de l'ensemble du marché (risque systématique)",
+                                        "Le risque de faillite frauduleuse des dirigeants",
+                                        "Le nombre moyen de transactions par minute"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Un bêta supérieur à 1 indique que le titre amplifie les variations du marché (titre agressif), un bêta inférieur à 1 signale un titre défensif.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q4_15")
+                                .question("Comment définit-on la Valeur d'Entreprise (Enterprise Value - EV) d'une société ?")
+                                .options(List.of(
+                                        "Capitalisation Boursière + Dette Financière Nette (Dette Brute - Trésorerie)",
+                                        "Total de l'Actif du bilan - Chiffre d'Affaires annuel",
+                                        "Valeur nominale des actions émises uniquement",
+                                        "Résultat Net x 100"
+                                ))
+                                .correctOptionIndex(0)
+                                .explanation("L'Enterprise Value est le coût théorique d'acquisition intégrale de l'entreprise : rachat de 100% des actions et remboursement de toutes les dettes nettes du cash disponible.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q4_16")
+                                .question("Pourquoi le multiple EV/EBITDA est-il souvent préféré au ratio P/E pour comparer des entreprises concurrentes du même secteur ?")
+                                .options(List.of(
+                                        "Parce qu'il est toujours inférieur à 10",
+                                        "Parce qu'il est neutre vis-à-vis des différences de structure financière (effet de levier d'endettement) et de politique d'amortissement fiscal entre firmes",
+                                        "Parce qu'il ne prend pas en compte le cours de bourse",
+                                        "Parce qu'il est obligatoire selon les normes comptables IFRS"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("L'EV/EBITDA permet une comparaison industrielle pure de la rentabilité d'exploitation, indépendamment de la façon dont l'entreprise est financée ou fiscalisée.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q4_17")
+                                .question("Qu'est-ce qu'une dépréciation du Goodwill (Goodwill Impairment) dans les comptes financiers ?")
+                                .options(List.of(
+                                        "Une prime versée aux employés méritants",
+                                        "Une charge non décaissée constatant qu'une entreprise ou filiale précédemment acquise vaut désormais moins que le prix payé à l'époque",
+                                        "L'achat de nouveaux ordinateurs pour la direction",
+                                        "Une augmentation automatique des dividendes"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("L'impairment du goodwill est un test comptable obligatoire qui réduit la valeur de l'actif incorporel au bilan quand les prévisions de cash-flow se détériorent.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q4_18")
+                                .question("Sous les normes comptables IFRS 15 et US GAAP ASC 606, quand une entreprise peut-elle légalement reconnaître un chiffre d'affaires ?")
+                                .options(List.of(
+                                        "Dès la réception d'un premier coup de téléphone d'un prospect",
+                                        "Lorsque le contrôle effectif du bien ou du service promis est transféré au client (satisfaction de l'obligation de prestation)",
+                                        "Uniquement lorsque le virement bancaire final est définitivement encaissé",
+                                        "Au début de chaque année calendaire de manière uniforme"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Le principe fondamental moderne de constatation du revenu repose sur le transfert du contrôle économique de la prestation convenue.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q4_19")
+                                .question("Quelle est la différence fondamentale entre la Marge Brute et la Marge Opérationnelle ?")
+                                .options(List.of(
+                                        "La marge brute ne déduit du chiffre d'affaires que le coût direct des marchandises ou services vendus (COGS), alors que la marge opérationnelle déduit aussi les frais de R&D, de vente et d'administration (SG&A)",
+                                        "La marge opérationnelle ne s'applique qu'aux banques d'affaires",
+                                        "La marge brute prend en compte les impôts sur les sociétés",
+                                        "Il n'existe aucune différence, ce sont deux termes synonymes"
+                                ))
+                                .correctOptionIndex(0)
+                                .explanation("Marge Brute = (CA - COGS) / CA. Marge Opérationnelle = EBIT / CA. La marge opérationnelle intègre l'ensemble des frais généraux d'exploitation.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q4_20")
+                                .question("Que représente le 'Dividend Payout Ratio' (taux de distribution du résultat) d'une société cotée ?")
+                                .options(List.of(
+                                        "Le pourcentage du résultat net qui est redistribué sous forme de dividendes aux actionnaires",
+                                        "Le rendement du dividende par rapport au cours de l'action",
+                                        "La taxe prélevée à la source sur les coupons obligataires",
+                                        "Le taux de croissance annuel moyen du chiffre d'affaires"
+                                ))
+                                .correctOptionIndex(0)
+                                .explanation("Payout Ratio = Dividendes Totaux / Résultat Net. Le solde non distribué est conservé en report à nouveau (retained earnings) pour réinvestissement.")
                                 .build()
                 ))
                 .build();
         quizzesMap.put(q4.getId(), q4);
 
-        // Quiz 5 : Risques, Stress Testing & XAI
+        // Quiz 5 : Validation : Risques de Marché, Stress Testing & XAI
         QuizDto q5 = QuizDto.builder()
                 .id("QUIZ_RISK_STRESS")
                 .moduleId("MOD_RISK_STRESS")
                 .title("Validation : Risques de Marché, Stress Testing & XAI")
-                .description("Évaluez vos compétences sur la Value-at-Risk, les scénarios de stress bancaire et l'explicabilité SHAP.")
+                .description("Évaluez vos compétences sur la Value-at-Risk, les scénarios de stress bancaire et l'explicabilité SHAP (20 questions).")
                 .passingScorePct(75)
                 .questions(List.of(
                         QuizQuestionDto.builder()
@@ -1089,10 +1857,10 @@ La directive européenne impose un capital de solvabilité requis garantissant q
                                 .id("Q5_2")
                                 .question("Dans le cadre du stress testing bancaire macroéconomique, quel scénario simule généralement une crise de solvabilité majeure ?")
                                 .options(List.of(
-                                        "Une récession sévère combinée à une hausse des défauts de crédit (NPL) et une baisse des marchés",
+                                        "Une récession sévère combinée à une hausse des défauts de crédit (NPL) et une baisse brutale des marchés financiers",
                                         "Une baisse de 10 bps des taux avec croissance du PIB de 4%",
                                         "Une hausse des dépôts de détail sans aucun changement macroéconomique",
-                                        "Une simplification réglementaire"
+                                        "Une simplification administrative des régulations"
                                 ))
                                 .correctOptionIndex(0)
                                 .explanation("Un stress test macroéconomique sévère conjugue choc récessif, hausse des défaillances d'emprunteurs et dépréciation des actifs de bilan.")
@@ -1108,17 +1876,221 @@ La directive européenne impose un capital de solvabilité requis garantissant q
                                 ))
                                 .correctOptionIndex(1)
                                 .explanation("Les valeurs SHAP rendent les modèles IA interprétables en quantifiant précisément l'impact positif ou négatif de chaque caractéristique sur la prédiction finale.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q5_4")
+                                .question("Pourquoi la mesure de l'Expected Shortfall (CVaR - Conditional VaR) est-elle théoriquement supérieure à la Value-at-Risk (VaR) ?")
+                                .options(List.of(
+                                        "Parce que la CVaR est toujours égale à zéro",
+                                        "Parce que la CVaR est une mesure de risque 'cohérente' qui quantifie l'espérance de perte moyenne dans la queue de distribution au-delà du seuil de VaR",
+                                        "Parce qu'elle ne nécessite aucune donnée statistique",
+                                        "Parce qu'elle garantit l'absence totale de risque opérationnel"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Contrairement à la VaR qui est aveugle à la gravité des pertes extrêmes au-delà du percentile, la CVaR calcule la sévérité moyenne dans la queue de distribution.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q5_5")
+                                .question("Quelle propriété mathématique fondamentale fait défaut à la Value-at-Risk (VaR) pour être qualifiée de mesure de risque 'cohérente' d'Artzner ?")
+                                .options(List.of(
+                                        "L'homogénéité positive",
+                                        "La sous-additivité (le risque d'un portefeuille combiné peut parfois excéder la somme des risques individuels)",
+                                        "L'invariance par translation",
+                                        "La monotonie"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("La non-sous-additivité de la VaR peut paradoxalement décourager la diversification dans certaines distributions asymétriques à queues épaisses.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q5_6")
+                                .question("Quel est le ratio de fonds propres de base durs (Common Equity Tier 1 - CET1) imposé aux banques commerciales sous les accords de Bâle III ?")
+                                .options(List.of(
+                                        "Au minimum 4.5% des actifs pondérés des risques (RWA), complété par des coussins de sécurité",
+                                        "Exactement 50% du total de bilan",
+                                        "0.5% du volume des crédits",
+                                        "100% des dépôts à vue"
+                                ))
+                                .correctOptionIndex(0)
+                                .explanation("Bâle III exige un CET1 d'au moins 4.5% des RWA, porté en pratique à plus de 8% - 12% avec le coussin de conservation et les coussins systémiques.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q5_7")
+                                .question("Quel est l'objectif du ratio de liquidité à court terme LCR (Liquidity Coverage Ratio) sous Bâle III ?")
+                                .options(List.of(
+                                        "Garantir qu'une banque détient suffisamment d'actifs liquides de haute qualité (HQLA) pour surmonter un choc de liquidité sévère durant 30 jours calendaires",
+                                        "Interdire les prêts immobiliers d'une durée supérieure à 10 ans",
+                                        "Forcer la détention exclusive d'obligations d'entreprises à haut rendement",
+                                        "Limiter les retraits aux distributeurs automatiques"
+                                ))
+                                .correctOptionIndex(0)
+                                .explanation("Le LCR impose : Actifs liquides de haute qualité (HQLA) / Sorties nettes de trésorerie sur 30 jours >= 100%.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q5_8")
+                                .question("Quelle dimension temporelle vise le ratio structurel de liquidité à long terme NSFR (Net Stable Funding Ratio) ?")
+                                .options(List.of(
+                                        "Une période de 24 heures",
+                                        "Un horizon de 1 an (financement stable disponible supérieur ou égal au financement stable exigé)",
+                                        "Un horizon de 50 ans",
+                                        "Une semaine de trading"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Le NSFR garantit que les actifs à long terme et illiquides d'une banque sont financés par des ressources stables à horizon d'un an minimum.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q5_9")
+                                .question("En quoi consiste un 'Reverse Stress Testing' imposé par les autorités bancaires prudentielles ?")
+                                .options(List.of(
+                                        "Tester la résistance de la banque lors d'un scénario de prospérité économique insolente",
+                                        "Partir du point d'échec ou d'insolvabilité de l'institution financière et rétro-calculer les scénarios et vulnérabilités exactes susceptibles de provoquer cette chute",
+                                        "Supprimer toutes les sauvegardes informatiques",
+                                        "Remplacer les auditeurs par des étudiants"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Le stress test inversé identifie les vulnérabilités fatales cachées d'un établissement en identifiant la combinaison exacte de chocs causant la faillite.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q5_10")
+                                .question("Que quantifie le CVA (Credit Valuation Adjustment) sur un portefeuille de produits dérivés de gré à gré (OTC) ?")
+                                .options(List.of(
+                                        "Le coût de maintenance des serveurs de cotation",
+                                        "La valeur de marché du risque de défaillance future de la contrepartie bilatérale au contrat dérivé",
+                                        "La taxe sur la valeur ajoutée des swaps",
+                                        "La commission payée à la chambre de compensation"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Le CVA est la décote de prix appliquée aux dérivés OTC pour refléter le risque que la contrepartie fasse défaut avant le règlement final.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q5_11")
+                                .question("Que signifie la présence de 'queues épaisses' (Fat Tails ou distribution leptokurtique) dans les rendements financiers ?")
+                                .options(List.of(
+                                        "Les marchés ne bougent jamais de plus de 0.1% par jour",
+                                        "Les krachs et chocs extrêmes surviennent avec une probabilité empirique beaucoup plus élevée que ce que prédit une loi normale gaussienne standard",
+                                        "Tous les investisseurs réalisent des bénéfices identiques",
+                                        "La moyenne des rendements est obligatoirement négative"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("La leptokurticité implique un kurtosis supérieur à 3 : les événements extrêmes à 4, 5 ou 6 écarts-types surviennent fréquemment sur les marchés financiers réels.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q5_12")
+                                .question("Quel phénomène de marché est modélisé par les équations autorégressives de type GARCH ?")
+                                .options(List.of(
+                                        "La croissance démographique des pays émergents",
+                                        "Le 'clustering' de volatilité (les périodes de forte volatilité ont tendance à être immédiatement suivies de forte volatilité, et inversement)",
+                                        "Le taux de change fixe entre deux monnaies",
+                                        "La saisonnalité des dividendes trimestriels"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Les modèles GARCH capturent l'hétéroscédasticité conditionnelle : la variance n'est pas constante mais dépend des résidus quadratiques passés.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q5_13")
+                                .question("Que constate-t-on couramment concernant les corrélations entre classes d'actifs lors d'une crise systémique de liquidité ?")
+                                .options(List.of(
+                                        "Les corrélations entre actifs risqués augmentent brusquement vers 1, annulant temporairement les bénéfices attendus de la diversification",
+                                        "Toutes les corrélations deviennent strictement égales à zéro",
+                                        "Les actions montent toujours quand les obligations chutent",
+                                        "Les corrélations restent rigoureusement stables"
+                                ))
+                                .correctOptionIndex(0)
+                                .explanation("En période de panique (dash for cash), les ventes forcées généralisées détruisent la décorrélation : tout baisse simultanément.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q5_14")
+                                .question("Quelle est la différence fondamentale entre les méthodes d'explicabilité LIME et SHAP pour l'IA en finance ?")
+                                .options(List.of(
+                                        "LIME est un algorithme de cryptage, SHAP est un langage de programmation",
+                                        "SHAP repose sur la théorie des jeux coopératifs de Lloyd Shapley garantissant des propriétés d'équité et d'additivité, alors que LIME construit une approximation linéaire locale",
+                                        "LIME est réservé aux réseaux de neurones récurrents",
+                                        "SHAP n'est utilisable que sur des images satellites"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Les valeurs de Shapley garantissent l'efficacité, la symétrie et la monotonie dans l'attribution des contributions marginales de chaque variable explicative.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q5_15")
+                                .question("Qu'est-ce que le 'Risque de Modèle' (Model Risk) encadré par le guide de supervision SR 11-7 de la Réserve Fédérale ?")
+                                .options(List.of(
+                                        "Le risque de panne matérielle d'un serveur informatique",
+                                        "Le risque financier lié à des décisions erronées découlant de modèles mathématiques mal spécifiés, surappris, mal calibrés ou appliqués hors de leur domaine de validité",
+                                        "Le risque de refus d'un contrat d'assurance vie",
+                                        "Le risque de grève dans le secteur bancaire"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("La directive SR 11-7 exige une gouvernance stricte de validation indépendante pour empêcher qu'un modèle quantitatif défectueux n'induise des pertes massives.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q5_16")
+                                .question("Que mesure le risque de taux dans le portefeuille bancaire (IRRBB - Interest Rate Risk in the Banking Book) ?")
+                                .options(List.of(
+                                        "La rentabilité des crédits à la consommation uniquement",
+                                        "La vulnérabilité de la marge nette d'intérêts et de la valeur économique des fonds propres de la banque face aux chocs sur la courbe des taux d'intérêt",
+                                        "Le montant total des commissions de carte bancaire",
+                                        "Le volume de prêts accordés en monnaie étrangère"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("L'IRRBB évalue l'impact des décalages de maturité entre l'actif (crédits à taux fixe) et le passif (dépôts à taux variable) lors d'une hausse brutale des taux.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q5_17")
+                                .question("Quelle est la fonction du Coussin de Capital Contracyclique (CCyB) ?")
+                                .options(List.of(
+                                        "Imposer la mise en réserve de capitaux propres additionnels en période d'expansion excessive du crédit pour pouvoir les absorber en période de retournement économique",
+                                        "Financer les primes de fin d'année des cadres dirigeants",
+                                        "Rembourser la dette publique des pays voisins",
+                                        "Réduire automatiquement le taux d'imposition des banques"
+                                ))
+                                .correctOptionIndex(0)
+                                .explanation("Le CCyB est un outil macroprudentiel modulable (de 0% à 2.5% des RWA) visant à freiner l'exubérance financière en haut de cycle.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q5_18")
+                                .question("Dans un test de résistance, qu'appelle-t-on une 'Décote' (Haircut) sur les actifs de garantie (collatéral) ?")
+                                .options(List.of(
+                                        "Une réduction sur les frais de tenue de compte",
+                                        "Le pourcentage de déduction appliqué à la valeur nominale ou de marché d'un actif apporté en garantie pour se prémunir contre sa volatilité ou son illiquidité",
+                                        "Le dividende payé en actions nouvelles",
+                                        "L'annulation pure et simple de l'actif"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Un haircut de 15% sur un collatéral de 100 000 € signifie que la banque ne prête qu'à concurrence de 85 000 € de valeur de couverture.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q5_19")
+                                .question("Que mesure l'Indice d'Herfindahl-Hirschman (HHI) dans la gestion des risques de crédit d'un portefeuille bancaire ?")
+                                .options(List.of(
+                                        "Le degré de concentration des expositions de crédit sur un nombre restreint de contreparties, secteurs économiques ou zones géographiques",
+                                        "Le taux de rentabilité des distributeurs de billets",
+                                        "L'âge moyen des clients de la banque",
+                                        "La durée de validité des cartes bancaires"
+                                ))
+                                .correctOptionIndex(0)
+                                .explanation("Le HHI (somme des carrés des parts de marché ou d'exposition) mesure la concentration du portefeuille : plus le HHI est élevé, plus le risque idiosyncratique est fort.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q5_20")
+                                .question("Quelle branche des mathématiques financières traite spécifiquement de la modélisation des événements catastrophiques rares au-delà de tout échantillon historique ?")
+                                .options(List.of(
+                                        "La théorie des groupes finis",
+                                        "La Théorie des Valeurs Extrêmes (EVT - Extreme Value Theory) et la loi de Pareto généralisée (GPD)",
+                                        "L'arithmétique modulaire",
+                                        "La géométrie fractale des spirales"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("L'EVT (méthode Peaks-Over-Threshold) modélise rigoureusement la queue des pertes extrêmes sans supposer arbitrairement une loi normale.")
                                 .build()
                 ))
                 .build();
         quizzesMap.put(q5.getId(), q5);
 
-        // Quiz 6 : Actuariat
+        // Quiz 6 : Validation : Actuariat, Tarification & Provisionnement IBNR
         QuizDto q6 = QuizDto.builder()
                 .id("QUIZ_ACTUARIAL")
                 .moduleId("MOD_ACTUARIAL")
                 .title("Validation : Actuariat, Tarification & Provisionnement IBNR")
-                .description("Vérifiez vos acquis sur la prime pure, le ratio combiné et la méthode de Chain-Ladder.")
+                .description("Vérifiez vos acquis sur la prime pure, le ratio combiné et la méthode de Chain-Ladder (20 questions).")
                 .passingScorePct(75)
                 .questions(List.of(
                         QuizQuestionDto.builder()
@@ -1126,7 +2098,7 @@ La directive européenne impose un capital de solvabilité requis garantissant q
                                 .question("Comment se définit la Prime Pure d'un contrat d'assurance ?")
                                 .options(List.of(
                                         "La prime commerciale majorée de la TVA",
-                                        "Le produit de la fréquence attendue de sinistres par le coût moyen attendu d'un sinistre",
+                                        "Le produit de la fréquence attendue de sinistres par le coût moyen attendu d'un sinistre (E[N] * E[X])",
                                         "Les frais de distribution payés aux courtiers",
                                         "Le montant maximal garanti au contrat"
                                 ))
@@ -1168,10 +2140,203 @@ La directive européenne impose un capital de solvabilité requis garantissant q
                                 ))
                                 .correctOptionIndex(1)
                                 .explanation("La méthode Chain-Ladder utilise les ratios de développement historiques (link ratios f_j) pour projeter les sinistres jusqu'à leur liquidation ultime.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q6_5")
+                                .question("Sous la réglementation Solvabilité II, que représente le Pilier 1 ?")
+                                .options(List.of(
+                                        "Les exigences quantitatives de fonds propres (SCR - Solvency Capital Requirement et MCR)",
+                                        "La charte de déontologie des courtiers d'assurance",
+                                        "La politique de communication sur les réseaux sociaux",
+                                        "Le montant des salaires des dirigeants"
+                                ))
+                                .correctOptionIndex(0)
+                                .explanation("Le Pilier 1 définit les règles de valorisation du bilan prudentiel en juste valeur (Best Estimate + Marge de Risque) et les capitaux de solvabilité obligatoires (SCR/MCR).")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q6_6")
+                                .question("Quel processus interne fondamental relève du Pilier 2 de la directive européenne Solvabilité II ?")
+                                .options(List.of(
+                                        "L'évaluation interne des risques et de la solvabilité propre (ORSA - Own Risk and Solvency Assessment)",
+                                        "La fixation du barème du bonus-malus auto",
+                                        "L'embauche des experts automobiles",
+                                        "La gestion des réclamations clients"
+                                ))
+                                .correctOptionIndex(0)
+                                .explanation("L'ORSA est l'exercice prospectif d'auto-évaluation globale de gouvernance par lequel l'assureur évalue ses besoins en capital sur son horizon stratégique.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q6_7")
+                                .question("Quel document public annuel obligatoire matérialise la discipline de marché du Pilier 3 sous Solvabilité II ?")
+                                .options(List.of(
+                                        "Le rapport public sur la solvabilité et la situation financière (SFCR - Solvency and Financial Condition Report)",
+                                        "La brochure publicitaire des nouveaux contrats d'épargne",
+                                        "Le procès-verbal du comité d'entreprise",
+                                        "Le relevé d'information annuel de l'assuré"
+                                ))
+                                .correctOptionIndex(0)
+                                .explanation("Le rapport SFCR est publié chaque année sur le site internet de l'assureur, fournissant aux assurés et aux marchés une vision transparente de son bilan prudentiel.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q6_8")
+                                .question("Dans la tarification non-vie par Modèles Linéaires Généralisés (GLM), quelles lois de probabilité sont traditionnellement utilisées pour la fréquence et la sévérité ?")
+                                .options(List.of(
+                                        "Loi de Poisson pour la fréquence des sinistres et Loi Gamma (ou Log-Normale) pour le coût moyen individuel",
+                                        "Loi Binomiale négative pour le prix et Loi uniforme pour le nombre de contrats",
+                                        "Loi Normale pour la fréquence et Loi exponentielle pour la météo",
+                                        "Loi de Cauchy pour les deux composantes"
+                                ))
+                                .correctOptionIndex(0)
+                                .explanation("Le modèle actuariel standard modélise le nombre d'événements par une régression de Poisson (fréquence) et la distribution asymétrique positive des coûts par une loi Gamma.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q6_9")
+                                .question("Comment calcule-t-on le 'Loss Ratio' (Rapport S/P ou Ratio Sinistres sur Primes) d'une compagnie d'assurance ?")
+                                .options(List.of(
+                                        "Sinistres payés et provisionnés divisés par les Primes nettes acquises",
+                                        "Dividendes versés divisés par les Capitaux propres",
+                                        "Frais généraux divisés par le Chiffre d'affaires",
+                                        "Nombre de contrats annulés divisé par le nombre de nouveaux souscripteurs"
+                                ))
+                                .correctOptionIndex(0)
+                                .explanation("Le ratio S/P mesure la charge de sinistres pure générée par le portefeuille par rapport au volume de primes mutualisées pour cette même période.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q6_10")
+                                .question("Comment se décompose le Ratio Combiné (Combined Ratio) global d'un assureur non-vie ?")
+                                .options(List.of(
+                                        "Loss Ratio (S/P) + Expense Ratio (Frais de gestion et commissions / Primes)",
+                                        "Taux d'impôt + Taux d'intérêt sans risque",
+                                        "Total des actifs / Total des passifs",
+                                        "Bénéfice net / Nombre d'actions"
+                                ))
+                                .correctOptionIndex(0)
+                                .explanation("Combined Ratio = (Sinistres + Frais d'acquisition et de gestion) / Primes. S'il est inférieur à 100%, la souscription technique est bénéficiaire.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q6_11")
+                                .question("Quel est l'objectif du système de Bonus-Malus (Coefficient de Réduction-Majoration) en assurance automobile ?")
+                                .options(List.of(
+                                        "Rendre l'assurance gratuite pour tout le monde",
+                                        "Inciter à la prudence au volant et ajuster équitablement la prime au niveau de risque individuel observé au fil des années",
+                                        "Financer la construction de nouvelles autoroutes",
+                                        "Interdire la revente des véhicules accidentés"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Le bonus-malus personnalise le tarif selon l'expérience de sinistralité : les conducteurs prudents bénéficient d'une réduction (bonus), pénalisant les conducteurs responsables d'accidents (malus).")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q6_12")
+                                .question("Quel risque comportemental la 'Franchise' (Deductible) permet-elle de mitiger efficacement ?")
+                                .options(List.of(
+                                        "Le risque de change sur les devises",
+                                        "L'aléa moral (Moral Hazard), en responsabilisant l'assuré qui conserve à sa charge une partie financière en cas de sinistre",
+                                        "Le risque d'erreur de saisie comptable",
+                                        "Le risque de piratage informatique"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("La franchise élimine les micro-sinistres coûteux en gestion administrative et évite la négligence de l'assuré (aléa moral).")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q6_13")
+                                .question("En quoi consiste un traité de réassurance non-proportionnelle en 'Excédent de Sinistre' (Excess of Loss - XL) ?")
+                                .options(List.of(
+                                        "L'assureur cède un pourcentage fixe de tous ses contrats au réassureur",
+                                        "Le réassureur prend en charge la fraction de la charge d'un sinistre (ou d'un événement cumulé) qui excède un montant contractuel fixé appelé 'priorité' ou 'rétention'",
+                                        "Le réassureur rachète la compagnie d'assurance",
+                                        "L'assureur refuse d'indemniser les victimes"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Le contrat XL protège le bilan de l'assureur direct contre les sinistres démesurés : l'assureur paie jusqu'au seuil de rétention, le réassureur paie l'excédent.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q6_14")
+                                .question("Quelle est la caractéristique maîtresse de la méthode actuarielle de Bornhuetter-Ferguson comparée à la méthode Chain-Ladder pure ?")
+                                .options(List.of(
+                                        "Elle n'utilise aucune donnée chiffrée",
+                                        "Elle combine les link ratios historiques avec une estimation a priori du ratio S/P attendu, ce qui stabilise les provisions pour les années de survenance récentes peu développées",
+                                        "Elle prédit avec certitude la météo de l'année suivante",
+                                        "Elle élimine les commissions de réassurance"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Pour les années très récentes où peu de sinistres ont été réglés, Chain-Ladder peut être instable. Bornhuetter-Ferguson pondère avec la rentabilité a priori de la branche.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q6_15")
+                                .question("Que représente le 'Best Estimate des Engagements' (BEL) dans le bilan prudentiel Solvabilité II ?")
+                                .options(List.of(
+                                        "La valeur comptable historique amortie des bureaux de l'assureur",
+                                        "L'espérance mathématique des flux futurs de trésorerie (sinistres et frais moins primes futures) actualisée selon la courbe des taux sans risque officielle de l'EIOPA",
+                                        "La marge bénéficiaire espérée par les actionnaires",
+                                        "Le capital social souscrit lors de la création de la société"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Le Best Estimate correspond à la juste valeur économique sans biais ni marge de prudence excessive des engagements envers les assurés.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q6_16")
+                                .question("Pourquoi ajoute-t-on une 'Marge de Risque' (Risk Margin) au Best Estimate pour constituer les provisions techniques sous Solvabilité II ?")
+                                .options(List.of(
+                                        "Pour rémunérer le régulateur national",
+                                        "Pour refléter le coût du capital d'un tiers solvable nécessaire pour reprendre et gérer les engagements d'assurance jusqu'à leur extinction complète",
+                                        "Pour financer des campagnes de sponsoring",
+                                        "Pour compenser l'inflation passée"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("La Marge de Risque garantit qu'en cas de transfert forcé du portefeuille, l'assureur repreneur disposera des fonds nécessaires pour couvrir le coût du capital SCR afférent.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q6_17")
+                                .question("Dans un triangle de développement actuariel (Triangle de Run-off), que représentent les lignes et que représentent les colonnes ?")
+                                .options(List.of(
+                                        "Les lignes représentent l'année de survenance du sinistre (accident year) et les colonnes représentent l'année de développement ou de règlement",
+                                        "Les lignes représentent le nom des assurés et les colonnes leur code postal",
+                                        "Les lignes représentent les taux d'intérêt et les colonnes le cours du dollar",
+                                        "Les lignes représentent les trimestres fiscaux et les colonnes le chiffre d'affaires"
+                                ))
+                                .correctOptionIndex(0)
+                                .explanation("Le triangle de liquidation regroupe les sinistres par cohorte de survenance (lignes) pour observer leur rythme d'écoulement et de maturation temporelle (colonnes).")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q6_18")
+                                .question("Que recouvre le risque de Catastrophe (CAT Risk) dans le module de risque de souscription non-vie Solvabilité II ?")
+                                .options(List.of(
+                                        "Le risque de piratage des comptes de messagerie des courtiers",
+                                        "Le risque d'événements extrêmes majeurs ou d'accumulation exceptionnelle de sinistres dus à des périls naturels (tempête, séisme, inondation) ou d'origine humaine (terrorisme, incendie industriel)",
+                                        "Le risque de perte des clés du coffre-fort de l'agence",
+                                        "La variation des taux de TVA en Europe"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Le sous-module CAT évalue la résilience du portefeuille face à des chocs dévastateurs rares frappant simultanément un grand nombre de contrats géographiquement concentrés.")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q6_19")
+                                .question("Quelle est la métrique de calibration statistique retenue par la directive Solvabilité II pour le calcul du SCR (Solvency Capital Requirement) ?")
+                                .options(List.of(
+                                        "Une moyenne mobile sur 30 jours",
+                                        "Une Value-at-Risk (VaR) de 99.5% sur un horizon temporel de 1 an (choc centennal 1 fois tous les 200 ans)",
+                                        "Une perte maximale de 5% du chiffre d'affaires",
+                                        "Le doublement systématique des fonds propres chaque décennie"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("Le capital SCR est calibré pour garantir que la compagnie ne fasse pas faillite sur un an avec une probabilité de survie de 99.5% (choc biséculaire).")
+                                .build(),
+                        QuizQuestionDto.builder()
+                                .id("Q6_20")
+                                .question("En quoi consiste l'Antisélection (Adverse Selection) en théorie de l'assurance ?")
+                                .options(List.of(
+                                        "L'élimination automatique des candidats lors d'un entretien d'embauche",
+                                        "Une situation d'asymétrie d'information où les profils présentant les risques les plus élevés souscrivent préférentiellement des contrats d'assurance, déséquilibrant la mutualisation si les tarifs ne sont pas segmentés",
+                                        "Le refus d'indemniser les sinistres causés par la foudre",
+                                        "L'achat d'actions en dehors des heures d'ouverture de la bourse"
+                                ))
+                                .correctOptionIndex(1)
+                                .explanation("L'asymétrie d'information pousse les assurés à haut risque à sur-consommer les garanties, forçant les actuaires à segmenter rigoureusement les risques par variables prédictives.")
                                 .build()
                 ))
                 .build();
         quizzesMap.put(q6.getId(), q6);
+
     }
 
     private void initScenarios() {

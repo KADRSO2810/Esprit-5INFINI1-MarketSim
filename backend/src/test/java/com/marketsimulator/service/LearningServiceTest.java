@@ -138,14 +138,17 @@ class LearningServiceTest {
     @DisplayName("Devrait exiger cours terminés ET quiz >= 75% pour débloquer le badge et certificat")
     void shouldUnlockBadgeOnlyWhenBothLessonsAndQuizAreCompleted() {
         // 1. Passage du quiz sans avoir terminé les leçons -> Aucun badge de module débloqué
+        QuizDto quiz = learningService.getQuizById("QUIZ_MARKET_BASICS", false).orElseThrow();
+        assertThat(quiz.getQuestions()).hasSize(20);
+
+        Map<String, Integer> answers = new HashMap<>();
+        for (QuizQuestionDto q : quiz.getQuestions()) {
+            answers.put(q.getId(), q.getCorrectOptionIndex());
+        }
+
         QuizSubmissionDto submission = QuizSubmissionDto.builder()
                 .quizId("QUIZ_MARKET_BASICS")
-                .answers(Map.of(
-                        "Q1_1", 1, // correct
-                        "Q1_2", 2, // correct
-                        "Q1_3", 1, // correct
-                        "Q1_4", 2  // correct
-                ))
+                .answers(answers)
                 .build();
 
         QuizResultDto initialResult = learningService.submitQuiz(testUser, submission);
