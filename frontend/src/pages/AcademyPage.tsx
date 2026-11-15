@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AppShell } from '../components/layout/AppShell';
 import { useToast, PageTransition, QuantOrbitalLoader } from '../components/ui';
+import { useAuth } from '../context/AuthContext';
+import { generateCertificatePdf } from '../utils/certificatePdf';
 import {
   learningApi,
   LearningModule,
@@ -30,9 +32,11 @@ import {
   X,
   RefreshCw,
   ExternalLink,
+  Download,
 } from 'lucide-react';
 
 export const AcademyPage: React.FC = () => {
+  const { user } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
 
@@ -532,13 +536,28 @@ export const AcademyPage: React.FC = () => {
 
                       {/* Nouveau badge débloqué */}
                       {quizResult.newlyUnlockedBadges && quizResult.newlyUnlockedBadges.length > 0 && (
-                        <div className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/15 p-3 flex items-center gap-3">
-                          <Award className="h-6 w-6 text-amber-400 shrink-0" />
-                          <div>
-                            <span className="text-xs font-bold text-amber-300 block">Nouveau Badge Débloqué !</span>
-                            <span className="text-xs text-white font-medium">{quizResult.newlyUnlockedBadges[0].title} : </span>
-                            <span className="text-xs text-slate-300">{quizResult.newlyUnlockedBadges[0].description}</span>
+                        <div className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/15 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <Award className="h-7 w-7 text-amber-400 shrink-0" />
+                            <div>
+                              <span className="text-xs font-bold text-amber-300 block">Accréditation Officielle Débloquée !</span>
+                              <span className="text-xs text-white font-medium">{quizResult.newlyUnlockedBadges[0].title}</span>
+                              <p className="text-[11px] text-slate-300">{quizResult.newlyUnlockedBadges[0].description}</p>
+                            </div>
                           </div>
+                          <button
+                            onClick={() => {
+                              generateCertificatePdf({
+                                badge: quizResult.newlyUnlockedBadges[0],
+                                userEmail: user?.email || 'etudiant@esprit.tn',
+                              });
+                              toast.success('Certificat téléchargé !', 'Votre certificat officiel en haute définition PDF a été généré.');
+                            }}
+                            className="shrink-0 flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 px-3.5 py-2 text-xs font-bold text-black shadow-lg hover:brightness-110 transition"
+                          >
+                            <Download className="h-4 w-4" />
+                            Télécharger le Certificat (PDF)
+                          </button>
                         </div>
                       )}
                     </motion.div>
@@ -768,56 +787,131 @@ export const AcademyPage: React.FC = () => {
                   Validez les leçons et réussissez les évaluations QCM avec un score supérieur à 75% pour débloquer ces accréditations officielles.
                 </p>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                   {[
-                    { code: 'FIRST_LESSON', title: 'Premier Pas de Trader', desc: 'A validé sa première fiche de cours sur le simulateur.', cat: 'PEDAGOGY' },
-                    { code: 'BADGE_BASICS', title: 'Opérateur de Bourse Qualifié', desc: 'Maîtrise des ordres au marché, limites et microstructure.', cat: 'TRADING' },
-                    { code: 'BADGE_CHARTIST', title: 'Analyste Technique & Quant', desc: 'Validation certifiée des oscillateurs RSI, SMA et backtests.', cat: 'QUANTITATIVE' },
-                    { code: 'BADGE_MULTI_ASSET', title: 'Stratège Multi-Actifs', desc: 'Expertise sur les devises Forex (BCE), obligations et matières premières.', cat: 'MULTI_ASSET' },
-                    { code: 'BADGE_CFA_ANALYST', title: 'Analyste Financier Certifié', desc: 'Déchiffrage des bilans 10-K, ratios de valorisation et Free Cash Flow.', cat: 'FUNDAMENTALS' },
-                    { code: 'BADGE_RISK_MANAGER', title: 'Risk Manager Bâle III & XAI', desc: 'Contrôle de la VaR, stress tests bancaires et explicabilité SHAP.', cat: 'RISK' },
-                    { code: 'BADGE_ACTUARY', title: 'Actuaire & Modélisateur Agréé', desc: 'Tarification GLM, simulations Monte Carlo et provisions Chain-Ladder.', cat: 'ACTUARY' },
-                    { code: 'BADGE_MASTER_MARKETS', title: 'Master de Salle de Marché', desc: 'Distinction suprême : a validé l\'intégralité des 6 modules du simulateur.', cat: 'EXCELLENCE' },
+                    { code: 'BADGE_BASICS', moduleId: 'MOD_MARKET_BASICS', quizId: 'QUIZ_MARKET_BASICS', title: 'Opérateur de Bourse Qualifié', desc: 'Microstructure, carnet d\'ordres et exécution limite/marché.', cat: 'TRADING' },
+                    { code: 'BADGE_CHARTIST', moduleId: 'MOD_TECHNICAL_ANALYSIS', quizId: 'QUIZ_TECHNICAL', title: 'Analyste Technique & Quant', desc: 'Oscillateurs RSI, moyennes mobiles et backtesting quantitatif.', cat: 'QUANTITATIVE' },
+                    { code: 'BADGE_MULTI_ASSET', moduleId: 'MOD_MULTI_ASSET', quizId: 'QUIZ_MULTI_ASSET', title: 'Stratège Multi-Actifs', desc: 'Marché Forex (pips/BCE), obligations et matières premières.', cat: 'MULTI_ASSET' },
+                    { code: 'BADGE_CFA_ANALYST', moduleId: 'MOD_FUNDAMENTAL', quizId: 'QUIZ_FUNDAMENTAL', title: 'Analyste Financier Certifié', desc: 'Dépôts SEC Form 10-K, ratios de valorisation et Free Cash Flow.', cat: 'FUNDAMENTALS' },
+                    { code: 'BADGE_RISK_MANAGER', moduleId: 'MOD_RISK_STRESS', quizId: 'QUIZ_RISK_STRESS', title: 'Risk Manager Bâle III & XAI', desc: 'Contrôle de la VaR 99%, stress tests bancaires et valeurs SHAP.', cat: 'RISK' },
+                    { code: 'BADGE_ACTUARY', moduleId: 'MOD_ACTUARIAL', quizId: 'QUIZ_ACTUARIAL', title: 'Actuaire & Modélisateur Agréé', desc: 'Tarification GLM, simulations Monte Carlo et provisions Chain-Ladder.', cat: 'ACTUARY' },
+                    { code: 'BADGE_MASTER_MARKETS', moduleId: null, quizId: null, title: 'Master de Salle de Marché', desc: 'Accréditation Suprême : validation intégrale des 6 spécialisations.', cat: 'EXCELLENCE' },
                   ].map((badgeDef) => {
                     const userBadge = profile?.badges?.find(b => b.badgeCode === badgeDef.code);
                     const isUnlocked = !!userBadge;
 
+                    const targetMod = badgeDef.moduleId ? modules.find(m => m.id === badgeDef.moduleId) : null;
+                    const completedInMod = targetMod ? targetMod.lessons.filter(l => isLessonCompleted(l.id)).length : 0;
+                    const totalInMod = targetMod ? targetMod.lessons.length : 0;
+                    const allModLessonsDone = totalInMod > 0 && completedInMod >= totalInMod;
+                    const quizBestScore = badgeDef.quizId ? profile?.quizBestScores?.[badgeDef.quizId] : null;
+                    const isQuizDone = badgeDef.quizId ? isQuizPassed(badgeDef.quizId) : false;
+
                     return (
                       <div
                         key={badgeDef.code}
-                        className={`rounded-2xl border p-4 flex flex-col justify-between transition ${
+                        className={`rounded-2xl border p-5 flex flex-col justify-between transition ${
                           isUnlocked
-                            ? 'border-amber-500/40 bg-gradient-to-b from-amber-500/10 to-[#070B14] shadow-lg shadow-amber-500/5'
-                            : 'border-slate-800 bg-[#070B14]/50 opacity-60'
+                            ? 'border-amber-500/40 bg-gradient-to-b from-amber-500/10 via-[#0B1220] to-[#070B14] shadow-xl shadow-amber-500/5'
+                            : 'border-slate-800 bg-[#0B1220]/70'
                         }`}
                       >
                         <div>
                           <div className="flex items-center justify-between mb-3">
-                            <div className={`flex h-10 w-10 items-center justify-center rounded-xl border ${
+                            <div className={`flex h-11 w-11 items-center justify-center rounded-2xl border ${
                               isUnlocked
-                                ? 'border-amber-500/40 bg-amber-500/20 text-amber-400'
+                                ? 'border-amber-500/40 bg-amber-500/20 text-amber-400 shadow-inner'
                                 : 'border-slate-800 bg-slate-900 text-slate-600'
                             }`}>
                               <Award className="h-6 w-6" />
                             </div>
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                              isUnlocked ? 'bg-amber-500/20 text-amber-300' : 'bg-slate-800 text-slate-500'
+                            <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
+                              isUnlocked
+                                ? 'border-amber-500/40 bg-amber-500/20 text-amber-300'
+                                : 'border-slate-700 bg-slate-800/80 text-slate-400'
                             }`}>
-                              {isUnlocked ? 'OBTENU' : 'VERROUILLÉ'}
+                              {isUnlocked ? 'CERTIFIÉ' : 'VERROUILLÉ'}
                             </span>
                           </div>
 
-                          <h4 className={`text-sm font-bold mb-1 ${isUnlocked ? 'text-white' : 'text-slate-400'}`}>
+                          <h4 className={`text-base font-bold mb-1 ${isUnlocked ? 'text-white' : 'text-slate-300'}`}>
                             {badgeDef.title}
                           </h4>
-                          <p className="text-xs text-slate-400 leading-relaxed mb-3">
+                          <p className="text-xs text-slate-400 leading-relaxed mb-4">
                             {badgeDef.desc}
                           </p>
+
+                          {/* Statut d'avancement pour le déblocage */}
+                          {!isUnlocked && badgeDef.moduleId && (
+                            <div className="rounded-xl border border-slate-800 bg-[#070B14] p-3 space-y-2 mb-4 text-xs">
+                              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">
+                                Conditions d'obtention du Certificat :
+                              </span>
+                              <div className="flex items-center justify-between">
+                                <span className="text-slate-300 flex items-center gap-1.5">
+                                  {allModLessonsDone ? (
+                                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                                  ) : (
+                                    <Clock className="h-3.5 w-3.5 text-amber-400" />
+                                  )}
+                                  Fiches de cours ({completedInMod}/{totalInMod})
+                                </span>
+                                <span className={`font-mono text-[11px] font-bold ${allModLessonsDone ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                  {allModLessonsDone ? 'Validé' : 'Incomplet'}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center justify-between">
+                                <span className="text-slate-300 flex items-center gap-1.5">
+                                  {isQuizDone ? (
+                                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                                  ) : (
+                                    <Clock className="h-3.5 w-3.5 text-amber-400" />
+                                  )}
+                                  Quiz QCM (Seuil ≥ 75%)
+                                </span>
+                                <span className={`font-mono text-[11px] font-bold ${isQuizDone ? 'text-emerald-400' : 'text-slate-400'}`}>
+                                  {quizBestScore != null ? `${Number(quizBestScore).toFixed(0)}%` : 'À passer'}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+
+                          {!isUnlocked && !badgeDef.moduleId && (
+                            <div className="rounded-xl border border-slate-800 bg-[#070B14] p-3 text-xs text-slate-400 mb-4">
+                              Exige l'obtention des 6 certificats de spécialisation.
+                            </div>
+                          )}
                         </div>
 
-                        {isUnlocked && userBadge.unlockedAt && (
-                          <div className="border-t border-slate-800 pt-2 text-[10px] text-amber-400/80 font-mono">
-                            Obtenu le {new Date(userBadge.unlockedAt).toLocaleDateString('fr-FR')}
+                        {/* Actions & Téléchargement du Certificat PDF */}
+                        {isUnlocked ? (
+                          <div className="border-t border-slate-800/80 pt-3 mt-2 space-y-2">
+                            <div className="flex items-center justify-between text-[11px] text-amber-400 font-mono">
+                              <span>Certif #{userBadge.certificateId ? userBadge.certificateId.slice(-9) : 'ESPRIT'}</span>
+                              <span className="font-bold text-emerald-400">Score: {Number(userBadge.scorePercentage || 100).toFixed(0)}%</span>
+                            </div>
+
+                            <button
+                              onClick={() => {
+                                generateCertificatePdf({
+                                  badge: userBadge,
+                                  userEmail: user?.email || 'etudiant@esprit.tn',
+                                });
+                                toast.success(
+                                  'Certificat PDF Généré !',
+                                  `Le certificat officiel pour ${userBadge.title} a été téléchargé avec succès.`
+                                );
+                              }}
+                              className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 px-4 py-2.5 text-xs font-bold text-black shadow-lg shadow-amber-500/20 hover:brightness-110 transition active:scale-[0.98]"
+                            >
+                              <Download className="h-4 w-4" />
+                              Télécharger mon Certificat (PDF)
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="border-t border-slate-800 pt-3 mt-2 text-[11px] text-slate-500 italic text-center">
+                            Certificat officiel verrouillé jusqu'à validation complète
                           </div>
                         )}
                       </div>

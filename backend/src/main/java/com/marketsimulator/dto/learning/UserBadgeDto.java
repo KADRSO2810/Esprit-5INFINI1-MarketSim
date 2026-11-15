@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -17,4 +18,6 @@ public class UserBadgeDto {
     private String description;
     private String category;
     private LocalDateTime unlockedAt;
+    private BigDecimal scorePercentage;
+    private String certificateId;
 }

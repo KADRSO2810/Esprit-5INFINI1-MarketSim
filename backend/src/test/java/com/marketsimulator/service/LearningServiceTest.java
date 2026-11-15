@@ -84,6 +84,18 @@ class LearningServiceTest {
                         Long uid = (Long) args[0];
                         return progressStore.stream().filter(p -> p.getUser().getId().equals(uid)).count();
                     }
+                    if ("countByUserIdAndModuleId".equals(name)) {
+                        Long uid = (Long) args[0];
+                        String mid = (String) args[1];
+                        return progressStore.stream().filter(p -> p.getUser().getId().equals(uid) && p.getModuleId().equals(mid)).count();
+                    }
+                    if ("findFirstByUserIdAndQuizIdOrderByPercentageDesc".equals(name)) {
+                        Long uid = (Long) args[0];
+                        String qid = (String) args[1];
+                        return attemptStore.stream()
+                                .filter(a -> a.getUser().getId().equals(uid) && a.getQuizId().equals(qid))
+                                .max(Comparator.comparing(QuizAttempt::getPercentage));
+                    }
                     return null;
                 }
         );
@@ -123,20 +135,9 @@ class LearningServiceTest {
     }
 
     @Test
-    @DisplayName("Devrait enregistrer la complétion d'une leçon et débloquer le badge Premier Pas")
-    void shouldMarkLessonCompletedAndUnlockBadge() {
-        learningService.markLessonCompleted(testUser, "LES_ORDRES_TYPES");
-
-        assertThat(progressStore).hasSize(1);
-        assertThat(progressStore.get(0).getLessonId()).isEqualTo("LES_ORDRES_TYPES");
-
-        assertThat(badgeStore).hasSize(1);
-        assertThat(badgeStore.get(0).getBadgeCode()).isEqualTo("FIRST_LESSON");
-    }
-
-    @Test
-    @DisplayName("Devrait valider un quiz avec 100% et débloquer le badge correspondant")
-    void shouldSubmitQuizSuccessfully() {
+    @DisplayName("Devrait exiger cours terminés ET quiz >= 75% pour débloquer le badge et certificat")
+    void shouldUnlockBadgeOnlyWhenBothLessonsAndQuizAreCompleted() {
+        // 1. Passage du quiz sans avoir terminé les leçons -> Aucun badge de module débloqué
         QuizSubmissionDto submission = QuizSubmissionDto.builder()
                 .quizId("QUIZ_MARKET_BASICS")
                 .answers(Map.of(
@@ -147,35 +148,24 @@ class LearningServiceTest {
                 ))
                 .build();
 
-        QuizResultDto result = learningService.submitQuiz(testUser, submission);
+        QuizResultDto initialResult = learningService.submitQuiz(testUser, submission);
+        assertThat(initialResult.isPassed()).isTrue();
+        assertThat(initialResult.getNewlyUnlockedBadges()).isEmpty(); // Leçons pas encore faites
+        assertThat(initialResult.getFeedback()).contains("terminez également la lecture de toutes les fiches de cours");
 
-        assertThat(result).isNotNull();
-        assertThat(result.getScore()).isEqualTo(4);
-        assertThat(result.getTotalQuestions()).isEqualTo(4);
-        assertThat(result.getPercentage()).isEqualByComparingTo(new BigDecimal("100.00"));
-        assertThat(result.isPassed()).isTrue();
-        assertThat(result.getNewlyUnlockedBadges()).hasSize(1);
-        assertThat(result.getNewlyUnlockedBadges().get(0).getBadgeCode()).isEqualTo("BADGE_BASICS");
-    }
-
-    @Test
-    @DisplayName("Devrait calculer avec précision le profil d'apprentissage et le titre honorifique")
-    void shouldCalculateLearningProfile() {
+        // 2. L'utilisateur valide les 2 leçons du module
         learningService.markLessonCompleted(testUser, "LES_ORDRES_TYPES");
+        learningService.markLessonCompleted(testUser, "LES_CARNET_ORDRES");
 
-        QuizSubmissionDto submission = QuizSubmissionDto.builder()
-                .quizId("QUIZ_MARKET_BASICS")
-                .answers(Map.of("Q1_1", 1, "Q1_2", 2, "Q1_3", 1, "Q1_4", 2))
-                .build();
-        learningService.submitQuiz(testUser, submission);
+        // 3. Le badge est maintenant débloqué avec son certificat
+        assertThat(badgeStore).hasSize(1);
+        UserBadge badge = badgeStore.get(0);
+        assertThat(badge.getBadgeCode()).isEqualTo("BADGE_BASICS");
 
+        // 4. Profil utilisateur avec certificat
         UserLearningProfileDto profile = learningService.getUserLearningProfile(testUser);
-
-        assertThat(profile).isNotNull();
-        assertThat(profile.getCompletedLessonsCount()).isEqualTo(1);
-        assertThat(profile.getPassedQuizzesCount()).isEqualTo(1);
-        assertThat(profile.getBadges()).hasSize(2); // FIRST_LESSON + BADGE_BASICS
-        assertThat(profile.getOverallProgressPct()).isGreaterThan(BigDecimal.ZERO);
-        assertThat(profile.getUserTitle()).isNotEmpty();
+        assertThat(profile.getBadges()).hasSize(1);
+        assertThat(profile.getBadges().get(0).getCertificateId()).contains("ESPRIT-MS-2026-BASICS");
+        assertThat(profile.getBadges().get(0).getScorePercentage()).isEqualByComparingTo(new BigDecimal("100.00"));
     }
 }

@@ -95,9 +95,8 @@ public class LearningService {
                     .build();
             progressRepository.save(progress);
 
-            // Vérifier déblocage de premier pas
-            unlockBadgeIfEligible(user, "FIRST_LESSON", "Premier Pas de Trader",
-                    "A terminé sa première leçon théorique sur Market Simulator.", "PEDAGOGY");
+            // Vérifier si toutes les leçons du module sont complétées ET que le quiz a déjà été réussi (>= 75%)
+            checkAndUnlockModuleBadges(user, lesson.getModuleId());
         }
     }
 
@@ -142,42 +141,26 @@ public class LearningService {
         quizAttemptRepository.save(attempt);
 
         List<UserBadgeDto> newlyUnlocked = new ArrayList<>();
+        String feedback;
 
         if (passed) {
-            // Badges par domaine
-            switch (quiz.getId()) {
-                case "QUIZ_MARKET_BASICS" -> unlockBadgeIfEligible(user, "BADGE_BASICS", "Opérateur de Bourse Qualifié",
-                        "A validé les mécanismes d'ordres et de microstructure avec brio.", "TRADING")
-                        .ifPresent(newlyUnlocked::add);
-                case "QUIZ_TECHNICAL" -> unlockBadgeIfEligible(user, "BADGE_CHARTIST", "Analyste Technique & Quant",
-                        "Maîtrise des oscillateurs RSI, moyennes mobiles et backtesting.", "QUANTITATIVE")
-                        .ifPresent(newlyUnlocked::add);
-                case "QUIZ_MULTI_ASSET" -> unlockBadgeIfEligible(user, "BADGE_MULTI_ASSET", "Stratège Multi-Actifs",
-                        "Expertise validée sur le Forex (Pips/ECB), Obligations (YTM/Duration) et Matières Premières.", "MULTI_ASSET")
-                        .ifPresent(newlyUnlocked::add);
-                case "QUIZ_FUNDAMENTAL" -> unlockBadgeIfEligible(user, "BADGE_CFA_ANALYST", "Analyste Financier Certifié",
-                        "Déchiffrage certifié des états financiers SEC 10-K, ratios de valorisation et cash flows.", "FUNDAMENTALS")
-                        .ifPresent(newlyUnlocked::add);
-                case "QUIZ_RISK_STRESS" -> unlockBadgeIfEligible(user, "BADGE_RISK_MANAGER", "Risk Manager Bâle III & XAI",
-                        "Contrôle de la VaR, scénarios de stress bancaire et explicabilité SHAP.", "RISK")
-                        .ifPresent(newlyUnlocked::add);
-                case "QUIZ_ACTUARIAL" -> unlockBadgeIfEligible(user, "BADGE_ACTUARY", "Actuaire & Modélisateur Agréé",
-                        "Tarification GLM, simulations Monte Carlo et provisions Chain-Ladder IBNR.", "ACTUARY")
-                        .ifPresent(newlyUnlocked::add);
-            }
+            // Le badge est débloqué SI ET SEULEMENT SI le quiz est réussi (>= 75%) ET tous les cours du module sont validés
+            newlyUnlocked = checkAndUnlockModuleBadges(user, quiz.getModuleId());
 
-            // Vérifier si tous les quiz sont passés
-            long passedCount = quizAttemptRepository.countByUserIdAndPassedTrue(user.getId());
-            if (passedCount >= quizzesMap.size()) {
-                unlockBadgeIfEligible(user, "BADGE_MASTER_MARKETS", "Master de Salle de Marché",
-                        "Diplômé d'excellence ayant validé l'intégralité du cursus académique MarketSim.", "EXCELLENCE")
-                        .ifPresent(newlyUnlocked::add);
+            LearningModuleDto mod = modulesMap.get(quiz.getModuleId());
+            long completedLessons = progressRepository.countByUserIdAndModuleId(user.getId(), quiz.getModuleId());
+            int totalModLessons = mod != null ? mod.getLessons().size() : 0;
+
+            if (!newlyUnlocked.isEmpty()) {
+                feedback = "Félicitations ! Cours et Quiz validés avec " + percentage + "% ! Vous avez débloqué le Badge et votre Certificat Officiel téléchargeable.";
+            } else if (completedLessons < totalModLessons) {
+                feedback = "Quiz réussi avec " + percentage + "% ! Pour obtenir le Badge et Certificat officiel de cette section, terminez également la lecture de toutes les fiches de cours (" + completedLessons + "/" + totalModLessons + " complétées).";
+            } else {
+                feedback = "Quiz réussi avec " + percentage + "% ! Module et certifications à jour.";
             }
+        } else {
+            feedback = "Score insuffisant (" + percentage + "%). Le seuil requis pour valider le badge et certificat est de " + quiz.getPassingScorePct() + "%. Relisez la fiche de cours et retentez votre chance.";
         }
-
-        String feedback = passed
-                ? "Félicitations ! Vous avez validé ce module avec " + percentage + "% de bonnes réponses."
-                : "Score insuffisant (" + percentage + "%). Le seuil requis est de " + quiz.getPassingScorePct() + "%. Relisez la fiche de cours et retentez votre chance.";
 
         return QuizResultDto.builder()
                 .quizId(quiz.getId())
@@ -190,6 +173,91 @@ public class LearningService {
                 .explanations(explanations)
                 .newlyUnlockedBadges(newlyUnlocked)
                 .build();
+    }
+
+    @Transactional
+    public List<UserBadgeDto> checkAndUnlockModuleBadges(User user, String moduleId) {
+        List<UserBadgeDto> newlyUnlocked = new ArrayList<>();
+        LearningModuleDto mod = modulesMap.get(moduleId);
+        if (mod == null) return newlyUnlocked;
+
+        long completedCount = progressRepository.countByUserIdAndModuleId(user.getId(), moduleId);
+        boolean allLessonsDone = completedCount >= mod.getLessons().size();
+
+        Optional<QuizAttempt> bestAttempt = quizAttemptRepository.findFirstByUserIdAndQuizIdOrderByPercentageDesc(user.getId(), mod.getQuizId());
+        boolean quizPassed75 = bestAttempt.isPresent()
+                && Boolean.TRUE.equals(bestAttempt.get().getPassed())
+                && bestAttempt.get().getPercentage().compareTo(BigDecimal.valueOf(75)) >= 0;
+
+        // Condition stricte : Leçons toutes terminées ET Quiz >= 75%
+        if (allLessonsDone && quizPassed75) {
+            String badgeCode;
+            String badgeTitle;
+            String badgeDesc;
+            String category;
+
+            switch (moduleId) {
+                case "MOD_MARKET_BASICS" -> {
+                    badgeCode = "BADGE_BASICS";
+                    badgeTitle = "Opérateur de Bourse Qualifié";
+                    badgeDesc = "Validation complète des leçons de microstructure et du quiz avec plus de 75%.";
+                    category = "TRADING";
+                }
+                case "MOD_TECHNICAL_ANALYSIS" -> {
+                    badgeCode = "BADGE_CHARTIST";
+                    badgeTitle = "Analyste Technique & Quant";
+                    badgeDesc = "Validation complète des indicateurs techniques et du quiz avec plus de 75%.";
+                    category = "QUANTITATIVE";
+                }
+                case "MOD_MULTI_ASSET" -> {
+                    badgeCode = "BADGE_MULTI_ASSET";
+                    badgeTitle = "Stratège Multi-Actifs";
+                    badgeDesc = "Validation complète des cours Forex, Obligations, Matières premières et du quiz avec plus de 75%.";
+                    category = "MULTI_ASSET";
+                }
+                case "MOD_FUNDAMENTAL" -> {
+                    badgeCode = "BADGE_CFA_ANALYST";
+                    badgeTitle = "Analyste Financier Certifié";
+                    badgeDesc = "Validation complète des bilans Form 10-K, ratios financiers et du quiz avec plus de 75%.";
+                    category = "FUNDAMENTALS";
+                }
+                case "MOD_RISK_STRESS" -> {
+                    badgeCode = "BADGE_RISK_MANAGER";
+                    badgeTitle = "Risk Manager Bâle III & XAI";
+                    badgeDesc = "Validation complète de la VaR, du stress testing bancaire et du quiz avec plus de 75%.";
+                    category = "RISK";
+                }
+                case "MOD_ACTUARIAL" -> {
+                    badgeCode = "BADGE_ACTUARY";
+                    badgeTitle = "Actuaire & Modélisateur Agréé";
+                    badgeDesc = "Validation complète de la tarification GLM, provisions Chain-Ladder et du quiz avec plus de 75%.";
+                    category = "ACTUARY";
+                }
+                default -> {
+                    return newlyUnlocked;
+                }
+            }
+
+            BigDecimal scorePct = bestAttempt.get().getPercentage();
+            unlockBadgeIfEligible(user, badgeCode, badgeTitle, badgeDesc, category, scorePct)
+                    .ifPresent(newlyUnlocked::add);
+
+            // Vérifier si tous les 6 modules sont certifiés pour décerner le Master
+            boolean allModulesCertified = modulesMap.keySet().stream().allMatch(mId -> {
+                LearningModuleDto m = modulesMap.get(mId);
+                long c = progressRepository.countByUserIdAndModuleId(user.getId(), mId);
+                Optional<QuizAttempt> qa = quizAttemptRepository.findFirstByUserIdAndQuizIdOrderByPercentageDesc(user.getId(), m.getQuizId());
+                return c >= m.getLessons().size() && qa.isPresent() && Boolean.TRUE.equals(qa.get().getPassed()) && qa.get().getPercentage().compareTo(BigDecimal.valueOf(75)) >= 0;
+            });
+
+            if (allModulesCertified) {
+                unlockBadgeIfEligible(user, "BADGE_MASTER_MARKETS", "Master de Salle de Marché",
+                        "Diplômé d'excellence ayant validé l'intégralité du cursus académique MarketSim.", "EXCELLENCE", new BigDecimal("100.00"))
+                        .ifPresent(newlyUnlocked::add);
+            }
+        }
+
+        return newlyUnlocked;
     }
 
     @Transactional(readOnly = true)
@@ -212,13 +280,19 @@ public class LearningService {
 
         List<UserBadge> badges = badgeRepository.findByUserIdOrderByUnlockedAtDesc(user.getId());
         List<UserBadgeDto> badgeDtos = badges.stream()
-                .map(b -> UserBadgeDto.builder()
-                        .badgeCode(b.getBadgeCode())
-                        .title(b.getTitle())
-                        .description(b.getDescription())
-                        .category(b.getCategory())
-                        .unlockedAt(b.getUnlockedAt())
-                        .build())
+                .map(b -> {
+                    String certId = "ESPRIT-MS-2026-" + b.getBadgeCode().replace("BADGE_", "") + "-" + String.format("%04d", Math.abs((user.getId() * 31 + b.getBadgeCode().hashCode()) % 10000));
+                    BigDecimal bestScore = quizBestScores.values().stream().max(BigDecimal::compareTo).orElse(BigDecimal.valueOf(100));
+                    return UserBadgeDto.builder()
+                            .badgeCode(b.getBadgeCode())
+                            .title(b.getTitle())
+                            .description(b.getDescription())
+                            .category(b.getCategory())
+                            .unlockedAt(b.getUnlockedAt())
+                            .certificateId(certId)
+                            .scorePercentage(bestScore)
+                            .build();
+                })
                 .collect(Collectors.toList());
 
         int totalLessons = modulesMap.values().stream().mapToInt(m -> m.getLessons().size()).sum();
@@ -254,7 +328,7 @@ public class LearningService {
                 .build();
     }
 
-    private Optional<UserBadgeDto> unlockBadgeIfEligible(User user, String code, String title, String desc, String cat) {
+    private Optional<UserBadgeDto> unlockBadgeIfEligible(User user, String code, String title, String desc, String cat, BigDecimal scorePct) {
         if (!badgeRepository.existsByUserIdAndBadgeCode(user.getId(), code)) {
             UserBadge b = UserBadge.builder()
                     .user(user)
@@ -264,12 +338,15 @@ public class LearningService {
                     .category(cat)
                     .build();
             UserBadge saved = badgeRepository.save(b);
+            String certId = "ESPRIT-MS-2026-" + code.replace("BADGE_", "") + "-" + String.format("%04d", Math.abs((user.getId() * 31 + code.hashCode()) % 10000));
             return Optional.of(UserBadgeDto.builder()
                     .badgeCode(saved.getBadgeCode())
                     .title(saved.getTitle())
                     .description(saved.getDescription())
                     .category(saved.getCategory())
                     .unlockedAt(saved.getUnlockedAt() != null ? saved.getUnlockedAt() : LocalDateTime.now())
+                    .scorePercentage(scorePct != null ? scorePct : BigDecimal.valueOf(100))
+                    .certificateId(certId)
                     .build());
         }
         return Optional.empty();

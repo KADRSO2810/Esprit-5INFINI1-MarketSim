@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AppShell } from '../components/layout/AppShell';
 import { PageTransition, QuantOrbitalLoader, useToast } from '../components/ui';
+import { useAuth } from '../context/AuthContext';
+import { learningApi, UserBadge } from '../api/learning';
+import { generateCertificatePdf } from '../utils/certificatePdf';
 import {
   actuaryApi,
   InsuranceProductType,
@@ -21,15 +25,20 @@ import {
   Zap,
   Sliders,
   Info,
+  Award,
+  Lock,
+  Download,
+  GraduationCap,
 } from 'lucide-react';
 
 export const ActuarialPage: React.FC = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const toast = useToast();
   const [activeTab, setActiveTab] = useState<'PRICING' | 'SIMULATION' | 'PROVISIONING'>('PRICING');
 
   // Products and profile state
   const [products, setProducts] = useState<InsuranceProductInfo[]>([]);
-  const activeProductInfo = products.find(p => p.type === profile.productType);
   const [profile, setProfile] = useState<PolicyholderProfile>({
     productType: 'AUTO',
     age: 35,
@@ -43,11 +52,13 @@ export const ActuarialPage: React.FC = () => {
     expenseLoadingPct: 20.0,
     targetProfitPct: 8.0,
   });
+  const activeProductInfo = products.find(p => p.type === profile.productType);
 
   // Results state
   const [pricingResult, setPricingResult] = useState<ActuarialPricingResult | null>(null);
   const [simulationResult, setSimulationResult] = useState<ClaimSimulationResult | null>(null);
   const [provisioningResult, setProvisioningResult] = useState<ProvisioningResult | null>(null);
+  const [actuaryBadge, setActuaryBadge] = useState<UserBadge | null>(null);
 
   const [loading, setLoading] = useState<boolean>(true);
   const [pricingLoading, setPricingLoading] = useState<boolean>(false);
@@ -59,16 +70,23 @@ export const ActuarialPage: React.FC = () => {
     const init = async () => {
       setLoading(true);
       try {
-        const [prods, pricing, sim, prov] = await Promise.all([
+        const [prods, pricing, sim, prov, learningProfile] = await Promise.all([
           actuaryApi.getProducts().catch(() => []),
           actuaryApi.calculatePricing(profile),
           actuaryApi.simulateClaims(profile),
           actuaryApi.getProvisioning('AUTO'),
+          learningApi.getUserProfile().catch(() => null),
         ]);
         setProducts(prods);
         setPricingResult(pricing);
         setSimulationResult(sim);
         setProvisioningResult(prov);
+        if (learningProfile?.badges) {
+          const found = learningProfile.badges.find((b: UserBadge) => b.badgeCode === 'BADGE_ACTUARY');
+          if (found) {
+            setActuaryBadge(found);
+          }
+        }
       } catch (err: any) {
         toast.error('Erreur actuariat', err?.message || 'Connexion au moteur actuariel impossible');
       } finally {
@@ -154,6 +172,57 @@ export const ActuarialPage: React.FC = () => {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
+              {/* Badge & Certification Actuarielle ESPRIT */}
+              {actuaryBadge ? (
+                <div className="flex items-center gap-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3.5 py-2 text-xs shadow-lg shadow-amber-500/5">
+                  <Award className="h-4 w-4 text-amber-400 shrink-0" />
+                  <div>
+                    <div className="flex items-center gap-1.5 font-bold text-amber-300">
+                      <span>Accréditation Actuaire Validée</span>
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                      {actuaryBadge.scorePercentage !== undefined && (
+                        <span className="text-[10px] text-emerald-400 font-mono">({actuaryBadge.scorePercentage}%)</span>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-slate-400">Badge & Examen Solvabilité II</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      generateCertificatePdf({
+                        badge: actuaryBadge,
+                        userEmail: user?.email || 'etudiant@esprit.tn',
+                        userName: user?.email ? user.email.split('@')[0] : 'Étudiant ESPRIT',
+                      });
+                      toast.success('Certificat téléchargé', 'Le PDF officiel a été généré avec succès');
+                    }}
+                    className="ml-1.5 flex items-center gap-1 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 px-2.5 py-1 text-[11px] font-bold text-slate-950 shadow transition hover:brightness-110"
+                    title="Télécharger le certificat officiel au format PDF"
+                  >
+                    <Download className="h-3 w-3" />
+                    Certif PDF
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2.5 rounded-xl border border-slate-800 bg-[#070B14]/80 px-3.5 py-2 text-xs">
+                  <Lock className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                  <div>
+                    <div className="flex items-center gap-1.5 font-semibold text-slate-300">
+                      <span>Badge Actuariat</span>
+                      <span className="text-[10px] font-normal text-amber-400/90">(Verrouillé : Cours + Quiz ≥ 75%)</span>
+                    </div>
+                    <span className="text-[10px] text-slate-500">Examen académique requis</span>
+                  </div>
+                  <button
+                    onClick={() => navigate('/app/academy')}
+                    className="ml-1.5 flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800/80 px-2.5 py-1 text-[11px] font-medium text-slate-300 hover:border-violet-500 hover:text-white transition"
+                    title="Aller à l'Académie pour compléter les cours et réussir le quiz"
+                  >
+                    <GraduationCap className="h-3 w-3 text-violet-400" />
+                    Obtenir le Badge
+                  </button>
+                </div>
+              )}
+
               <div className="flex items-center gap-2 rounded-xl border border-slate-800 bg-[#070B14]/80 px-3.5 py-2 text-xs">
                 <Scale className="h-3.5 w-3.5 text-violet-400" />
                 <span className="text-slate-400">Norme :</span>

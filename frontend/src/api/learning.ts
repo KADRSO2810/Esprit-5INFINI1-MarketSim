@@ -52,6 +52,8 @@ export interface UserBadge {
   description: string;
   category: string;
   unlockedAt: string;
+  certificateId?: string;
+  scorePercentage?: number;
 }
 
 export interface QuizResult {
