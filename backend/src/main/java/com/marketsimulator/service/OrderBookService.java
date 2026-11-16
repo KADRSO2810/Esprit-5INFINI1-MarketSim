@@ -209,23 +209,37 @@ public class OrderBookService {
             return quote.getPrice();
         }
 
+        // Essayer avec le symbole nettoyé (ex: BINANCE:BTCUSDT -> BTCUSDT)
+        String clean = symbol.replace("BINANCE:", "").replace("COINBASE:", "").trim();
+        var cleanQuote = ingestionService.getLatestQuote(clean);
+        if (cleanQuote != null && cleanQuote.getPrice() != null && cleanQuote.getPrice().compareTo(BigDecimal.ZERO) > 0) {
+            return cleanQuote.getPrice();
+        }
+
         if (multiAssetMarketService != null) {
             try {
                 return multiAssetMarketService.resolveExecutionPrice(symbol, "BUY");
             } catch (Exception ignored) {}
         }
 
-        // Valeurs sentinelles par défaut si le marché est fermé
-        return switch (symbol) {
-            case "EUR/USD", "EURUSD" -> new BigDecimal("1.0850");
-            case "GBP/USD", "GBPUSD" -> new BigDecimal("1.2950");
-            case "USD/JPY", "USDJPY" -> new BigDecimal("154.20");
-            case "GOLD", "XAUUSD" -> new BigDecimal("2650.00");
-            case "OIL", "BRENT" -> new BigDecimal("74.50");
-            case "BTC", "BTCUSD" -> new BigDecimal("89500.00");
-            case "US10Y" -> new BigDecimal("98.50");
-            default -> new BigDecimal("150.00");
-        };
+        // Valeurs sentinelles réalistes par défaut
+        if (clean.contains("BTC")) return new BigDecimal("89500.00");
+        if (clean.contains("ETH")) return new BigDecimal("3150.00");
+        if (clean.contains("SOL")) return new BigDecimal("215.00");
+        if (clean.equals("AAPL")) return new BigDecimal("228.00");
+        if (clean.equals("NVDA")) return new BigDecimal("142.00");
+        if (clean.equals("TSLA")) return new BigDecimal("330.00");
+        if (clean.equals("MSFT")) return new BigDecimal("425.00");
+        if (clean.equals("GOOGL")) return new BigDecimal("175.00");
+        if (clean.equals("AMZN")) return new BigDecimal("205.00");
+        if (clean.equals("EUR/USD") || clean.equals("EURUSD")) return new BigDecimal("1.0850");
+        if (clean.equals("GBP/USD") || clean.equals("GBPUSD")) return new BigDecimal("1.2950");
+        if (clean.equals("USD/JPY") || clean.equals("USDJPY")) return new BigDecimal("154.20");
+        if (clean.equals("GOLD") || clean.equals("XAU/USD") || clean.equals("XAUUSD")) return new BigDecimal("2650.00");
+        if (clean.equals("OIL") || clean.equals("BRENT")) return new BigDecimal("74.50");
+        if (clean.equals("US10Y") || clean.equals("OAT-10Y") || clean.equals("BUND-10Y")) return new BigDecimal("98.50");
+
+        return new BigDecimal("150.00");
     }
 
     private int getPriceScale(AssetClass assetClass, String symbol) {

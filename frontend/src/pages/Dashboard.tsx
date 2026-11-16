@@ -18,6 +18,7 @@ import { OrderModal } from '../components/OrderModal';
 import { PortfolioPanel } from '../components/PortfolioPanel';
 import { RiskMeter } from '../components/RiskMeter';
 import { MarketTickerTape } from '../components/MarketTickerTape';
+import { OrderBookWidget } from '../components/trading/OrderBookWidget';
 import {
   StatCard,
   PageTransition,
@@ -56,6 +57,7 @@ import {
   ArrowUpRight,
   Globe,
   FileSpreadsheet,
+  Layers,
 } from 'lucide-react';
 
 function isUSMarketOpen(): boolean {
@@ -261,9 +263,13 @@ export const Dashboard: React.FC = () => {
   const [newSymbolInput, setNewSymbolInput] = useState<string>('');
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
 
-  const [orderModal, setOrderModal] = useState<{ symbol: string; side: 'BUY' | 'SELL' } | null>(
-    null
-  );
+  const [orderModal, setOrderModal] = useState<{
+    symbol: string;
+    side: 'BUY' | 'SELL';
+    orderType?: 'MARKET' | 'LIMIT';
+    limitPrice?: number | null;
+  } | null>(null);
+  const [rightPanelTab, setRightPanelTab] = useState<'COMBINED' | 'TICKET' | 'ORDERBOOK'>('COMBINED');
   const [portfolioSummary, setPortfolioSummary] = useState<PortfolioSummary | null>(null);
   const [positions, setPositions] = useState<PositionItem[]>([]);
   const [trades, setTrades] = useState<TradeItem[]>([]);
@@ -407,8 +413,13 @@ export const Dashboard: React.FC = () => {
     }
   };
 
-  const openOrder = (symbol: string, side: 'BUY' | 'SELL') => {
-    setOrderModal({ symbol, side });
+  const openOrder = (
+    symbol: string,
+    side: 'BUY' | 'SELL',
+    limitPrice?: number | null,
+    orderType: 'MARKET' | 'LIMIT' = 'MARKET'
+  ) => {
+    setOrderModal({ symbol, side, orderType, limitPrice });
   };
 
   const handleOrderFilled = () => {
@@ -481,6 +492,8 @@ export const Dashboard: React.FC = () => {
         isOpen={Boolean(orderModal)}
         symbol={orderModal?.symbol ?? selectedSymbol}
         initialSide={orderModal?.side ?? 'BUY'}
+        initialOrderType={orderModal?.orderType ?? 'MARKET'}
+        initialLimitPrice={orderModal?.limitPrice ?? null}
         lastPrice={quotes[orderModal?.symbol ?? selectedSymbol]?.price ?? null}
         onClose={() => setOrderModal(null)}
         onFilled={() => {
@@ -741,89 +754,156 @@ export const Dashboard: React.FC = () => {
             />
           </div>
 
-          {/* Right Column: Order Ticket + Risk + AI Intelligence */}
+          {/* Right Column: Order Ticket + Carnet d'Ordres L2 + Risk + AI Intelligence */}
           <div className="lg:col-span-4 flex flex-col gap-5">
-            {/* Selected Asset Execution Card */}
-            <div className="workstation-panel rounded-xl p-4">
-              <div className="flex items-start justify-between gap-2 pb-3 border-b border-subtle">
-                <div className="flex items-center gap-2.5">
-                  <AssetLogo symbol={selectedSymbol} size="lg" />
-                  <div>
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-sky-400">
-                      Ticket d'exécution
-                    </span>
-                    <div className="text-lg font-bold font-mono text-white mt-0.5 leading-tight">
-                      {shortLabel(selectedSymbol)}
-                    </div>
-                    <div className="text-[11px] font-mono text-slate-500">{selectedSymbol}</div>
-                  </div>
-                </div>
-                {isCrypto(selectedSymbol) ? (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-2 py-1 rounded-md bg-violet-500/15 text-violet-300 border border-violet-500/25">
-                    <Zap className="w-3 h-3" /> 24/7
-                  </span>
-                ) : usOpen ? (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-2 py-1 rounded-md bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    NYSE LIVE
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-1 rounded-md bg-[#070B14] text-amber-300 border border-amber-500/25">
-                    <Clock className="w-3 h-3" /> 15h30 Paris
-                  </span>
-                )}
-              </div>
-
-              {quotes[selectedSymbol] ? (
-                <div className="py-3 grid grid-cols-2 gap-y-2 text-xs font-mono tabular-nums">
-                  <span className="text-slate-400">Dernier cours</span>
-                  <span className="text-right font-bold">
-                    <AnimatedPriceIndicator
-                      value={quotes[selectedSymbol]!.price}
-                      showTrendBadge
-                      formatValue={(val) => `$${val.toFixed(4)}`}
-                      className="text-white"
-                    />
-                  </span>
-                  <span className="text-slate-400">Variation</span>
-                  <span
-                    className={`text-right font-semibold ${
-                      (quotes[selectedSymbol]?.change ?? 0) >= 0
-                        ? 'text-emerald-400'
-                        : 'text-rose-400'
-                    }`}
-                  >
-                    {(quotes[selectedSymbol]?.changePercent ?? 0) >= 0 ? '+' : ''}
-                    {quotes[selectedSymbol]?.changePercent?.toFixed(2) ?? '0.00'}%
-                  </span>
-                  <span className="text-slate-400">Horodatage</span>
-                  <span className="text-right text-slate-300">
-                    {new Date(quotes[selectedSymbol]!.ts).toLocaleTimeString('fr-FR')}
-                  </span>
-                </div>
-              ) : (
-                <div className="py-4 text-center text-xs font-mono text-slate-500">
-                  En attente du prochain tick marché…
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-subtle">
-                <button
-                  onClick={() => openOrder(selectedSymbol, 'BUY')}
-                  disabled={!quotes[selectedSymbol]}
-                  className="py-2.5 rounded-xl text-xs font-bold btn-bullish text-slate-950 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
-                >
-                  BUY MARKET
-                </button>
-                <button
-                  onClick={() => openOrder(selectedSymbol, 'SELL')}
-                  disabled={!quotes[selectedSymbol]}
-                  className="py-2.5 rounded-xl text-xs font-bold btn-bearish text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
-                >
-                  SELL MARKET
-                </button>
-              </div>
+            {/* Mode Selector: Ticket d'Ordre VS Carnet d'Ordres L2 */}
+            <div className="flex items-center gap-1 p-1 bg-[#070B14] rounded-xl border border-subtle">
+              <button
+                type="button"
+                onClick={() => setRightPanelTab('COMBINED')}
+                className={`flex-1 py-1.5 px-2 text-[11px] font-bold rounded-lg transition flex items-center justify-center gap-1.5 ${
+                  rightPanelTab === 'COMBINED'
+                    ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <SlidersHorizontal className="w-3 h-3" /> Combiné
+              </button>
+              <button
+                type="button"
+                onClick={() => setRightPanelTab('TICKET')}
+                className={`flex-1 py-1.5 px-2 text-[11px] font-bold rounded-lg transition flex items-center justify-center gap-1.5 ${
+                  rightPanelTab === 'TICKET'
+                    ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Zap className="w-3 h-3" /> Ticket
+              </button>
+              <button
+                type="button"
+                onClick={() => setRightPanelTab('ORDERBOOK')}
+                className={`flex-1 py-1.5 px-2 text-[11px] font-bold rounded-lg transition flex items-center justify-center gap-1.5 ${
+                  rightPanelTab === 'ORDERBOOK'
+                    ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Layers className="w-3 h-3" /> Carnet L2
+              </button>
             </div>
+
+            {/* Selected Asset Execution Card */}
+            {(rightPanelTab === 'COMBINED' || rightPanelTab === 'TICKET') && (
+              <div className="workstation-panel rounded-xl p-4">
+                <div className="flex items-start justify-between gap-2 pb-3 border-b border-subtle">
+                  <div className="flex items-center gap-2.5">
+                    <AssetLogo symbol={selectedSymbol} size="lg" />
+                    <div>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-sky-400">
+                        Ticket d'exécution
+                      </span>
+                      <div className="text-lg font-bold font-mono text-white mt-0.5 leading-tight">
+                        {shortLabel(selectedSymbol)}
+                      </div>
+                      <div className="text-[11px] font-mono text-slate-500">{selectedSymbol}</div>
+                    </div>
+                  </div>
+                  {isCrypto(selectedSymbol) ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-2 py-1 rounded-md bg-violet-500/15 text-violet-300 border border-violet-500/25">
+                      <Zap className="w-3 h-3" /> 24/7
+                    </span>
+                  ) : usOpen ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-2 py-1 rounded-md bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      NYSE LIVE
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-1 rounded-md bg-[#070B14] text-amber-300 border border-amber-500/25">
+                      <Clock className="w-3 h-3" /> 15h30 Paris
+                    </span>
+                  )}
+                </div>
+
+                {quotes[selectedSymbol] ? (
+                  <div className="py-3 grid grid-cols-2 gap-y-2 text-xs font-mono tabular-nums">
+                    <span className="text-slate-400">Dernier cours</span>
+                    <span className="text-right font-bold">
+                      <AnimatedPriceIndicator
+                        value={quotes[selectedSymbol]!.price}
+                        showTrendBadge
+                        formatValue={(val) => `$${val.toFixed(4)}`}
+                        className="text-white"
+                      />
+                    </span>
+                    <span className="text-slate-400">Variation</span>
+                    <span
+                      className={`text-right font-semibold ${
+                        (quotes[selectedSymbol]?.change ?? 0) >= 0
+                          ? 'text-emerald-400'
+                          : 'text-rose-400'
+                      }`}
+                    >
+                      {(quotes[selectedSymbol]?.changePercent ?? 0) >= 0 ? '+' : ''}
+                      {quotes[selectedSymbol]?.changePercent?.toFixed(2) ?? '0.00'}%
+                    </span>
+                    <span className="text-slate-400">Horodatage</span>
+                    <span className="text-right text-slate-300">
+                      {new Date(quotes[selectedSymbol]!.ts).toLocaleTimeString('fr-FR')}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="py-4 text-center text-xs font-mono text-slate-500">
+                    En attente du prochain tick marché…
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-subtle">
+                  <button
+                    onClick={() => openOrder(selectedSymbol, 'BUY')}
+                    disabled={!quotes[selectedSymbol]}
+                    className="py-2.5 rounded-xl text-xs font-bold btn-bullish text-slate-950 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
+                  >
+                    BUY MARKET
+                  </button>
+                  <button
+                    onClick={() => openOrder(selectedSymbol, 'SELL')}
+                    disabled={!quotes[selectedSymbol]}
+                    className="py-2.5 rounded-xl text-xs font-bold btn-bearish text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
+                  >
+                    SELL MARKET
+                  </button>
+                </div>
+
+                <div className="mt-2.5 pt-2 border-t border-subtle/50 flex items-center justify-between text-[11px]">
+                  <button
+                    type="button"
+                    onClick={() => openOrder(selectedSymbol, 'BUY', quotes[selectedSymbol]?.price ?? null, 'LIMIT')}
+                    className="text-sky-400 hover:text-sky-300 hover:underline font-mono text-xs font-semibold"
+                  >
+                    + Ordre Limite (Carnet L2)
+                  </button>
+                  <Link
+                    to="/app/markets"
+                    className="text-slate-400 hover:text-amber-300 flex items-center gap-1 text-[10px]"
+                  >
+                    Hub Multi-Actifs <ArrowUpRight className="w-3 h-3" />
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {/* Carnet d'Ordres Level 2 (OrderBookWidget) */}
+            {(rightPanelTab === 'COMBINED' || rightPanelTab === 'ORDERBOOK') && (
+              <OrderBookWidget
+                symbol={selectedSymbol}
+                currentPrice={quotes[selectedSymbol]?.price ?? null}
+                compact={rightPanelTab === 'COMBINED'}
+                onSelectPrice={(price, side) => {
+                  openOrder(selectedSymbol, side, price, 'LIMIT');
+                }}
+              />
+            )}
 
             {/* Risk Meter */}
             <RiskMeter metrics={riskMetrics} loading={riskLoading} />

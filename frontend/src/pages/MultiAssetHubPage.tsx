@@ -413,8 +413,7 @@ export const MultiAssetHubPage: React.FC = () => {
         )}
 
         {/* ── CARNET D'ORDRES LEVEL 2 & CARTE DE PROFONDEUR ─────────────── */}
-        {(activeTab === 'ALL' || activeTab === 'FOREX' || activeTab === 'COMMODITY') && (
-          <div className="rounded-2xl border border-slate-800 bg-[#0B1220]/95 p-5 shadow-2xl">
+        <div className="rounded-2xl border border-slate-800 bg-[#0B1220]/95 p-5 shadow-2xl">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
               <div className="flex items-center gap-2.5">
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500/20 text-sky-400">
@@ -462,7 +461,6 @@ export const MultiAssetHubPage: React.FC = () => {
               />
             </div>
           </div>
-        )}
 
         {/* ── SECTION 2 : FIXED INCOME / OBLIGATIONS ──────────────────────── */}
         {(activeTab === 'ALL' || activeTab === 'BOND') && (
