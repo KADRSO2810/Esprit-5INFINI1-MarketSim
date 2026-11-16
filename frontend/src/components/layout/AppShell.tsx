@@ -52,6 +52,7 @@ interface NavItem {
 
 interface NavSection {
   group: string;
+  adminOnly?: boolean;
   items: NavItem[];
 }
 
@@ -97,6 +98,7 @@ const NAV_SECTIONS: NavSection[] = [
   },
   {
     group: 'Supervision & Contrôle',
+    adminOnly: true,
     items: [
       { to: '/app/admin', label: 'Console d\'Administration', icon: ShieldCheck, matchPrefix: '/app/admin', accent: 'text-violet-400' },
     ],
@@ -254,7 +256,7 @@ export const AppShell: React.FC<AppShellProps> = ({
 
         {/* Navigation Groups */}
         <nav className="flex-1 overflow-y-auto px-2.5 py-4 space-y-5">
-          {NAV_SECTIONS.map((sec) => (
+          {NAV_SECTIONS.filter((sec) => !sec.adminOnly || user?.role === 'ADMIN').map((sec) => (
             <div key={sec.group}>
               {!isCompact ? (
                 <div className="px-2.5 mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
@@ -364,9 +366,18 @@ export const AppShell: React.FC<AppShellProps> = ({
                 <p className="text-xs font-medium text-slate-200 truncate">
                   {user?.email || 'Trader'}
                 </p>
-                <p className="text-[10px] font-mono text-slate-500 uppercase">
-                  {user?.role || 'USER'} · Paper
-                </p>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span
+                    className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded border ${
+                      user?.role === 'ADMIN'
+                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                        : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                    }`}
+                  >
+                    {user?.role === 'ADMIN' ? '👑 ADMIN' : '⚡ TRADER'}
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-500">Paper Desk</span>
+                </div>
               </div>
             )}
             <button
@@ -472,6 +483,17 @@ export const AppShell: React.FC<AppShellProps> = ({
 
           {/* Right: Telemetry Pills + Actions */}
           <div className="flex items-center gap-2 shrink-0">
+            {/* User Role Badge in Top Bar */}
+            <div
+              className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono font-bold ${
+                user?.role === 'ADMIN'
+                  ? 'bg-amber-500/15 border-amber-500/40 text-amber-300'
+                  : 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
+              }`}
+            >
+              <span>{user?.role === 'ADMIN' ? '👑 ADMIN' : '⚡ TRADER'}</span>
+            </div>
+
             {equityBadge != null && (
               <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#101A2B] border border-subtle text-[11px] font-mono tabular-nums">
                 <span className="text-slate-400">EQUITY</span>

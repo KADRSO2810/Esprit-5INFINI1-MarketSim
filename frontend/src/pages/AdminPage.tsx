@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AppShell } from '../components/layout/AppShell';
+import { useAuth } from '../context/AuthContext';
 import { useToast, PageTransition, QuantOrbitalLoader } from '../components/ui';
 import { adminApi, PlatformOverview, UserSummary } from '../api/admin';
 import {
   ShieldCheck,
+  ShieldAlert,
   Users,
   Activity,
   Server,
@@ -12,10 +15,13 @@ import {
   TrendingUp,
   RefreshCw,
   CheckCircle2,
+  ArrowLeft,
 } from 'lucide-react';
 
 export const AdminPage: React.FC = () => {
   const toast = useToast();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [overview, setOverview] = useState<PlatformOverview | null>(null);
   const [users, setUsers] = useState<UserSummary[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -39,8 +45,12 @@ export const AdminPage: React.FC = () => {
   };
 
   useEffect(() => {
+    if (user && user.role !== 'ADMIN') {
+      setLoading(false);
+      return;
+    }
     fetchAdminData();
-  }, []);
+  }, [user]);
 
   const handleToggleRole = async (user: UserSummary) => {
     const newRole = user.role === 'ADMIN' ? 'USER' : 'ADMIN';
@@ -55,6 +65,36 @@ export const AdminPage: React.FC = () => {
       setUpdatingUserId(null);
     }
   };
+
+  if (user && user.role !== 'ADMIN') {
+    return (
+      <AppShell title="Console d'Administration" section="Supervision & Contrôle">
+        <PageTransition>
+          <div className="py-20 flex flex-col items-center justify-center text-center space-y-5 max-w-lg mx-auto">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-rose-500/40 bg-rose-500/10 text-rose-400 shadow-xl shadow-rose-500/10">
+              <ShieldAlert className="h-8 w-8" />
+            </div>
+            <div className="space-y-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-500/30 bg-rose-500/10 px-3 py-1 text-xs font-mono font-bold text-rose-300">
+                ERREUR 403 · ACCÈS REFUSÉ
+              </span>
+              <h2 className="text-xl font-bold text-white">Privilèges Administrateur Requis</h2>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Ce module de supervision et d'administration est strictement réservé aux comptes administrateur (Section 5 du Cahier des Charges). Votre compte actuel (<strong className="text-slate-200">{user.email}</strong>) est configuré avec le rôle <strong className="text-emerald-400">TRADER (Simple Utilisateur)</strong>.
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/app')}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold text-xs shadow-lg shadow-sky-500/20 hover:brightness-110 transition active:scale-[0.98]"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Retourner au Terminal
+            </button>
+          </div>
+        </PageTransition>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell title="Console d'Administration" section="Supervision & Contrôle">

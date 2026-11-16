@@ -31,6 +31,7 @@ import {
 } from '../api/stress';
 import { XaiWaterfallModal } from '../components/XaiWaterfallModal';
 import { AppShell } from '../components/layout/AppShell';
+import { useAuth } from '../context/AuthContext';
 import {
   PageTransition,
   StatCard,
@@ -49,6 +50,8 @@ type StressTab = 'runs' | 'scenarios' | 'models' | 'import';
 
 export const StressTesting: React.FC = () => {
   const toast = useToast();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
 
   const [activeTab, setActiveTab] = useState<StressTab>('runs');
 
@@ -386,7 +389,7 @@ export const StressTesting: React.FC = () => {
     { id: 'runs', label: 'Simulations', icon: Play, count: runs.length },
     { id: 'scenarios', label: 'Scénarios', icon: Sliders, count: scenarios.length },
     { id: 'models', label: 'Modèles ML', icon: Brain, count: models.length },
-    { id: 'import', label: 'Import CSV', icon: Upload, count: banks.length },
+    { id: 'import', label: isAdmin ? 'Import CSV' : 'Import CSV 🔒', icon: Upload, count: banks.length },
   ];
 
   return (
@@ -466,20 +469,37 @@ export const StressTesting: React.FC = () => {
                 Importez un dataset CSV contenant les ratios financiers historiques réels par établissement et par période.
               </p>
 
+              {!isAdmin && (
+                <div className="p-3 bg-amber-500/10 border border-amber-500/25 rounded-xl text-xs space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-amber-300">
+                    <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>Accès Administrateur Requis</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    L'injection de nouvelles données brutes est restreinte à l'administration. Vous pouvez librement tester et auditer la résilience des banques enregistrées ci-contre.
+                  </p>
+                </div>
+              )}
+
               <div
-                onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-strong hover:border-violet-400 bg-[#0B1220] rounded-xl p-6 text-center cursor-pointer transition-colors"
+                onClick={() => isAdmin && fileInputRef.current?.click()}
+                className={`border-2 border-dashed bg-[#0B1220] rounded-xl p-6 text-center transition-colors ${
+                  isAdmin
+                    ? 'border-strong hover:border-violet-400 cursor-pointer'
+                    : 'border-slate-800 opacity-60 cursor-not-allowed'
+                }`}
               >
                 <Upload className="w-7 h-7 text-violet-400 mx-auto mb-2" />
                 <input
                   ref={fileInputRef}
                   type="file"
                   accept=".csv"
+                  disabled={!isAdmin}
                   onChange={(e) => setFile(e.target.files?.[0] || null)}
                   className="hidden"
                 />
                 <span className="text-xs font-semibold text-slate-200 block truncate">
-                  {file ? file.name : 'Sélectionner un fichier .csv'}
+                  {file ? file.name : (isAdmin ? 'Sélectionner un fichier .csv' : 'Téléversement réservé à l’administrateur')}
                 </span>
                 <span className="text-[11px] text-slate-500 block mt-1">
                   Séparateur virgule ou point-virgule
@@ -517,11 +537,12 @@ export const StressTesting: React.FC = () => {
 
               <button
                 onClick={handleImportCsv}
-                disabled={!file || importing}
+                disabled={!file || importing || !isAdmin}
                 className="w-full py-2.5 btn-ai disabled:opacity-45 text-white rounded-xl text-xs font-bold transition-all active:scale-[0.985] flex items-center justify-center gap-2"
+                title={!isAdmin ? "Réservé à l'administrateur" : undefined}
               >
                 {importing ? <OrbitalSpinner size="xs" tone="cyan" /> : <Upload className="w-4 h-4" />}
-                <span>{importing ? 'Importation…' : 'Valider & Importer'}</span>
+                <span>{!isAdmin ? 'Import Réservé à l\'Admin 🔒' : (importing ? 'Importation…' : 'Valider & Importer')}</span>
               </button>
             </div>
 
@@ -645,13 +666,21 @@ export const StressTesting: React.FC = () => {
                 </div>
               )}
 
+              {!isAdmin && (
+                <div className="p-2.5 bg-violet-500/10 border border-violet-500/20 text-violet-300 text-[11px] rounded-xl flex items-center gap-2">
+                  <ShieldAlert className="w-4 h-4 text-violet-400 shrink-0" />
+                  <span>Calibrage de nouveaux modèles ML réservé aux administrateurs. Sélectionnez ci-contre un modèle actif pour vos simulations.</span>
+                </div>
+              )}
+
               <button
                 onClick={handleTrainModel}
-                disabled={training}
+                disabled={training || !isAdmin}
                 className="w-full py-2.5 btn-ai disabled:opacity-45 text-white rounded-xl text-xs font-bold transition-all active:scale-[0.985] flex items-center justify-center gap-2"
+                title={!isAdmin ? "Réservé aux comptes Administrateur" : undefined}
               >
                 {training ? <OrbitalSpinner size="xs" tone="cyan" /> : <Brain className="w-4 h-4" />}
-                <span>{training ? 'Entraînement en cours…' : 'Lancer l’Entraînement IA'}</span>
+                <span>{!isAdmin ? 'Entraînement Réservé à l\'Admin 🔒' : (training ? 'Entraînement en cours…' : 'Lancer l’Entraînement IA')}</span>
               </button>
               {training && (
                 <AnimatedMarketLoader

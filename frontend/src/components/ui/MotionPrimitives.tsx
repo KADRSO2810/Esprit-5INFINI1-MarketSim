@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import {
   Activity,
   BarChart3,
@@ -296,19 +297,23 @@ export const CommandPalette: React.FC<{
   onClose: () => void;
 }> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const matches = useMemo(() => {
+    const available = COMMAND_ROUTES.filter(
+      (r) => r.path !== '/app/admin' || user?.role === 'ADMIN'
+    );
     const q = query.trim().toLowerCase();
-    if (!q) return COMMAND_ROUTES;
-    return COMMAND_ROUTES.filter(
+    if (!q) return available;
+    return available.filter(
       (r) =>
         r.label.toLowerCase().includes(q) ||
         r.section.toLowerCase().includes(q) ||
         r.keywords.includes(q)
     );
-  }, [query]);
+  }, [query, user?.role]);
 
   useEffect(() => {
     if (isOpen) {

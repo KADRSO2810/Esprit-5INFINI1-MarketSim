@@ -107,7 +107,7 @@ export const App: React.FC = () => {
           <Route
             path="/app/admin"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole="ADMIN">
                 <AdminPage />
               </ProtectedRoute>
             }
