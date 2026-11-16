@@ -1,14 +1,20 @@
 package com.marketsimulator.controller;
 
+import com.marketsimulator.dto.PortfolioSummaryDto;
 import com.marketsimulator.dto.actuary.*;
+import com.marketsimulator.repository.UserRepository;
+import com.marketsimulator.service.PortfolioService;
 import com.marketsimulator.service.actuary.ActuarialService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -20,6 +26,8 @@ import java.util.stream.Collectors;
 public class ActuarialController {
 
     private final ActuarialService actuarialService;
+    private final PortfolioService portfolioService;
+    private final UserRepository userRepository;
 
     @Operation(summary = "Calcule la tarification actuarielle prédictive et les marges de prime")
     @PostMapping("/pricing")
@@ -55,6 +63,28 @@ public class ActuarialController {
                 ))
                 .collect(Collectors.toList());
         return ResponseEntity.ok(list);
+    }
+
+    @Operation(summary = "Transfère l'excédent / bénéfice technique d'assurance vers le Cash de trading (ALM Transfer)")
+    @PostMapping("/transfer-to-trading")
+    public ResponseEntity<PortfolioSummaryDto> transferToTrading(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(defaultValue = "0") Long sessionId,
+            @RequestParam BigDecimal amount) {
+        Long userId = getUserId(userDetails);
+        PortfolioSummaryDto summary = portfolioService.injectCash(userId, sessionId, amount, "ALM_INSURANCE_SURPLUS");
+        return ResponseEntity.ok(summary);
+    }
+
+    private Long getUserId(UserDetails userDetails) {
+        if (userDetails == null) {
+            return userRepository.findAll().stream().findFirst()
+                    .orElseThrow(() -> new RuntimeException("No user found"))
+                    .getId();
+        }
+        return userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found: " + userDetails.getUsername()))
+                .getId();
     }
 
     public record InsuranceProductDto(

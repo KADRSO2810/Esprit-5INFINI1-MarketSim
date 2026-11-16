@@ -110,4 +110,11 @@ export const actuaryApi = {
     });
     return res.data;
   },
+
+  transferToTrading: async (amount: number, sessionId: number = 0): Promise<any> => {
+    const res = await axios.post('/api/actuary/transfer-to-trading', null, {
+      params: { amount, sessionId },
+    });
+    return res.data;
+  },
 };

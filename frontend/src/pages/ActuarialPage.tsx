@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { AppShell } from '../components/layout/AppShell';
 import { PageTransition, QuantOrbitalLoader, useToast } from '../components/ui';
 import { useAuth } from '../context/AuthContext';
@@ -29,6 +29,8 @@ import {
   Lock,
   Download,
   GraduationCap,
+  TrendingUp,
+  ArrowUpRight,
 } from 'lucide-react';
 
 export const ActuarialPage: React.FC = () => {
@@ -140,6 +142,24 @@ export const ActuarialPage: React.FC = () => {
       toast.error('Erreur provisionnement', err?.message || 'Calcul des provisions impossible');
     } finally {
       setProvLoading(false);
+    }
+  };
+
+  const [transferLoading, setTransferLoading] = useState<boolean>(false);
+
+  const handleTransferSurplusToTrading = async () => {
+    if (!simulationResult || simulationResult.netUnderwritingResult <= 0) return;
+    setTransferLoading(true);
+    try {
+      await actuaryApi.transferToTrading(simulationResult.netUnderwritingResult);
+      toast.success(
+        'Transfert ALM Réussi !',
+        `+${simulationResult.netUnderwritingResult.toLocaleString()} € de bénéfices d'assurance ont été injectés dans votre compte de Live Trading !`
+      );
+    } catch (err: any) {
+      toast.error('Échec du transfert', err?.message || 'Impossible de transférer les fonds vers le portefeuille.');
+    } finally {
+      setTransferLoading(false);
     }
   };
 
@@ -612,6 +632,47 @@ export const ActuarialPage: React.FC = () => {
                     </span>
                   </div>
                 </div>
+
+                {/* Passerelle ALM : Injection des Bénéfices vers le Live Trading */}
+                {simulationResult.netUnderwritingResult > 0 && (
+                  <div className="rounded-2xl border border-emerald-500/30 bg-gradient-to-r from-emerald-950/30 via-[#0B1220] to-emerald-950/20 p-5 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex items-start sm:items-center gap-3.5">
+                      <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/30">
+                        <TrendingUp className="h-6 w-6" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-bold text-white">
+                            Passerelle ALM : Bénéfice d'Assurance Réellement Investissable
+                          </h4>
+                          <span className="rounded bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-300 border border-emerald-500/30">
+                            +{simulationResult.netUnderwritingResult.toLocaleString()} €
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                          Ce surplus technique de souscription peut être directement transféré vers votre solde de <strong className="text-emerald-300">Cash de Trading</strong> pour acheter des actions (AAPL, NVDA), des obligations (IEF) ou des matières premières (Or, Pétrole).
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2.5 flex-shrink-0">
+                      <button
+                        onClick={handleTransferSurplusToTrading}
+                        disabled={transferLoading}
+                        className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-bold px-4 py-2.5 text-xs transition shadow-lg shadow-emerald-500/20 active:scale-95 disabled:opacity-50"
+                      >
+                        <ArrowUpRight className={`h-4 w-4 ${transferLoading ? 'animate-spin' : ''}`} />
+                        Transférer au Cash Trading (+{simulationResult.netUnderwritingResult.toLocaleString()} €)
+                      </button>
+                      <Link
+                        to="/app/dashboard"
+                        className="flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-200 px-3 py-2.5 text-xs font-semibold transition"
+                      >
+                        Aller au Terminal Live
+                      </Link>
+                    </div>
+                  </div>
+                )}
 
                 {/* Histogramme de distribution des sinistres */}
                 <div className="rounded-2xl border border-slate-800 bg-[#0B1220] p-5 shadow-xl">

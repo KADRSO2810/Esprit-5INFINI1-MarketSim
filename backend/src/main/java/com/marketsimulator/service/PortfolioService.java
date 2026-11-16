@@ -56,6 +56,17 @@ public class PortfolioService {
         });
     }
 
+    @Transactional
+    public PortfolioSummaryDto injectCash(Long userId, Long sessionId, BigDecimal amount, String reason) {
+        long sId = (sessionId != null) ? sessionId : 0L;
+        Portfolio portfolio = ensurePortfolio(userId, sId);
+        if (amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
+            portfolio.setCashBalance(portfolio.getCashBalance().add(amount));
+            portfolioRepository.save(portfolio);
+        }
+        return getSummary(userId, sId);
+    }
+
     // ── Portfolio summary ─────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
