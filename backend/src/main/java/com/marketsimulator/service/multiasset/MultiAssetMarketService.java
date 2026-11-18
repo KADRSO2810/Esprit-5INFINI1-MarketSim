@@ -57,29 +57,23 @@ public class MultiAssetMarketService {
         AssetClass assetClass = resolveAssetClass(symbol);
         boolean isBuy = "BUY".equalsIgnoreCase(side);
 
-        switch (assetClass) {
-            case FOREX:
-                ForexQuoteDto fx = forexService.getQuote(symbol);
-                return isBuy ? fx.getAsk() : fx.getBid();
-
-            case BOND:
-                BondInstrumentDto bond = bondService.getBondInstrument(symbol);
-                return bond.getCleanPrice();
-
-            case COMMODITY:
-                CommodityInstrumentDto cmd = commodityService.getCommodityInstrument(symbol);
-                return isBuy ? cmd.getAsk() : cmd.getBid();
-
-            case CRYPTO:
-            case EQUITY:
-            default:
-                if (ingestionService != null) {
-                    MarketQuoteDto quote = ingestionService.getLatestQuote(symbol);
-                    if (quote != null && quote.getPrice() != null) {
-                        return quote.getPrice();
-                    }
+        if (assetClass == AssetClass.FOREX) {
+            ForexQuoteDto fx = forexService.getQuote(symbol);
+            return isBuy ? fx.getAsk() : fx.getBid();
+        } else if (assetClass == AssetClass.BOND) {
+            BondInstrumentDto bond = bondService.getBondInstrument(symbol);
+            return bond.getCleanPrice();
+        } else if (assetClass == AssetClass.COMMODITY) {
+            CommodityInstrumentDto cmd = commodityService.getCommodityInstrument(symbol);
+            return isBuy ? cmd.getAsk() : cmd.getBid();
+        } else {
+            if (ingestionService != null) {
+                MarketQuoteDto quote = ingestionService.getLatestQuote(symbol);
+                if (quote != null && quote.getPrice() != null) {
+                    return quote.getPrice();
                 }
-                return new BigDecimal("150.00");
+            }
+            return new BigDecimal("150.00");
         }
     }
 
@@ -132,75 +126,65 @@ public class MultiAssetMarketService {
                 .marketDataSource(asset.getDataSource() != null ? asset.getDataSource() : "Institutional Data Feed")
                 .lastUpdated(Instant.now());
 
-        switch (cls) {
-            case FOREX:
-                ForexQuoteDto fx = forexService.getQuote(sym);
-                builder.baseCurrency(fx.getBaseCurrency())
-                        .quoteCurrency(fx.getQuoteCurrency())
-                        .currentPrice(fx.getMidPrice())
-                        .bid(fx.getBid())
-                        .ask(fx.getAsk())
-                        .spread(fx.getSpreadPrice())
-                        .spreadPips(fx.getSpreadPips())
-                        .change24h(fx.getChange24h())
-                        .change24hPct(fx.getChange24hPct())
-                        .high24h(fx.getHigh24h())
-                        .low24h(fx.getLow24h())
-                        .tradingSession("24/5 Interbank Session")
-                        .tradingStatus(fx.getSessionStatus())
-                        .marketDataSource(fx.getMarketDataSource());
-                break;
-
-            case BOND:
-                BondInstrumentDto b = bondService.getBondInstrument(sym);
-                builder.currentPrice(b.getCleanPrice())
-                        .bid(b.getCleanPrice().subtract(new BigDecimal("0.05")))
-                        .ask(b.getCleanPrice().add(new BigDecimal("0.05")))
-                        .spread(new BigDecimal("0.10"))
-                        .change24hPct(b.getChange24hPct())
-                        .high24h(b.getHigh24h())
-                        .low24h(b.getLow24h())
-                        .tradingSession(b.getTradingSession())
-                        .tradingStatus("OPEN")
-                        .marketDataSource(b.getMarketDataSource());
-                break;
-
-            case COMMODITY:
-                CommodityInstrumentDto cmd = commodityService.getCommodityInstrument(sym);
-                builder.currentPrice(cmd.getCurrentPrice())
-                        .bid(cmd.getBid())
-                        .ask(cmd.getAsk())
-                        .spread(cmd.getSpreadPrice())
-                        .change24hPct(cmd.getChange24hPct())
-                        .high24h(cmd.getHigh24h())
-                        .low24h(cmd.getLow24h())
-                        .volume(cmd.getVolume())
-                        .unit(cmd.getUnit())
-                        .tradingSession(cmd.getTradingSession())
-                        .tradingStatus("OPEN")
-                        .marketDataSource(cmd.getMarketDataSource());
-                break;
-
-            case CRYPTO:
-            case EQUITY:
-            default:
-                BigDecimal price = new BigDecimal("100.00");
-                BigDecimal change = BigDecimal.ZERO;
-                if (ingestionService != null) {
-                    MarketQuoteDto quote = ingestionService.getLatestQuote(sym);
-                    if (quote != null) {
-                        price = quote.getPrice();
-                    }
+        if (cls == AssetClass.FOREX) {
+            ForexQuoteDto fx = forexService.getQuote(sym);
+            builder.baseCurrency(fx.getBaseCurrency())
+                    .quoteCurrency(fx.getQuoteCurrency())
+                    .currentPrice(fx.getMidPrice())
+                    .bid(fx.getBid())
+                    .ask(fx.getAsk())
+                    .spread(fx.getSpreadPrice())
+                    .spreadPips(fx.getSpreadPips())
+                    .change24h(fx.getChange24h())
+                    .change24hPct(fx.getChange24hPct())
+                    .high24h(fx.getHigh24h())
+                    .low24h(fx.getLow24h())
+                    .tradingSession("24/5 Interbank Session")
+                    .tradingStatus(fx.getSessionStatus())
+                    .marketDataSource(fx.getMarketDataSource());
+        } else if (cls == AssetClass.BOND) {
+            BondInstrumentDto b = bondService.getBondInstrument(sym);
+            builder.currentPrice(b.getCleanPrice())
+                    .bid(b.getCleanPrice().subtract(new BigDecimal("0.05")))
+                    .ask(b.getCleanPrice().add(new BigDecimal("0.05")))
+                    .spread(new BigDecimal("0.10"))
+                    .change24hPct(b.getChange24hPct())
+                    .high24h(b.getHigh24h())
+                    .low24h(b.getLow24h())
+                    .tradingSession(b.getTradingSession())
+                    .tradingStatus("OPEN")
+                    .marketDataSource(b.getMarketDataSource());
+        } else if (cls == AssetClass.COMMODITY) {
+            CommodityInstrumentDto cmd = commodityService.getCommodityInstrument(sym);
+            builder.currentPrice(cmd.getCurrentPrice())
+                    .bid(cmd.getBid())
+                    .ask(cmd.getAsk())
+                    .spread(cmd.getSpreadPrice())
+                    .change24hPct(cmd.getChange24hPct())
+                    .high24h(cmd.getHigh24h())
+                    .low24h(cmd.getLow24h())
+                    .volume(cmd.getVolume())
+                    .unit(cmd.getUnit())
+                    .tradingSession(cmd.getTradingSession())
+                    .tradingStatus("OPEN")
+                    .marketDataSource(cmd.getMarketDataSource());
+        } else {
+            BigDecimal price = new BigDecimal("100.00");
+            BigDecimal change = BigDecimal.ZERO;
+            if (ingestionService != null) {
+                MarketQuoteDto quote = ingestionService.getLatestQuote(sym);
+                if (quote != null) {
+                    price = quote.getPrice();
                 }
-                builder.currentPrice(price)
-                        .bid(price.subtract(new BigDecimal("0.02")))
-                        .ask(price.add(new BigDecimal("0.02")))
-                        .spread(new BigDecimal("0.04"))
-                        .change24hPct(change)
-                        .tradingSession(cls == AssetClass.CRYPTO ? "24/7 Continuous" : "US Regular (09:30 - 16:00 EST)")
-                        .tradingStatus("OPEN")
-                        .marketDataSource(cls == AssetClass.CRYPTO ? "Binance WebSocket" : "Finnhub Institutional");
-                break;
+            }
+            builder.currentPrice(price)
+                    .bid(price.subtract(new BigDecimal("0.02")))
+                    .ask(price.add(new BigDecimal("0.02")))
+                    .spread(new BigDecimal("0.04"))
+                    .change24hPct(change)
+                    .tradingSession(cls == AssetClass.CRYPTO ? "24/7 Continuous" : "US Regular (09:30 - 16:00 EST)")
+                    .tradingStatus("OPEN")
+                    .marketDataSource(cls == AssetClass.CRYPTO ? "Binance WebSocket" : "Finnhub Institutional");
         }
 
         return builder.build();

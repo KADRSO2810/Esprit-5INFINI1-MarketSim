@@ -431,7 +431,7 @@ public class PreTradeRiskService {
         if (multiAssetMarketService != null) {
             try {
                 return multiAssetMarketService.resolveExecutionPrice(symbol, "BUY");
-            } catch (Exception ex) {
+            } catch (Throwable ex) {
                 // fall through
             }
         }

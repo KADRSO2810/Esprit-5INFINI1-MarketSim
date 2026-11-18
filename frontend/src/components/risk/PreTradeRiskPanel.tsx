@@ -58,7 +58,26 @@ export const PreTradeRiskPanel: React.FC<PreTradeRiskPanelProps> = ({
   };
 
   if (!assessment && !loading) {
-    return null;
+    return (
+      <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-2.5 text-xs text-slate-500 flex items-center justify-between">
+        <span className="flex items-center gap-1.5 text-slate-400">
+          <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
+          Contrôle du risque pré-trade
+        </span>
+        <span className="text-[11px] text-slate-500 font-mono">Prêt</span>
+      </div>
+    );
+  }
+
+  if (!assessment && loading) {
+    return (
+      <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-2.5 text-xs text-slate-400 flex items-center justify-between animate-pulse">
+        <span className="flex items-center gap-1.5 text-sky-400">
+          <OrbitalSpinner size="xs" tone="cyan" />
+          Évaluation des limites de risque...
+        </span>
+      </div>
+    );
   }
 
   const decision = assessment?.decision ?? 'APPROVED';

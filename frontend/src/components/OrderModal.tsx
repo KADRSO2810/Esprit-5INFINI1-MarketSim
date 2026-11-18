@@ -85,7 +85,6 @@ export const OrderModal: React.FC<OrderModalProps> = ({
 
   useEffect(() => {
     if (!isOpen || !lastPrice || !numQty || numQty <= 0) {
-      setRiskAssessment(null);
       return;
     }
 
@@ -106,21 +105,19 @@ export const OrderModal: React.FC<OrderModalProps> = ({
           setRiskAssessment(res);
         }
       } catch {
-        if (isMounted) {
-          setRiskAssessment(null);
-        }
+        // En cas d'erreur de réseau temporaire, on conserve l'évaluation précédente sans faire trembler la vue
       } finally {
         if (isMounted) {
           setEvaluatingRisk(false);
         }
       }
-    }, 200);
+    }, 350);
 
     return () => {
       isMounted = false;
       clearTimeout(timer);
     };
-  }, [isOpen, symbol, side, qty, stopLoss, takeProfit, lastPrice, sessionId]);
+  }, [isOpen, symbol, side, qty, stopLoss, takeProfit, sessionId]);
 
   // Calculs de risque
   const riskAmount =
