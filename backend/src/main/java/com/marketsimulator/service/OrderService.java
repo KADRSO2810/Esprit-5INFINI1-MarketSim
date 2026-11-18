@@ -167,43 +167,36 @@ public class OrderService {
     private BigDecimal resolvePrice(String symbol, String side) {
         // 1. Cotation directe en temps réel (Actions US / Crypto)
         if (ingestionService != null) {
+            MarketQuoteDto quote = null;
             try {
-                var quote = ingestionService.getLatestQuote(symbol);
-                if (quote != null && quote.getPrice() != null && quote.getPrice().compareTo(BigDecimal.ZERO) > 0) {
-                    return quote.getPrice();
-                }
+                quote = ingestionService.getLatestQuote(symbol);
             } catch (Throwable ex) {
                 log.warn("[ORDER] Ingestion quote lookup warning pour {}: {}", symbol, ex.getMessage());
+            }
+
+            if (quote != null) {
+                if (quote.getTs() != null) {
+                    long ageSeconds = Duration.between(quote.getTs(), Instant.now()).getSeconds();
+                    if (ageSeconds > maxQuoteAgeSec) {
+                        throw new NoRecentPriceException(
+                                String.format("Price for %s is stale (%d s old, max %d s)", symbol, ageSeconds, maxQuoteAgeSec));
+                    }
+                }
+                if (quote.getPrice() != null && quote.getPrice().compareTo(BigDecimal.ZERO) > 0) {
+                    return quote.getPrice();
+                }
             }
         }
 
         // 2. Résolution Multi-Actifs (Forex, Obligations, Matières Premières)
         if (multiAssetMarketService != null) {
             try {
-                com.marketsimulator.domain.AssetClass ac = multiAssetMarketService.resolveAssetClass(symbol);
-                if (ac == com.marketsimulator.domain.AssetClass.FOREX || ac == com.marketsimulator.domain.AssetClass.BOND || ac == com.marketsimulator.domain.AssetClass.COMMODITY) {
-                    return multiAssetMarketService.resolveExecutionPrice(symbol, side);
-                }
+                return multiAssetMarketService.resolveExecutionPrice(symbol, side);
+            } catch (NoRecentPriceException e) {
+                throw e;
             } catch (Throwable ex) {
                 log.warn("[ORDER] Échec résolution multi-actif pour {}: {}", symbol, ex.getMessage());
             }
-        }
-
-        // 3. Fallback Multi-Actif global
-        if (multiAssetMarketService != null) {
-            try {
-                return multiAssetMarketService.resolveExecutionPrice(symbol, side);
-            } catch (Throwable ignored) {}
-        }
-
-        // 4. Fallback dernier cours connu
-        if (ingestionService != null) {
-            try {
-                var q = ingestionService.getLatestQuote(symbol);
-                if (q != null && q.getPrice() != null) {
-                    return q.getPrice();
-                }
-            } catch (Throwable ignored) {}
         }
 
         throw new NoRecentPriceException("No price available for symbol: " + symbol);
