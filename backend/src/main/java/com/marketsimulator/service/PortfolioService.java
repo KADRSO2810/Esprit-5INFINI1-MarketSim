@@ -233,7 +233,7 @@ public class PortfolioService {
         if (multiAssetMarketService != null) {
             try {
                 return multiAssetMarketService.resolveExecutionPrice(symbol, "SELL");
-            } catch (Exception ex) {
+            } catch (Throwable ex) {
                 // Ignore fallback to cost basis
             }
         }

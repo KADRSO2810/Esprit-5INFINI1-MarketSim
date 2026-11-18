@@ -39,7 +39,7 @@ public class OrderBookService {
         if (multiAssetMarketService != null) {
             try {
                 assetClass = multiAssetMarketService.resolveAssetClass(symbol);
-            } catch (Exception ignored) {}
+            } catch (Throwable ignored) {}
         }
 
         BigDecimal lastPrice = resolveCurrentPrice(symbol, assetClass);
@@ -201,7 +201,7 @@ public class OrderBookService {
                 if (assetClass == AssetClass.FOREX || assetClass == AssetClass.BOND || assetClass == AssetClass.COMMODITY) {
                     return multiAssetMarketService.resolveExecutionPrice(symbol, "BUY");
                 }
-            } catch (Exception ignored) {}
+            } catch (Throwable ignored) {}
         }
 
         var quote = ingestionService.getLatestQuote(symbol);
@@ -219,7 +219,7 @@ public class OrderBookService {
         if (multiAssetMarketService != null) {
             try {
                 return multiAssetMarketService.resolveExecutionPrice(symbol, "BUY");
-            } catch (Exception ignored) {}
+            } catch (Throwable ignored) {}
         }
 
         // Valeurs sentinelles réalistes par défaut
