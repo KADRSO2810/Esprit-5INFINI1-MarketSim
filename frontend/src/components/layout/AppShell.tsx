@@ -25,6 +25,7 @@ import {
   Globe,
   ShieldCheck,
   GraduationCap,
+  Flame,
 } from 'lucide-react';
 
 export interface AppShellProps {
@@ -94,6 +95,12 @@ const NAV_SECTIONS: NavSection[] = [
     group: 'Formation & Apprentissage',
     items: [
       { to: '/app/academy', label: 'Académie Financière', icon: GraduationCap, matchPrefix: '/app/academy', accent: 'text-indigo-400' },
+    ],
+  },
+  {
+    group: 'E-Sport & Défis',
+    items: [
+      { to: '/app/arena', label: 'Flash Crash Arena', icon: Flame, matchPrefix: '/app/arena', accent: 'text-rose-400' },
     ],
   },
   {
