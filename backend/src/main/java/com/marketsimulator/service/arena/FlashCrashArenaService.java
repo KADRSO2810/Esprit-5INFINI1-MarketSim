@@ -108,28 +108,31 @@ public class FlashCrashArenaService {
      * Classement mondial / podium de l'arène Flash Crash
      */
     public List<ArenaLeaderboardEntryDto> getLeaderboard() {
-        List<ArenaRun> runs = arenaRunRepository.findTop15ByOrderByScoreDesc();
         List<ArenaLeaderboardEntryDto> result = new ArrayList<>();
-
-        int rank = 1;
-        for (ArenaRun r : runs) {
-            String userName = r.getUser() != null ? r.getUser().getEmail().split("@")[0] : "Trader Inconnu";
-            result.add(ArenaLeaderboardEntryDto.builder()
-                    .rank(rank++)
-                    .runId(r.getId())
-                    .traderName(userName)
-                    .bossId(r.getBossId())
-                    .bossName(getBossName(r.getBossId()))
-                    .finalEquity(r.getFinalEquity().doubleValue())
-                    .netPnl(r.getNetPnl().doubleValue())
-                    .returnPct(r.getReturnPct().doubleValue())
-                    .maxDrawdownPct(r.getMaxDrawdownPct().doubleValue())
-                    .survivalSeconds(r.getSurvivalSeconds())
-                    .survived(r.getSurvived())
-                    .rankGrade(r.getRankGrade())
-                    .score(r.getScore())
-                    .date(r.getCreatedAt())
-                    .build());
+        try {
+            List<ArenaRun> runs = arenaRunRepository.findTop15ByOrderByScoreDesc();
+            int rank = 1;
+            for (ArenaRun r : runs) {
+                String userName = r.getUser() != null ? r.getUser().getEmail().split("@")[0] : "Trader Inconnu";
+                result.add(ArenaLeaderboardEntryDto.builder()
+                        .rank(rank++)
+                        .runId(r.getId())
+                        .traderName(userName)
+                        .bossId(r.getBossId())
+                        .bossName(getBossName(r.getBossId()))
+                        .finalEquity(r.getFinalEquity().doubleValue())
+                        .netPnl(r.getNetPnl().doubleValue())
+                        .returnPct(r.getReturnPct().doubleValue())
+                        .maxDrawdownPct(r.getMaxDrawdownPct().doubleValue())
+                        .survivalSeconds(r.getSurvivalSeconds())
+                        .survived(r.getSurvived())
+                        .rankGrade(r.getRankGrade())
+                        .score(r.getScore())
+                        .date(r.getCreatedAt())
+                        .build());
+            }
+        } catch (Exception e) {
+            log.warn("Impossible de charger les runs de la base de données (migration en cours ?): {}", e.getMessage());
         }
 
         // Si la base contient moins de 3 runs, enrichir avec les scores historiques de référence ESPRIT
@@ -144,26 +147,31 @@ public class FlashCrashArenaService {
      * Historique des runs du joueur connecté
      */
     public List<ArenaRunResponse> getUserHistory(User user) {
-        List<ArenaRun> runs = arenaRunRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
-        return runs.stream().map(r -> ArenaRunResponse.builder()
-                .id(r.getId())
-                .bossId(r.getBossId())
-                .bossName(getBossName(r.getBossId()))
-                .initialEquity(r.getInitialEquity().doubleValue())
-                .finalEquity(r.getFinalEquity().doubleValue())
-                .netPnl(r.getNetPnl().doubleValue())
-                .returnPct(r.getReturnPct().doubleValue())
-                .maxDrawdownPct(r.getMaxDrawdownPct().doubleValue())
-                .survivalSeconds(r.getSurvivalSeconds())
-                .survived(r.getSurvived())
-                .rankGrade(r.getRankGrade())
-                .score(r.getScore())
-                .xpEarned(Math.max(50, r.getScore() / 5))
-                .titleEarned(determineTitle(r.getRankGrade(), r.getScore()))
-                .auditFeedback(generateAuditFeedback(r.getRankGrade(), r.getBossId(), r.getFinalEquity().doubleValue(), r.getMaxDrawdownPct().doubleValue()))
-                .createdAt(r.getCreatedAt())
-                .build()
-        ).toList();
+        try {
+            List<ArenaRun> runs = arenaRunRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
+            return runs.stream().map(r -> ArenaRunResponse.builder()
+                    .id(r.getId())
+                    .bossId(r.getBossId())
+                    .bossName(getBossName(r.getBossId()))
+                    .initialEquity(r.getInitialEquity().doubleValue())
+                    .finalEquity(r.getFinalEquity().doubleValue())
+                    .netPnl(r.getNetPnl().doubleValue())
+                    .returnPct(r.getReturnPct().doubleValue())
+                    .maxDrawdownPct(r.getMaxDrawdownPct().doubleValue())
+                    .survivalSeconds(r.getSurvivalSeconds())
+                    .survived(r.getSurvived())
+                    .rankGrade(r.getRankGrade())
+                    .score(r.getScore())
+                    .xpEarned(Math.max(50, r.getScore() / 5))
+                    .titleEarned(determineTitle(r.getRankGrade(), r.getScore()))
+                    .auditFeedback(generateAuditFeedback(r.getRankGrade(), r.getBossId(), r.getFinalEquity().doubleValue(), r.getMaxDrawdownPct().doubleValue()))
+                    .createdAt(r.getCreatedAt())
+                    .build()
+            ).toList();
+        } catch (Exception e) {
+            log.warn("Impossible de charger l'historique du joueur (migration en cours ?): {}", e.getMessage());
+            return Collections.emptyList();
+        }
     }
 
     // --- Moteurs de Notation & Audit Algorithmique ---

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AppShell } from '../components/layout/AppShell';
-import { useToast, PageTransition, QuantOrbitalLoader } from '../components/ui';
+import { useToast, PageTransition } from '../components/ui';
 import {
   ArenaBoss,
   ArenaCrisisEvent,
@@ -12,6 +12,10 @@ import {
   getArenaLeaderboard,
   getMyArenaHistory,
 } from '../api/arena';
+import {
+  FALLBACK_BOSSES,
+  FALLBACK_LEADERBOARD,
+} from '../api/arenaFallbacks';
 import {
   Flame,
   Zap,
@@ -52,11 +56,17 @@ export const FlashCrashArenaPage: React.FC = () => {
   const toast = useToast();
 
   const [activeTab, setActiveTab] = useState<'arena' | 'leaderboard' | 'history'>('arena');
-  const [loading, setLoading] = useState<boolean>(true);
-  const [bosses, setBosses] = useState<ArenaBoss[]>([]);
-  const [selectedBoss, setSelectedBoss] = useState<ArenaBoss | null>(null);
-  const [leaderboard, setLeaderboard] = useState<ArenaLeaderboardEntry[]>([]);
-  const [myHistory, setMyHistory] = useState<ArenaRunResponse[]>([]);
+  const [bosses, setBosses] = useState<ArenaBoss[]>(FALLBACK_BOSSES);
+  const [selectedBoss, setSelectedBoss] = useState<ArenaBoss | null>(FALLBACK_BOSSES[0]);
+  const [leaderboard, setLeaderboard] = useState<ArenaLeaderboardEntry[]>(FALLBACK_LEADERBOARD);
+  const [myHistory, setMyHistory] = useState<ArenaRunResponse[]>(() => {
+    try {
+      const stored = localStorage.getItem('arena_local_runs');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
 
   // Simulation State
   const [gameActive, setGameActive] = useState<boolean>(false);
@@ -149,31 +159,40 @@ export const FlashCrashArenaPage: React.FC = () => {
     }
   }, [audioEnabled]);
 
-  // Load initial data
+  // Load initial data (synchronise silencieusement avec le backend s'il est actif)
   useEffect(() => {
+    let isMounted = true;
     const fetchData = async () => {
       try {
-        setLoading(true);
-        const [bossesData, leaderboardData, historyData] = await Promise.all([
+        const [bossesRes, lbRes, histRes] = await Promise.allSettled([
           getArenaBosses(),
           getArenaLeaderboard(),
           getMyArenaHistory(),
         ]);
-        setBosses(bossesData);
-        if (bossesData.length > 0) {
-          setSelectedBoss(bossesData[0]);
+
+        if (!isMounted) return;
+
+        if (bossesRes.status === 'fulfilled' && bossesRes.value && bossesRes.value.length > 0) {
+          setBosses(bossesRes.value);
+          setSelectedBoss((prev) =>
+            prev ? bossesRes.value.find((b) => b.id === prev.id) || bossesRes.value[0] : bossesRes.value[0]
+          );
         }
-        setLeaderboard(leaderboardData);
-        setMyHistory(historyData);
+        if (lbRes.status === 'fulfilled' && lbRes.value && lbRes.value.length > 0) {
+          setLeaderboard(lbRes.value);
+        }
+        if (histRes.status === 'fulfilled' && histRes.value && histRes.value.length > 0) {
+          setMyHistory(histRes.value);
+        }
       } catch (err) {
-        console.error('Erreur chargement Flash Crash Arena:', err);
-        toast.error('Impossible de charger les données de Flash Crash Arena');
-      } finally {
-        setLoading(false);
+        console.warn('Mode hors-ligne / fallback arène activé:', err);
       }
     };
     fetchData();
-  }, [toast]);
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Start Simulation
   const handleStartRun = (boss: ArenaBoss) => {
@@ -275,6 +294,70 @@ export const FlashCrashArenaPage: React.FC = () => {
         playSfx('loss');
       }
 
+      // Pré-calcul du résultat local (garantit l'affichage immédiat du debrief et sauvegarde même hors-ligne)
+      const initialEq = selectedBoss.initialEquity;
+      const netPnl = finalEquity - initialEq;
+      const returnPct = initialEq > 0 ? (netPnl / initialEq) * 100 : -100;
+
+      let rankGrade: 'SSS' | 'S' | 'A' | 'B' | 'C' | 'F' = 'F';
+      if (survived && finalEquity > 8000) {
+        if (netPnl > 0 && maxDd <= 12) rankGrade = 'SSS';
+        else if (netPnl >= -5000 && maxDd <= 20) rankGrade = 'S';
+        else if (finalEquity >= initialEq * 0.8) rankGrade = 'A';
+        else if (finalEquity >= initialEq * 0.6) rankGrade = 'B';
+        else rankGrade = 'C';
+      }
+
+      const score = Math.max(
+        100,
+        Math.min(
+          5000,
+          Math.round(
+            (finalEquity / initialEq) * 1800 +
+              (survived ? 1200 : 0) -
+              maxDd * 12 +
+              Math.min(800, portfolio.hedgesCount * 150)
+          )
+        )
+      );
+
+      const feedback =
+        rankGrade === 'SSS'
+          ? "Performance d'élite absolue. Vos couvertures contrariantes et votre timing sur les actifs refuges ont généré un PnL positif en pleine tempête. Vous rejoignez le top 1% des quants mondiaux."
+          : rankGrade === 'S'
+          ? `Excellente résilience macroéconomique. Le capital est intact avec un drawdown remarquablement contenu à ${maxDd.toFixed(1)}%. Vos réflexes sur les safe-havens ont sauvé votre desk.`
+          : rankGrade === 'A'
+          ? `Gestion du risque robuste. Vous survivez au choc avec plus de 80% de votre capital de départ ($${finalEquity.toFixed(0)}). Pensez à déclencher vos hedges encore plus tôt pour décrocher le rang S.`
+          : rankGrade === 'B'
+          ? `Survie assurée mais éprouvante. Le portefeuille a absorbé un drawdown significatif (${maxDd.toFixed(1)}%). Votre exposition en actions est restée trop lourde au cœur du débouclage de levier.`
+          : rankGrade === 'C'
+          ? "Survie in extremis. Votre capital a frôlé la liquidation forcée. En situation de panique macroéconomique, la règle de base est de basculer en 'Flight to Cash' sans hésitation."
+          : "LIQUIDATION TOTALE (Game Over). L'emballement de la volatilité a englouti votre marge. Lors des prochains runs, activez immédiatement le Hedge Or ou le refuge 100% Cash dès les premiers avertissements d'urgence.";
+
+      const localResult: ArenaRunResponse = {
+        id: Date.now(),
+        bossId: selectedBoss.id,
+        bossName: selectedBoss.name,
+        initialEquity: initialEq,
+        finalEquity: Math.round(finalEquity * 100) / 100,
+        netPnl: Math.round(netPnl * 100) / 100,
+        returnPct: Math.round(returnPct * 100) / 100,
+        maxDrawdownPct: Math.round(maxDd * 100) / 100,
+        survivalSeconds: timeSpent,
+        survived: survived,
+        rankGrade: rankGrade,
+        score: score,
+        xpEarned: Math.max(50, Math.round(score / 5)),
+        titleEarned:
+          rankGrade === 'SSS'
+            ? 'Légende Vivante du Risque Macro'
+            : rankGrade === 'S'
+            ? 'Grand Maître des Chocs Systémiques'
+            : 'Gestionnaire de Crise Institutionnel',
+        auditFeedback: feedback,
+        createdAt: new Date().toISOString(),
+      };
+
       try {
         const response = await recordArenaRun({
           bossId: selectedBoss.id,
@@ -288,13 +371,12 @@ export const FlashCrashArenaPage: React.FC = () => {
         });
 
         setRunResult(response);
-        // Refresh history & leaderboard
-        const [updatedLb, updatedHist] = await Promise.all([
-          getArenaLeaderboard(),
-          getMyArenaHistory(),
+        setMyHistory((prev) => [response, ...prev.filter((p) => p.id !== response.id)]);
+
+        const [updatedLb] = await Promise.all([
+          getArenaLeaderboard().catch(() => null),
         ]);
-        setLeaderboard(updatedLb);
-        setMyHistory(updatedHist);
+        if (updatedLb) setLeaderboard(updatedLb);
 
         if (survived) {
           toast.success(`VICTOIRE ! Rang ${response.rankGrade} obtenu (+${response.score} pts)`);
@@ -302,8 +384,21 @@ export const FlashCrashArenaPage: React.FC = () => {
           toast.error(`LIQUIDATION ! Votre desk a été englouti. Rang F.`);
         }
       } catch (err) {
-        console.error('Erreur enregistrement run:', err);
-        toast.error("Erreur lors de l'enregistrement du score");
+        console.warn('Backend non joignable pour persistance, sauvegarde locale:', err);
+        setRunResult(localResult);
+        setMyHistory((prev) => {
+          const next = [localResult, ...prev];
+          try {
+            localStorage.setItem('arena_local_runs', JSON.stringify(next));
+          } catch {}
+          return next;
+        });
+
+        if (survived) {
+          toast.success(`VICTOIRE ! Rang ${localResult.rankGrade} obtenu (+${localResult.score} pts)`);
+        } else {
+          toast.error(`LIQUIDATION ! Votre desk a été englouti. Rang F.`);
+        }
       } finally {
         setIsSubmitting(false);
       }
@@ -494,17 +589,7 @@ export const FlashCrashArenaPage: React.FC = () => {
             </div>
           </div>
 
-          {loading ? (
-            <div className="flex flex-col items-center justify-center min-h-[350px]">
-              <QuantOrbitalLoader
-                title="Flash Crash Arena"
-                subtitle="Initialisation des moteurs de volatilité macroéconomique..."
-                tone="rose"
-              />
-            </div>
-          ) : (
-            <>
-              {/* TAB 1: ARENA */}
+          {/* TAB 1: ARENA */}
               {activeTab === 'arena' && (
                 <div className="space-y-6">
                   {/* ACTIVE BATTLE VIEW */}
@@ -1285,8 +1370,6 @@ export const FlashCrashArenaPage: React.FC = () => {
                   )}
                 </div>
               )}
-            </>
-          )}
 
           {/* GAME OVER / VICTORY DEBRIEF MODAL */}
           <AnimatePresence>
