@@ -26,6 +26,7 @@ import {
   ShieldCheck,
   GraduationCap,
   Flame,
+  Swords,
 } from 'lucide-react';
 
 export interface AppShellProps {
@@ -101,6 +102,7 @@ const NAV_SECTIONS: NavSection[] = [
     group: 'E-Sport & Défis',
     items: [
       { to: '/app/arena', label: 'Flash Crash Arena', icon: Flame, matchPrefix: '/app/arena', accent: 'text-rose-400' },
+      { to: '/app/duels', label: 'Duels 1v1 Blind Replay', icon: Swords, matchPrefix: '/app/duels', accent: 'text-cyan-400' },
     ],
   },
   {

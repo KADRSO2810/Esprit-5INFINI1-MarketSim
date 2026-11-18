@@ -2,6 +2,7 @@ package com.marketsimulator.service;
 
 import com.marketsimulator.domain.*;
 import com.marketsimulator.dto.MarketOrderRequest;
+import com.marketsimulator.dto.MarketQuoteDto;
 import com.marketsimulator.dto.OrderFillDto;
 import com.marketsimulator.exception.InsufficientFundsException;
 import com.marketsimulator.exception.InsufficientPositionException;

@@ -17,6 +17,7 @@ import { MultiAssetHubPage } from './pages/MultiAssetHubPage';
 import { ActuarialPage } from './pages/ActuarialPage';
 import { AcademyPage } from './pages/AcademyPage';
 import { FlashCrashArenaPage } from './pages/FlashCrashArenaPage';
+import { DuelArenaPage } from './pages/DuelArenaPage';
 import { AdminPage } from './pages/AdminPage';
 
 export const App: React.FC = () => {
@@ -110,6 +111,22 @@ export const App: React.FC = () => {
             element={
               <ProtectedRoute>
                 <FlashCrashArenaPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/app/duels"
+            element={
+              <ProtectedRoute>
+                <DuelArenaPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/app/duels/join"
+            element={
+              <ProtectedRoute>
+                <DuelArenaPage />
               </ProtectedRoute>
             }
           />
