@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { AppShell } from '../components/layout/AppShell';
 import { OrderModal } from '../components/OrderModal';
 import { OrderBookWidget } from '../components/trading/OrderBookWidget';
+import { VoiceTradingDeskModal } from '../components/trading/VoiceTradingDeskModal';
 import {
   multiAssetApi,
   ForexQuote,
@@ -25,6 +26,7 @@ import {
   Landmark,
   RefreshCw,
   PieChart as PieChartIcon,
+  Mic,
 } from 'lucide-react';
 import { useToast, PageTransition, QuantOrbitalLoader } from '../components/ui';
 
@@ -48,6 +50,7 @@ export const MultiAssetHubPage: React.FC = () => {
 
   // Order modal state
   const [orderBookSymbol, setOrderBookSymbol] = useState<string>('EUR/USD');
+  const [showVoiceDesk, setShowVoiceDesk] = useState<boolean>(false);
   const [orderState, setOrderState] = useState<{
     isOpen: boolean;
     symbol: string;
@@ -55,6 +58,9 @@ export const MultiAssetHubPage: React.FC = () => {
     price: number | null;
     orderType?: 'MARKET' | 'LIMIT';
     limitPrice?: number;
+    quantity?: number;
+    stopLoss?: number;
+    takeProfit?: number;
   }>({
     isOpen: false,
     symbol: 'EUR/USD',
@@ -133,7 +139,21 @@ export const MultiAssetHubPage: React.FC = () => {
   }, []);
 
   return (
-    <AppShell title="Marchés Multi-Actifs" section="Trading Multi-Classes" badge="Forex • Bonds • Cmdty">
+    <AppShell
+      title="Marchés Multi-Actifs"
+      section="Trading Multi-Classes"
+      badge="Forex • Bonds • Cmdty"
+      topbarActions={
+        <button
+          onClick={() => setShowVoiceDesk(true)}
+          className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border bg-gradient-to-r from-sky-500/20 to-blue-500/20 border-sky-500/40 text-sky-300 hover:text-white hover:border-sky-400 transition shadow-sm"
+          title="AI Voice Trading Desk (Raccourci : Alt + V)"
+        >
+          <Mic className="w-3.5 h-3.5 text-sky-400 animate-pulse" />
+          <span className="hidden sm:inline">Desk Vocal</span>
+        </button>
+      }
+    >
       <PageTransition className="space-y-6 pb-12">
         {/* Top Header & Market Clocks */}
         <div className="relative overflow-hidden rounded-2xl border border-sky-500/20 bg-gradient-to-r from-[#0B1220] via-[#0E172B] to-[#101A2B] p-6 shadow-2xl backdrop-blur-md">
@@ -762,6 +782,9 @@ export const MultiAssetHubPage: React.FC = () => {
             initialSide={orderState.side}
             initialOrderType={orderState.orderType || 'MARKET'}
             initialLimitPrice={orderState.limitPrice}
+            initialQty={orderState.quantity || null}
+            initialStopLoss={orderState.stopLoss || null}
+            initialTakeProfit={orderState.takeProfit || null}
             sessionId={0}
             onClose={() => setOrderState(prev => ({ ...prev, isOpen: false }))}
             onFilled={() => {
@@ -771,6 +794,28 @@ export const MultiAssetHubPage: React.FC = () => {
             }}
           />
         )}
+
+        <VoiceTradingDeskModal
+          isOpen={showVoiceDesk}
+          onClose={() => setShowVoiceDesk(false)}
+          selectedSymbol={orderState.symbol || 'AAPL'}
+          onOpenOrderModal={(params) => {
+            setOrderState({
+              isOpen: true,
+              symbol: params.symbol,
+              side: params.side,
+              price: null,
+              orderType: params.orderType,
+              limitPrice: params.limitPrice ?? undefined,
+              quantity: params.quantity,
+              stopLoss: params.stopLoss ?? undefined,
+              takeProfit: params.takeProfit ?? undefined,
+            });
+          }}
+          onOrderFilled={() => {
+            loadAllData();
+          }}
+        />
       </PageTransition>
     </AppShell>
   );

@@ -19,6 +19,7 @@ import { PortfolioPanel } from '../components/PortfolioPanel';
 import { RiskMeter } from '../components/RiskMeter';
 import { MarketTickerTape } from '../components/MarketTickerTape';
 import { OrderBookWidget } from '../components/trading/OrderBookWidget';
+import { VoiceTradingDeskModal } from '../components/trading/VoiceTradingDeskModal';
 import {
   StatCard,
   PageTransition,
@@ -43,6 +44,7 @@ import {
   RefreshCw,
   Plus,
   SlidersHorizontal,
+  Mic,
   Database,
   Zap,
   Clock,
@@ -268,7 +270,11 @@ export const Dashboard: React.FC = () => {
     side: 'BUY' | 'SELL';
     orderType?: 'MARKET' | 'LIMIT';
     limitPrice?: number | null;
+    quantity?: number | null;
+    stopLoss?: number | null;
+    takeProfit?: number | null;
   } | null>(null);
+  const [showVoiceDesk, setShowVoiceDesk] = useState<boolean>(false);
   const [rightPanelTab, setRightPanelTab] = useState<'COMBINED' | 'TICKET' | 'ORDERBOOK'>('COMBINED');
   const [portfolioSummary, setPortfolioSummary] = useState<PortfolioSummary | null>(null);
   const [positions, setPositions] = useState<PositionItem[]>([]);
@@ -367,6 +373,18 @@ export const Dashboard: React.FC = () => {
       markDashboardReady();
     }
   }, [watchlistLoading, portfolioLoading, markDashboardReady]);
+
+  // Raccourci Clavier Global Alt + V pour activer le Desk Vocal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && (e.key === 'v' || e.key === 'V')) {
+        e.preventDefault();
+        setShowVoiceDesk((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const filteredWatchlist = searchQuery.trim()
     ? watchlist.filter(
@@ -475,17 +493,27 @@ export const Dashboard: React.FC = () => {
         </div>
       }
       topbarActions={
-        <button
-          onClick={() => setShowEditor((e) => !e)}
-          className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition ${
-            showEditor
-              ? 'bg-sky-500/15 border-sky-400/50 text-sky-300'
-              : 'bg-[#101A2B] border-subtle text-slate-300 hover:border-strong hover:text-white'
-          }`}
-        >
-          <SlidersHorizontal className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Watchlist</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowVoiceDesk(true)}
+            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border bg-gradient-to-r from-sky-500/20 to-blue-500/20 border-sky-500/40 text-sky-300 hover:text-white hover:border-sky-400 transition shadow-sm"
+            title="AI Voice Trading Desk (Raccourci : Alt + V)"
+          >
+            <Mic className="w-3.5 h-3.5 text-sky-400 animate-pulse" />
+            <span className="hidden sm:inline">Desk Vocal</span>
+          </button>
+          <button
+            onClick={() => setShowEditor((e) => !e)}
+            className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition ${
+              showEditor
+                ? 'bg-sky-500/15 border-sky-400/50 text-sky-300'
+                : 'bg-[#101A2B] border-subtle text-slate-300 hover:border-strong hover:text-white'
+            }`}
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Watchlist</span>
+          </button>
+        </div>
       }
     >
       <OrderModal
@@ -494,9 +522,32 @@ export const Dashboard: React.FC = () => {
         initialSide={orderModal?.side ?? 'BUY'}
         initialOrderType={orderModal?.orderType ?? 'MARKET'}
         initialLimitPrice={orderModal?.limitPrice ?? null}
+        initialQty={orderModal?.quantity ?? null}
+        initialStopLoss={orderModal?.stopLoss ?? null}
+        initialTakeProfit={orderModal?.takeProfit ?? null}
         lastPrice={quotes[orderModal?.symbol ?? selectedSymbol]?.price ?? null}
         onClose={() => setOrderModal(null)}
         onFilled={() => {
+          handleOrderFilled();
+        }}
+      />
+
+      <VoiceTradingDeskModal
+        isOpen={showVoiceDesk}
+        onClose={() => setShowVoiceDesk(false)}
+        selectedSymbol={selectedSymbol}
+        onOpenOrderModal={(params) => {
+          setOrderModal({
+            symbol: params.symbol,
+            side: params.side,
+            orderType: params.orderType,
+            limitPrice: params.limitPrice,
+            quantity: params.quantity,
+            stopLoss: params.stopLoss,
+            takeProfit: params.takeProfit,
+          });
+        }}
+        onOrderFilled={() => {
           handleOrderFilled();
         }}
       />

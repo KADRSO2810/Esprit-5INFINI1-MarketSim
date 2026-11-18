@@ -28,6 +28,9 @@ interface OrderModalProps {
   initialSide?: 'BUY' | 'SELL';
   initialOrderType?: 'MARKET' | 'LIMIT';
   initialLimitPrice?: number | null;
+  initialQty?: number | null;
+  initialStopLoss?: number | null;
+  initialTakeProfit?: number | null;
   sessionId?: number;
   onClose: () => void;
   onFilled: (fill: OrderFill) => void;
@@ -40,6 +43,9 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   initialSide = 'BUY',
   initialOrderType = 'MARKET',
   initialLimitPrice = null,
+  initialQty = null,
+  initialStopLoss = null,
+  initialTakeProfit = null,
   sessionId = 0,
   onClose,
   onFilled,
@@ -47,10 +53,10 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   const [side, setSide] = useState<'BUY' | 'SELL'>(initialSide);
   const [orderType, setOrderType] = useState<'MARKET' | 'LIMIT'>(initialOrderType);
   const [limitPrice, setLimitPrice] = useState<string>(initialLimitPrice ? String(initialLimitPrice) : '');
-  const [qty, setQty] = useState<string>('1');
-  const [stopLoss, setStopLoss] = useState<string>('');
-  const [takeProfit, setTakeProfit] = useState<string>('');
-  const [showSlTp, setShowSlTp] = useState<boolean>(false);
+  const [qty, setQty] = useState<string>(initialQty ? String(initialQty) : '1');
+  const [stopLoss, setStopLoss] = useState<string>(initialStopLoss ? String(initialStopLoss) : '');
+  const [takeProfit, setTakeProfit] = useState<string>(initialTakeProfit ? String(initialTakeProfit) : '');
+  const [showSlTp, setShowSlTp] = useState<boolean>(Boolean(initialStopLoss || initialTakeProfit));
   const [loading, setLoading] = useState(false);
   const [fill, setFill] = useState<OrderFill | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -63,14 +69,15 @@ export const OrderModal: React.FC<OrderModalProps> = ({
       setSide(initialSide);
       setOrderType(initialOrderType);
       setLimitPrice(initialLimitPrice ? String(initialLimitPrice) : '');
+      setQty(initialQty ? String(initialQty) : '1');
       setFill(null);
       setError(null);
-      setStopLoss('');
-      setTakeProfit('');
-      setShowSlTp(false);
+      setStopLoss(initialStopLoss ? String(initialStopLoss) : '');
+      setTakeProfit(initialTakeProfit ? String(initialTakeProfit) : '');
+      setShowSlTp(Boolean(initialStopLoss || initialTakeProfit));
       setRiskAssessment(null);
     }
-  }, [isOpen, symbol, initialSide, initialOrderType, initialLimitPrice]);
+  }, [isOpen, symbol, initialSide, initialOrderType, initialLimitPrice, initialQty, initialStopLoss, initialTakeProfit]);
 
   const numQty = Number(qty);
   const numSL = stopLoss ? parseFloat(stopLoss) : null;
