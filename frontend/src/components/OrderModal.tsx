@@ -19,7 +19,16 @@ import {
   Shield,
   ChevronDown,
   ChevronUp,
+  Clock,
 } from 'lucide-react';
+
+function isUSMarketOpen(): boolean {
+  const now = new Date();
+  const day = now.getUTCDay();
+  if (day === 0 || day === 6) return false;
+  const minutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+  return minutes >= 14 * 60 + 30 && minutes < 21 * 60;
+}
 
 interface OrderModalProps {
   isOpen?: boolean;
@@ -290,7 +299,11 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                 />
               </svg>
             </div>
-            <div className="text-emerald-400 font-bold text-base mb-1">Ordre exécuté</div>
+            <div className="text-emerald-400 font-bold text-base mb-1">
+              {!symbol.includes('/') && !symbol.includes(':') && !isUSMarketOpen()
+                ? 'Ordre exécuté (Dernier cours officiel de clôture)'
+                : 'Ordre exécuté'}
+            </div>
             <div className="text-slate-400 text-xs font-mono tabular-nums mb-5">
               {fill.side} {fill.quantity} {fill.symbol} @ ${Number(fill.price).toFixed(4)}
             </div>
@@ -388,6 +401,17 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                     : 'Prix de marché direct'}
                 </span>
               </div>
+
+              {/* Marché NYSE Fermé Educational Banner */}
+              {!symbol.includes('/') && !['TLT', 'IEF', 'SHY', 'BND', 'LQD', 'HYG', 'TIP', 'GLD', 'SLV', 'USO', 'BNO', 'UNG', 'CPER', 'DBA'].includes(symbol) && !symbol.includes(':') && !symbol.endsWith('USDT') && !isUSMarketOpen() && (
+                <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-lg border border-amber-500/25 bg-amber-500/10 text-amber-300 text-[11px] leading-relaxed">
+                  <Clock className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+                  <div>
+                    <span className="font-semibold block text-amber-200">NYSE Fermé (Séance : 15h30 - 22h00 Paris)</span>
+                    En conditions réelles, cet ordre serait mis en file d'attente (MOO). En mode simulateur, il est exécuté au dernier cours officiel de clôture.
+                  </div>
+                </div>
+              )}
             </div>
 
               {/* Buy / Sell Tabs */}

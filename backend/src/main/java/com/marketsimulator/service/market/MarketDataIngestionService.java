@@ -70,6 +70,21 @@ public class MarketDataIngestionService {
         for (String sym : initialSymbols) {
             ensureAssetExists(sym);
             activeWatchlist.add(sym);
+
+            // Pré-chargement immédiat du dernier cours officiel connu depuis MariaDB (indispensable hors séance NYSE)
+            try {
+                quoteRepository.findFirstBySymbolOrderByTsDesc(sym).ifPresent(q -> {
+                    latestQuotes.put(sym, MarketQuoteDto.builder()
+                            .symbol(q.getSymbol())
+                            .price(q.getPrice())
+                            .ts(q.getTs())
+                            .source("DB_CLOSE")
+                            .build());
+                });
+            } catch (Exception ex) {
+                log.debug("[MARKET] Erreur pré-chargement quote pour {} : {}", sym, ex.getMessage());
+            }
+
             marketDataProvider.subscribe(sym);
         }
 
@@ -130,9 +145,29 @@ public class MarketDataIngestionService {
         }
     }
 
-    /** Returns the latest known quote for a symbol from the in-memory cache, or null if none. */
+    /** Returns the latest known quote for a symbol from the in-memory cache, or searches DB if none. */
     public MarketQuoteDto getLatestQuote(String symbol) {
-        return latestQuotes.get(symbol.toUpperCase());
+        if (symbol == null || symbol.isBlank()) return null;
+        String sym = symbol.trim().toUpperCase();
+        MarketQuoteDto quote = latestQuotes.get(sym);
+        if (quote == null && quoteRepository != null) {
+            try {
+                quote = quoteRepository.findFirstBySymbolOrderByTsDesc(sym)
+                        .map(q -> MarketQuoteDto.builder()
+                                .symbol(q.getSymbol())
+                                .price(q.getPrice())
+                                .ts(q.getTs())
+                                .source("DB_CLOSE")
+                                .build())
+                        .orElse(null);
+                if (quote != null) {
+                    latestQuotes.put(sym, quote);
+                }
+            } catch (Exception ex) {
+                log.debug("[MARKET] Erreur lookup DB pour quote {} : {}", sym, ex.getMessage());
+            }
+        }
+        return quote;
     }
 
     public synchronized List<String> getWatchlist() {

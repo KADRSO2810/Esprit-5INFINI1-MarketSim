@@ -176,7 +176,9 @@ public class OrderService {
             }
 
             if (quote != null) {
-                if (quote.getTs() != null) {
+                // Pour les cotations temps réel actives (WebSocket), vérifier la fraîcheur.
+                // Les cours officiels de clôture pré-chargés depuis MariaDB (source DB_CLOSE) sont valides hors séance.
+                if (quote.getTs() != null && !"DB_CLOSE".equalsIgnoreCase(quote.getSource())) {
                     long ageSeconds = Duration.between(quote.getTs(), Instant.now()).getSeconds();
                     if (ageSeconds > maxQuoteAgeSec) {
                         throw new NoRecentPriceException(

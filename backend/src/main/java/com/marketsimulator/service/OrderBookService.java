@@ -223,15 +223,6 @@ public class OrderBookService {
         }
 
         // Valeurs sentinelles réalistes par défaut
-        if (clean.contains("BTC")) return new BigDecimal("89500.00");
-        if (clean.contains("ETH")) return new BigDecimal("3150.00");
-        if (clean.contains("SOL")) return new BigDecimal("215.00");
-        if (clean.equals("AAPL")) return new BigDecimal("228.00");
-        if (clean.equals("NVDA")) return new BigDecimal("142.00");
-        if (clean.equals("TSLA")) return new BigDecimal("330.00");
-        if (clean.equals("MSFT")) return new BigDecimal("425.00");
-        if (clean.equals("GOOGL")) return new BigDecimal("175.00");
-        if (clean.equals("AMZN")) return new BigDecimal("205.00");
         if (clean.equals("EUR/USD") || clean.equals("EURUSD")) return new BigDecimal("1.0850");
         if (clean.equals("GBP/USD") || clean.equals("GBPUSD")) return new BigDecimal("1.2950");
         if (clean.equals("USD/JPY") || clean.equals("USDJPY")) return new BigDecimal("154.20");
@@ -239,7 +230,7 @@ public class OrderBookService {
         if (clean.equals("OIL") || clean.equals("BRENT")) return new BigDecimal("74.50");
         if (clean.equals("US10Y") || clean.equals("OAT-10Y") || clean.equals("BUND-10Y")) return new BigDecimal("98.50");
 
-        return new BigDecimal("150.00");
+        return com.marketsimulator.service.multiasset.MultiAssetMarketService.getRealisticReferencePrice(clean);
     }
 
     private int getPriceScale(AssetClass assetClass, String symbol) {

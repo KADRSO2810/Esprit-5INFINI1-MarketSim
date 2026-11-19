@@ -34,6 +34,8 @@ public class MultiAssetMarketService {
     @Lazy private final MarketDataIngestionService ingestionService;
     private final PortfolioRepository portfolioRepository;
     private final PositionRepository positionRepository;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.marketsimulator.repository.MarketQuoteRepository quoteRepository;
 
     /**
      * Resolves the asset class for any symbol string.
@@ -69,11 +71,17 @@ public class MultiAssetMarketService {
         } else {
             if (ingestionService != null) {
                 MarketQuoteDto quote = ingestionService.getLatestQuote(symbol);
-                if (quote != null && quote.getPrice() != null) {
+                if (quote != null && quote.getPrice() != null && quote.getPrice().compareTo(BigDecimal.ZERO) > 0) {
                     return quote.getPrice();
                 }
             }
-            return new BigDecimal("150.00");
+            if (quoteRepository != null) {
+                var lastDbQuote = quoteRepository.findFirstBySymbolOrderByTsDesc(symbol);
+                if (lastDbQuote.isPresent() && lastDbQuote.get().getPrice() != null) {
+                    return lastDbQuote.get().getPrice();
+                }
+            }
+            return getRealisticReferencePrice(symbol);
         }
     }
 
@@ -286,5 +294,34 @@ public class MultiAssetMarketService {
                 .concentrationAlerts(warnings)
                 .calculatedAt(Instant.now())
                 .build();
+    }
+
+    public static BigDecimal getRealisticReferencePrice(String rawSymbol) {
+        if (rawSymbol == null || rawSymbol.isBlank()) return new BigDecimal("100.00");
+        String clean = rawSymbol.trim().toUpperCase().replace("BINANCE:", "").replace("COINBASE:", "");
+        if (clean.contains("BTC")) return new BigDecimal("91200.00");
+        if (clean.contains("ETH")) return new BigDecimal("3150.00");
+        if (clean.contains("SOL")) return new BigDecimal("215.00");
+        if (clean.contains("BNB")) return new BigDecimal("590.00");
+        if (clean.contains("AVAX")) return new BigDecimal("32.00");
+        if (clean.contains("ADA")) return new BigDecimal("0.75");
+        if (clean.contains("DOGE")) return new BigDecimal("0.38");
+        if (clean.contains("XRP")) return new BigDecimal("1.10");
+        if (clean.contains("LINK")) return new BigDecimal("14.50");
+        if (clean.contains("DOT")) return new BigDecimal("8.50");
+        if (clean.equals("AAPL")) return new BigDecimal("228.00");
+        if (clean.equals("NVDA")) return new BigDecimal("142.00");
+        if (clean.equals("TSLA")) return new BigDecimal("330.00");
+        if (clean.equals("MSFT")) return new BigDecimal("425.00");
+        if (clean.equals("GOOGL")) return new BigDecimal("175.00");
+        if (clean.equals("AMZN")) return new BigDecimal("205.00");
+        if (clean.equals("META")) return new BigDecimal("560.00");
+        if (clean.equals("NFLX")) return new BigDecimal("850.00");
+        if (clean.equals("AMD")) return new BigDecimal("140.00");
+        if (clean.equals("INTC")) return new BigDecimal("24.50");
+        if (clean.equals("JPM")) return new BigDecimal("240.00");
+        if (clean.equals("BABA")) return new BigDecimal("85.00");
+        if (clean.equals("DIS")) return new BigDecimal("115.00");
+        return new BigDecimal("100.00");
     }
 }
