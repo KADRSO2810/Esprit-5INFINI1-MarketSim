@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.marketsimulator.domain.*;
 import com.marketsimulator.dto.duel.*;
 import com.marketsimulator.exception.ResourceNotFoundException;
+import com.marketsimulator.repository.CustomChallengeRepository;
 import com.marketsimulator.repository.DuelMatchRepository;
 import com.marketsimulator.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ public class DuelService {
 
     private final DuelMatchRepository duelMatchRepository;
     private final UserRepository userRepository;
+    private final CustomChallengeRepository customChallengeRepository;
     private final ObjectMapper objectMapper;
 
     private static final BigDecimal INITIAL_CAPITAL = new BigDecimal("50000.00");
@@ -42,10 +44,47 @@ public class DuelService {
     }
 
     public DuelScenarioDto getScenarioById(String scenarioId) {
+        if (scenarioId != null && scenarioId.toUpperCase().startsWith("CUSTOM_")) {
+            try {
+                Long customId = Long.parseLong(scenarioId.substring("CUSTOM_".length()));
+                Optional<CustomChallenge> ccOpt = customChallengeRepository.findById(customId);
+                if (ccOpt.isPresent()) {
+                    CustomChallenge cc = ccOpt.get();
+                    List<DuelPricePointDto> trajectory = deserializeTrajectory(cc.getGeneratedTrajectory());
+                    return DuelScenarioDto.builder()
+                            .id(scenarioId)
+                            .codeName(cc.getAssetName() + " (" + cc.getAssetSymbol() + ")")
+                            .category(cc.getCategory())
+                            .difficulty(cc.getDurationMinutes() >= 20 ? "HARD" : "NORMAL")
+                            .description(cc.getDescription())
+                            .durationSeconds(Math.min(300, cc.getDurationMinutes() * 60))
+                            .initialCapital(cc.getInitialCapital())
+                            .priceTrajectory(trajectory)
+                            .realAssetSymbol(cc.getAssetSymbol())
+                            .realAssetName(cc.getAssetName())
+                            .realPeriod("Challenge Admin " + cc.getDurationMinutes() + " Min")
+                            .historicalContext("Défi officiel créé sur-mesure par l'administrateur.")
+                            .build();
+                }
+            } catch (Exception e) {
+                log.warn("Impossible de charger le CustomChallenge id={}: {}", scenarioId, e.getMessage());
+            }
+        }
+
         return getScenarios().stream()
                 .filter(s -> s.getId().equalsIgnoreCase(scenarioId))
                 .findFirst()
                 .orElse(buildBtc2017Scenario());
+    }
+
+    private List<DuelPricePointDto> deserializeTrajectory(String json) {
+        if (json == null || json.isBlank()) return Collections.emptyList();
+        try {
+            return objectMapper.readValue(json, new TypeReference<>() {});
+        } catch (Exception e) {
+            log.warn("Erreur désérialisation trajectoire duel: {}", e.getMessage());
+            return Collections.emptyList();
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────────
