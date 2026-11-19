@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS custom_challenges (
     generated_trajectory LONGTEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL,
-    CONSTRAINT fk_challenge_creator FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE
+    CONSTRAINT fk_cch_creator FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS custom_challenge_runs (
@@ -31,13 +31,13 @@ CREATE TABLE IF NOT EXISTS custom_challenge_runs (
     score INT NOT NULL DEFAULT 0,
     equity_curve LONGTEXT NULL,
     completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_run_challenge FOREIGN KEY (challenge_id) REFERENCES custom_challenges(id) ON DELETE CASCADE,
-    CONSTRAINT fk_run_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    CONSTRAINT fk_run_opponent FOREIGN KEY (opponent_id) REFERENCES users(id) ON DELETE SET NULL
+    CONSTRAINT fk_cch_run_challenge FOREIGN KEY (challenge_id) REFERENCES custom_challenges(id) ON DELETE CASCADE,
+    CONSTRAINT fk_cch_run_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_cch_run_opponent FOREIGN KEY (opponent_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
-CREATE INDEX idx_challenge_status ON custom_challenges(status);
-CREATE INDEX idx_challenge_creator ON custom_challenges(creator_id);
-CREATE INDEX idx_run_challenge ON custom_challenge_runs(challenge_id);
-CREATE INDEX idx_run_user ON custom_challenge_runs(user_id);
-CREATE INDEX idx_run_score ON custom_challenge_runs(score DESC);
+CREATE INDEX idx_cch_status ON custom_challenges(status);
+CREATE INDEX idx_cch_creator ON custom_challenges(creator_id);
+CREATE INDEX idx_cch_run_challenge ON custom_challenge_runs(challenge_id);
+CREATE INDEX idx_cch_run_user ON custom_challenge_runs(user_id);
+CREATE INDEX idx_cch_run_score ON custom_challenge_runs(score DESC);
