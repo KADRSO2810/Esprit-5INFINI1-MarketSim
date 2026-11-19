@@ -322,7 +322,7 @@ export const OrderBookWidget: React.FC<OrderBookWidgetProps> = ({
       {/* Pied de page du widget */}
       <div className="pt-2 mt-auto border-t border-slate-800/80 flex items-center justify-between text-[10px] text-slate-500">
         <span>Règle : FIFO (Price-Time)</span>
-        <span className="text-sky-400 font-medium">Clic prix $\rightarrow$ Ordre Limite</span>
+        <span className="text-sky-400 font-medium">Clic prix → Ordre Limite</span>
       </div>
     </div>
   );
