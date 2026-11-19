@@ -9,6 +9,8 @@ import {
   Volume2,
   VolumeX,
   Play,
+  Pause,
+  Square,
   Share2,
   Copy,
   Check,
@@ -48,7 +50,6 @@ import { playDuelSfx } from '../utils/duelAudio';
 
 type LobbyTab = 'lobby' | 'admin_challenges' | 'leaderboard' | 'history';
 type OpponentMode = 'AI' | 'FRIEND';
-type PositionSide = 'FLAT' | 'LONG' | 'SHORT';
 
 export const DuelArenaPage: React.FC = () => {
   const { user } = useAuth();
@@ -79,16 +80,20 @@ export const DuelArenaPage: React.FC = () => {
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
   const [remainingSeconds, setRemainingSeconds] = useState<number>(120);
 
-  // Player Trading State
+  // Player Trading State (Portefeuille Réel comme dans le Live Trading)
   const [cash, setCash] = useState<number>(50000);
-  const [positionSide, setPositionSide] = useState<PositionSide>('FLAT');
-  const [positionUnits, setPositionUnits] = useState<number>(0);
-  const [entryPrice, setEntryPrice] = useState<number>(0);
-  const [leverage, setLeverage] = useState<number>(1);
+  const [ownedShares, setOwnedShares] = useState<number>(0);
+  const [avgBuyPrice, setAvgBuyPrice] = useState<number>(0);
+  const [realizedPnl, setRealizedPnl] = useState<number>(0);
+  const [orderQuantity, setOrderQuantity] = useState<number>(10);
   const [playerTradesCount, setPlayerTradesCount] = useState<number>(0);
   const [playerEquityCurve, setPlayerEquityCurve] = useState<number[]>([50000]);
   const [playerPeakEquity, setPlayerPeakEquity] = useState<number>(50000);
   const [playerMaxDrawdown, setPlayerMaxDrawdown] = useState<number>(0);
+
+  // Replay Control State (Vitesse & Pause)
+  const [replaySpeed, setReplaySpeed] = useState<number>(1);
+  const [isPaused, setIsPaused] = useState<boolean>(false);
 
   // Stop-Loss & Take-Profit State
   const [stopLossPrice, setStopLossPrice] = useState<number | null>(null);
@@ -173,25 +178,32 @@ export const DuelArenaPage: React.FC = () => {
 
   const currentPrice = currentPricePoint ? currentPricePoint.close : 100;
 
-  // Real-time calculation of player equity
+  const initialCapital = useMemo(() => {
+    return selectedScenario?.initialCapital || 50000;
+  }, [selectedScenario?.initialCapital]);
+
+  // Real-time calculation of player portfolio equity & PnL (Comme en Live Trading)
   const playerUnrealizedPnl = useMemo(() => {
-    if (positionSide === 'FLAT' || positionUnits === 0) return 0;
-    const priceDiff = currentPrice - entryPrice;
-    const multiplier = positionSide === 'LONG' ? 1 : -1;
-    return priceDiff * positionUnits * multiplier * leverage;
-  }, [positionSide, positionUnits, currentPrice, entryPrice, leverage]);
+    if (ownedShares <= 0 || avgBuyPrice <= 0) return 0;
+    return (currentPrice - avgBuyPrice) * ownedShares;
+  }, [ownedShares, avgBuyPrice, currentPrice]);
+
+  const playerUnrealizedPnlPct = useMemo(() => {
+    if (ownedShares <= 0 || avgBuyPrice <= 0) return 0;
+    return ((currentPrice - avgBuyPrice) / avgBuyPrice) * 100;
+  }, [ownedShares, avgBuyPrice, currentPrice]);
 
   const playerTotalEquity = useMemo(() => {
-    return Math.max(0, cash + playerUnrealizedPnl);
-  }, [cash, playerUnrealizedPnl]);
+    return Math.max(0, cash + (ownedShares * currentPrice));
+  }, [cash, ownedShares, currentPrice]);
 
   const playerNetPnl = useMemo(() => {
-    return playerTotalEquity - 50000;
-  }, [playerTotalEquity]);
+    return playerTotalEquity - initialCapital;
+  }, [playerTotalEquity, initialCapital]);
 
   const playerRoi = useMemo(() => {
-    return (playerNetPnl / 50000) * 100;
-  }, [playerNetPnl]);
+    return initialCapital > 0 ? (playerNetPnl / initialCapital) * 100 : 0;
+  }, [playerNetPnl, initialCapital]);
 
   // Current Opponent Equity
   const opponentCurrentEquity = useMemo(() => {
@@ -203,11 +215,11 @@ export const DuelArenaPage: React.FC = () => {
       const idx = Math.min(currentStepIndex, botEquityCurve.length - 1);
       return botEquityCurve[idx];
     }
-    return 50000;
-  }, [currentMatch, botEquityCurve, currentStepIndex]);
+    return initialCapital;
+  }, [currentMatch, botEquityCurve, currentStepIndex, initialCapital]);
 
-  const opponentNetPnl = opponentCurrentEquity - 50000;
-  const opponentRoi = (opponentNetPnl / 50000) * 100;
+  const opponentNetPnl = opponentCurrentEquity - initialCapital;
+  const opponentRoi = initialCapital > 0 ? (opponentNetPnl / initialCapital) * 100 : 0;
 
   // Lead computation
   const leadDiff = playerTotalEquity - opponentCurrentEquity;
@@ -220,30 +232,42 @@ export const DuelArenaPage: React.FC = () => {
     [audioEnabled]
   );
 
-  // ── GAME TICK ENGINE ────────────────────────────────────────────────────────
+  // ── GAME TICK ENGINE AVEC VITESSE ET MINUTEUR SYNCHRONISÉ ───────────────────
   useEffect(() => {
     if (!isPlaying) return;
 
-    gameLoopRef.current = window.setInterval(() => {
-      setCurrentStepIndex((prevIndex) => {
-        const nextIndex = prevIndex + 1;
+    const intervalMs = Math.max(100, Math.floor(1000 / replaySpeed));
 
-        if (nextIndex >= priceTrajectory.length) {
-          // FIN DU MATCH
+    gameLoopRef.current = window.setInterval(() => {
+      if (isPaused) return;
+
+      setRemainingSeconds((prevSec) => {
+        if (prevSec <= 1) {
+          // FIN DU DÉFI AU GONG DU CHRONO
           clearInterval(gameLoopRef.current!);
           endGame();
-          return prevIndex;
+          return 0;
         }
 
-        // Ticks SFX
-        if (nextIndex % 10 === 0) {
-          playSfx('tick');
-        }
+        const nextSec = prevSec - 1;
+        const totalDuration = Math.max(1, selectedScenario?.durationSeconds || 600);
+        const elapsedSec = totalDuration - nextSec;
 
-        // Timer update
-        setRemainingSeconds((prevSec) => Math.max(0, prevSec - 1));
+        // Progression fluide et proportionnelle le long de la trajectoire
+        const progress = Math.min(1, Math.max(0, elapsedSec / totalDuration));
+        const totalSteps = priceTrajectory.length || 80;
+        const targetStep = Math.min(totalSteps - 1, Math.floor(progress * totalSteps));
 
-        // Update player equity tracking
+        setCurrentStepIndex((prevStep) => {
+          if (targetStep !== prevStep) {
+            if (targetStep % 10 === 0) {
+              playSfx('tick');
+            }
+          }
+          return targetStep;
+        });
+
+        // Mise à jour de la courbe de capital
         setPlayerEquityCurve((curve) => [...curve, Math.round(playerTotalEquity * 100) / 100]);
 
         // Max drawdown tracking
@@ -256,214 +280,161 @@ export const DuelArenaPage: React.FC = () => {
           }
         }
 
-        // Dynamic bot speech generator
-        if (nextIndex === 15) {
+        // Télémétrie dynamique de l'adversaire
+        const botPct = Math.round(progress * 100);
+        if (botPct === 15) {
           setBotMessage('🤖 Bot Quant : Momentum détecté, accumulation en cours.');
-        } else if (nextIndex === 45) {
+        } else if (botPct === 45) {
           setBotMessage('🤖 Bot Quant : Hausse de volatilité, resserrement du Stop-Loss.');
-        } else if (nextIndex === 85) {
+        } else if (botPct === 75) {
           setBotMessage('🤖 Bot Quant : Divergence RSI identifiée, prise de bénéfices partielle.');
-        } else if (nextIndex === 105) {
+        } else if (botPct === 90) {
           setBotMessage('🤖 Bot Quant : Clôture défensive avant le gong final.');
         }
 
-        return nextIndex;
+        return nextSec;
       });
-    }, 750); // 1 candle every 750ms for high tension
+    }, intervalMs);
 
     return () => {
       if (gameLoopRef.current) clearInterval(gameLoopRef.current);
     };
-  }, [isPlaying, priceTrajectory.length, playerTotalEquity, playerPeakEquity, playerMaxDrawdown, playSfx]);
+  }, [
+    isPlaying,
+    isPaused,
+    replaySpeed,
+    selectedScenario?.durationSeconds,
+    priceTrajectory.length,
+    playerTotalEquity,
+    playerPeakEquity,
+    playerMaxDrawdown,
+    playSfx,
+  ]);
 
   // ── AUTOMATED STOP-LOSS & TAKE-PROFIT TRIGGER ENGINE ────────────────────────
   useEffect(() => {
-    if (!isPlaying || positionSide === 'FLAT' || !currentPricePoint) return;
+    if (!isPlaying || ownedShares <= 0 || !currentPricePoint) return;
 
     const candle = currentPricePoint;
 
-    if (positionSide === 'LONG') {
-      // 1. Déclenchement du STOP LOSS (en cas de baisse du cours sous le niveau de SL)
-      if (stopLossPrice !== null && (candle.low <= stopLossPrice || candle.close <= stopLossPrice)) {
-        playSfx('defeat');
-        const exitPrice = stopLossPrice;
-        const pnl = (exitPrice - entryPrice) * positionUnits * leverage;
-        setCash((c) => c + pnl);
-        setPositionSide('FLAT');
-        setPositionUnits(0);
-        setEntryPrice(0);
-        setStopLossPrice(null);
-        setTakeProfitPrice(null);
-        setPlayerTradesCount((t) => t + 1);
-        setLastAutoExitMessage(
-          `🛡️ Stop-Loss Déclenché à $${exitPrice.toFixed(2)} (${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)})`
-        );
-        return;
-      }
+    // 1. Déclenchement du STOP LOSS (en cas de baisse du cours sous le niveau de SL)
+    if (stopLossPrice !== null && (candle.low <= stopLossPrice || candle.close <= stopLossPrice)) {
+      playSfx('defeat');
+      const exitPrice = stopLossPrice;
+      const proceeds = ownedShares * exitPrice;
+      const tradePnl = (exitPrice - avgBuyPrice) * ownedShares;
+      const qtySold = ownedShares;
+      setCash((c) => c + proceeds);
+      setRealizedPnl((r) => r + tradePnl);
+      setOwnedShares(0);
+      setAvgBuyPrice(0);
+      setStopLossPrice(null);
+      setTakeProfitPrice(null);
+      setPlayerTradesCount((t) => t + 1);
+      setLastAutoExitMessage(
+        `🛡️ Stop-Loss Exécuté à $${exitPrice.toFixed(2)} : ${qtySold} actions vendues (${tradePnl >= 0 ? '+' : ''}$${tradePnl.toFixed(2)})`
+      );
+      return;
+    }
 
-      // 2. Déclenchement du TAKE PROFIT (en cas de hausse du cours au niveau de TP)
-      if (takeProfitPrice !== null && (candle.high >= takeProfitPrice || candle.close >= takeProfitPrice)) {
-        playSfx('victory');
-        const exitPrice = takeProfitPrice;
-        const pnl = (exitPrice - entryPrice) * positionUnits * leverage;
-        setCash((c) => c + pnl);
-        setPositionSide('FLAT');
-        setPositionUnits(0);
-        setEntryPrice(0);
-        setStopLossPrice(null);
-        setTakeProfitPrice(null);
-        setPlayerTradesCount((t) => t + 1);
-        setLastAutoExitMessage(
-          `🎯 Take-Profit Touché avec Succès à $${exitPrice.toFixed(2)} (+${pnl.toFixed(2)}$) !`
-        );
-        return;
-      }
-    } else if (positionSide === 'SHORT') {
-      // 1. Déclenchement du STOP LOSS en Short (perte si le cours monte au-dessus du SL)
-      if (stopLossPrice !== null && (candle.high >= stopLossPrice || candle.close >= stopLossPrice)) {
-        playSfx('defeat');
-        const exitPrice = stopLossPrice;
-        const pnl = (entryPrice - exitPrice) * positionUnits * leverage;
-        setCash((c) => c + pnl);
-        setPositionSide('FLAT');
-        setPositionUnits(0);
-        setEntryPrice(0);
-        setStopLossPrice(null);
-        setTakeProfitPrice(null);
-        setPlayerTradesCount((t) => t + 1);
-        setLastAutoExitMessage(
-          `🛡️ Stop-Loss Short Déclenché à $${exitPrice.toFixed(2)} (${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)})`
-        );
-        return;
-      }
-
-      // 2. Déclenchement du TAKE PROFIT en Short (gain si le cours baisse au niveau du TP)
-      if (takeProfitPrice !== null && (candle.low <= takeProfitPrice || candle.close <= takeProfitPrice)) {
-        playSfx('victory');
-        const exitPrice = takeProfitPrice;
-        const pnl = (entryPrice - exitPrice) * positionUnits * leverage;
-        setCash((c) => c + pnl);
-        setPositionSide('FLAT');
-        setPositionUnits(0);
-        setEntryPrice(0);
-        setStopLossPrice(null);
-        setTakeProfitPrice(null);
-        setPlayerTradesCount((t) => t + 1);
-        setLastAutoExitMessage(
-          `🎯 Take-Profit Short Atteint à $${exitPrice.toFixed(2)} (+${pnl.toFixed(2)}$) !`
-        );
-        return;
-      }
+    // 2. Déclenchement du TAKE PROFIT (en cas de hausse du cours au-dessus du TP)
+    if (takeProfitPrice !== null && (candle.high >= takeProfitPrice || candle.close >= takeProfitPrice)) {
+      playSfx('victory');
+      const exitPrice = takeProfitPrice;
+      const proceeds = ownedShares * exitPrice;
+      const tradePnl = (exitPrice - avgBuyPrice) * ownedShares;
+      const qtySold = ownedShares;
+      setCash((c) => c + proceeds);
+      setRealizedPnl((r) => r + tradePnl);
+      setOwnedShares(0);
+      setAvgBuyPrice(0);
+      setStopLossPrice(null);
+      setTakeProfitPrice(null);
+      setPlayerTradesCount((t) => t + 1);
+      setLastAutoExitMessage(
+        `🎯 Take-Profit Exécuté à $${exitPrice.toFixed(2)} : ${qtySold} actions vendues (+${tradePnl.toFixed(2)}$) !`
+      );
+      return;
     }
   }, [
     currentStepIndex,
     isPlaying,
-    positionSide,
-    positionUnits,
-    entryPrice,
-    leverage,
+    ownedShares,
+    avgBuyPrice,
     stopLossPrice,
     takeProfitPrice,
     currentPricePoint,
     playSfx,
   ]);
 
-  // Quick SL / TP preset percentages
+  // Quick SL / TP preset percentages calculés sur le PRU (Prix Moyen d'achat)
   const setSlPresetPct = (pct: number) => {
-    if (positionSide === 'FLAT' || entryPrice <= 0) return;
-    if (positionSide === 'LONG') {
-      const target = Math.round(entryPrice * (1 - pct / 100) * 100) / 100;
-      setStopLossPrice(target);
-    } else {
-      const target = Math.round(entryPrice * (1 + pct / 100) * 100) / 100;
-      setStopLossPrice(target);
-    }
+    const base = avgBuyPrice > 0 ? avgBuyPrice : currentPrice;
+    const target = Math.round(base * (1 - pct / 100) * 100) / 100;
+    setStopLossPrice(target);
   };
 
   const setTpPresetPct = (pct: number) => {
-    if (positionSide === 'FLAT' || entryPrice <= 0) return;
-    if (positionSide === 'LONG') {
-      const target = Math.round(entryPrice * (1 + pct / 100) * 100) / 100;
-      setTakeProfitPrice(target);
-    } else {
-      const target = Math.round(entryPrice * (1 - pct / 100) * 100) / 100;
-      setTakeProfitPrice(target);
-    }
+    const base = avgBuyPrice > 0 ? avgBuyPrice : currentPrice;
+    const target = Math.round(base * (1 + pct / 100) * 100) / 100;
+    setTakeProfitPrice(target);
   };
 
-  // ── PLAYER TRADING ACTIONS ──────────────────────────────────────────────────
-  const handleBuy = () => {
-    if (!isPlaying || !currentPricePoint) return;
+  // ── PLAYER REAL TRADING ACTIONS (PAS DE PRÉDICTION CFD, ACHAT/VENTE RÉEL D'ACTIONS) ──
+  const handleBuyShares = (qty: number) => {
+    if (!isPlaying || !currentPricePoint || qty <= 0) return;
+    const cost = qty * currentPrice;
+    if (cost > cash) {
+      alert(`Fonds insuffisants : l'achat de ${qty} actions requiert $${cost.toFixed(2)}, or votre solde est de $${cash.toFixed(2)}.`);
+      return;
+    }
     playSfx('order_buy');
-
-    // Si on était en short, on clôture d'abord
-    if (positionSide === 'SHORT') {
-      const pnl = (entryPrice - currentPrice) * positionUnits * leverage;
-      setCash((c) => c + pnl);
-    }
-
-    const availableCapital = cash * 0.4; // 40% de marge par entrée
-    const units = Math.max(1, Math.floor(availableCapital / currentPrice));
-
-    setPositionSide('LONG');
-    setPositionUnits(units);
-    setEntryPrice(currentPrice);
-    setStopLossPrice(null);
-    setTakeProfitPrice(null);
-    setLastAutoExitMessage(null);
+    const newShares = ownedShares + qty;
+    const newAvgPrice = ((ownedShares * avgBuyPrice) + cost) / newShares;
+    setCash((c) => Math.max(0, c - cost));
+    setOwnedShares(newShares);
+    setAvgBuyPrice(newAvgPrice);
     setPlayerTradesCount((t) => t + 1);
   };
 
-  const handleSell = () => {
-    if (!isPlaying || !currentPricePoint) return;
+  const handleSellShares = (qty: number) => {
+    if (!isPlaying || !currentPricePoint || qty <= 0 || ownedShares <= 0) return;
+    const qtyToSell = Math.min(ownedShares, qty);
     playSfx('order_sell');
-
-    // Si on était en long, on clôture d'abord
-    if (positionSide === 'LONG') {
-      const pnl = (currentPrice - entryPrice) * positionUnits * leverage;
-      setCash((c) => c + pnl);
+    const revenue = qtyToSell * currentPrice;
+    const tradePnl = (currentPrice - avgBuyPrice) * qtyToSell;
+    setCash((c) => c + revenue);
+    setRealizedPnl((r) => r + tradePnl);
+    const remaining = ownedShares - qtyToSell;
+    setOwnedShares(remaining);
+    if (remaining === 0) {
+      setAvgBuyPrice(0);
+      setStopLossPrice(null);
+      setTakeProfitPrice(null);
     }
-
-    const availableCapital = cash * 0.4;
-    const units = Math.max(1, Math.floor(availableCapital / currentPrice));
-
-    setPositionSide('SHORT');
-    setPositionUnits(units);
-    setEntryPrice(currentPrice);
-    setStopLossPrice(null);
-    setTakeProfitPrice(null);
-    setLastAutoExitMessage(null);
     setPlayerTradesCount((t) => t + 1);
   };
 
-  const handleClosePosition = () => {
-    if (!isPlaying || positionSide === 'FLAT') return;
-    playSfx('order_close');
-
-    const pnl = playerUnrealizedPnl;
-    setCash((c) => c + pnl);
-    setPositionSide('FLAT');
-    setPositionUnits(0);
-    setEntryPrice(0);
-    setStopLossPrice(null);
-    setTakeProfitPrice(null);
-    setPlayerTradesCount((t) => t + 1);
+  const handleCloseAllShares = () => {
+    if (!isPlaying || ownedShares <= 0) return;
+    handleSellShares(ownedShares);
   };
 
   const buildScenarioFromCustomChallenge = (challenge: CustomChallenge): DuelScenario => {
+    const durSec = challenge.durationMinutes * 60;
     return {
       id: `CUSTOM_${challenge.id}`,
       codeName: `DÉFI MYSTÈRE : ${challenge.assetName}`,
       category: challenge.category,
       difficulty: challenge.durationMinutes >= 20 ? 'HARD' : 'NORMAL',
-      description: "🔒 Données réelles masquées. Tradez à l'aveugle selon vos réflexes et votre analyse des chandeliers.",
-      durationSeconds: Math.min(300, challenge.durationMinutes * 60),
+      description: "🔒 Données réelles masquées. Tradez selon vos réflexes et l'analyse technique des chandeliers.",
+      durationSeconds: durSec,
       initialCapital: challenge.initialCapital || 50000,
       priceTrajectory: challenge.trajectory,
       realAssetSymbol: challenge.assetSymbol,
       realAssetName: challenge.assetName,
       realPeriod: `Challenge de ${challenge.durationMinutes} Minutes`,
-      historicalContext: `Défi créé sur-mesure par l'administrateur (${challenge.creatorName || 'Admin'}).`,
+      historicalContext: challenge.description || `Défi officiel créé sur-mesure par l'administrateur (${challenge.creatorName || 'Admin'}).`,
     };
   };
 
@@ -476,10 +447,10 @@ export const DuelArenaPage: React.FC = () => {
 
     const startingCapital = challenge.initialCapital || 50000;
     setCash(startingCapital);
-    setPositionSide('FLAT');
-    setPositionUnits(0);
-    setEntryPrice(0);
-    setLeverage(1);
+    setOwnedShares(0);
+    setAvgBuyPrice(0);
+    setRealizedPnl(0);
+    setOrderQuantity(10);
     setStopLossPrice(null);
     setTakeProfitPrice(null);
     setLastAutoExitMessage(null);
@@ -489,7 +460,9 @@ export const DuelArenaPage: React.FC = () => {
     setPlayerMaxDrawdown(0);
     setBotEquityCurve([startingCapital]);
     setCurrentStepIndex(0);
-    setRemainingSeconds(sc.durationSeconds || 120);
+    setRemainingSeconds(sc.durationSeconds || 600);
+    setReplaySpeed(1);
+    setIsPaused(false);
     setShowRevealModal(false);
 
     // Démarre la partie immédiatement !
@@ -552,13 +525,13 @@ export const DuelArenaPage: React.FC = () => {
   const handleStart1v1ChallengerRound = () => {
     if (!selected1v1Challenge) return;
     const startingCapital = selected1v1Challenge.initialCapital || 50000;
-    const durSec = Math.min(300, selected1v1Challenge.durationMinutes * 60);
+    const durSec = selected1v1Challenge.durationMinutes * 60;
 
     setCash(startingCapital);
-    setPositionSide('FLAT');
-    setPositionUnits(0);
-    setEntryPrice(0);
-    setLeverage(1);
+    setOwnedShares(0);
+    setAvgBuyPrice(0);
+    setRealizedPnl(0);
+    setOrderQuantity(10);
     setStopLossPrice(null);
     setTakeProfitPrice(null);
     setLastAutoExitMessage(null);
@@ -568,6 +541,8 @@ export const DuelArenaPage: React.FC = () => {
     setPlayerMaxDrawdown(0);
     setCurrentStepIndex(0);
     setRemainingSeconds(durSec);
+    setReplaySpeed(1);
+    setIsPaused(false);
     setShowRevealModal(false);
     setSelected1v1Challenge(null);
 
@@ -575,7 +550,7 @@ export const DuelArenaPage: React.FC = () => {
     playSfx('countdown');
   };
 
-  // ── START DUEL ──────────────────────────────────────────────────────────────
+  // ── START DUEL DEPUIS LE LOBBY ──────────────────────────────────────────────
   const handleStartDuel = async () => {
     if (!selectedScenario) return;
 
@@ -606,27 +581,40 @@ export const DuelArenaPage: React.FC = () => {
       }
 
       // Reset combat state
-      setCash(50000);
-      setPositionSide('FLAT');
-      setPositionUnits(0);
-      setEntryPrice(0);
-      setLeverage(1);
+      const startingCapital = selectedScenario.initialCapital || 50000;
+      setCash(startingCapital);
+      setOwnedShares(0);
+      setAvgBuyPrice(0);
+      setRealizedPnl(0);
+      setOrderQuantity(10);
+      setStopLossPrice(null);
+      setTakeProfitPrice(null);
+      setLastAutoExitMessage(null);
       setPlayerTradesCount(0);
-      setPlayerEquityCurve([50000]);
-      setPlayerPeakEquity(50000);
+      setPlayerEquityCurve([startingCapital]);
+      setPlayerPeakEquity(startingCapital);
       setPlayerMaxDrawdown(0);
       setCurrentStepIndex(0);
-      setRemainingSeconds(selectedScenario.durationSeconds || 120);
+      setRemainingSeconds(selectedScenario.durationSeconds || 600);
+      setReplaySpeed(1);
+      setIsPaused(false);
       setIsPlaying(true);
     } catch (err) {
       console.error('[DUELS] Erreur démarrage match:', err);
       // Fallback local play if backend route in progress
-      setCash(50000);
-      setPositionSide('FLAT');
-      setPositionUnits(0);
-      setEntryPrice(0);
+      const startingCapital = selectedScenario.initialCapital || 50000;
+      setCash(startingCapital);
+      setOwnedShares(0);
+      setAvgBuyPrice(0);
+      setRealizedPnl(0);
+      setOrderQuantity(10);
+      setStopLossPrice(null);
+      setTakeProfitPrice(null);
+      setLastAutoExitMessage(null);
       setCurrentStepIndex(0);
-      setRemainingSeconds(selectedScenario.durationSeconds || 120);
+      setRemainingSeconds(selectedScenario.durationSeconds || 600);
+      setReplaySpeed(1);
+      setIsPaused(false);
       setIsPlaying(true);
     }
   };
@@ -634,18 +622,43 @@ export const DuelArenaPage: React.FC = () => {
   // ── END GAME & THE BIG REVEAL ───────────────────────────────────────────────
   const endGame = async () => {
     setIsPlaying(false);
+    if (gameLoopRef.current) clearInterval(gameLoopRef.current);
 
-    // Clôture finale automatique
-    const finalPnl = playerTotalEquity - 50000;
-    const finalRoi = (finalPnl / 50000) * 100;
-    const finalCurve = [...playerEquityCurve, playerTotalEquity];
+    // Clôture finale automatique des actions restantes au prix de la dernière bougie
+    let finalCash = cash;
+    let finalRealized = realizedPnl;
+    if (ownedShares > 0 && currentPricePoint) {
+      const exitP = currentPricePoint.close;
+      const proceeds = ownedShares * exitP;
+      const tradePnl = (exitP - avgBuyPrice) * ownedShares;
+      finalCash += proceeds;
+      finalRealized += tradePnl;
+      setCash(finalCash);
+      setRealizedPnl(finalRealized);
+      setOwnedShares(0);
+      setAvgBuyPrice(0);
+    }
 
-    const isWin = playerTotalEquity >= opponentCurrentEquity;
+    const initCap = selectedScenario?.initialCapital || 50000;
+    const finalTotalEquity = finalCash;
+    const finalPnl = finalTotalEquity - initCap;
+    const finalRoi = (finalPnl / initCap) * 100;
+    const finalCurve = [...playerEquityCurve, finalTotalEquity];
+
+    const isWin = finalTotalEquity >= opponentCurrentEquity;
     if (isWin) {
       playSfx('victory');
     } else {
       playSfx('defeat');
     }
+
+    const scenarioSymbol = selectedScenario?.realAssetSymbol || 'ACTIF X';
+    const scenarioName = selectedScenario?.realAssetName || selectedScenario?.codeName || 'Scénario Officiel';
+    const scenarioPeriod = selectedScenario?.realPeriod || 'Challenge Officiel';
+    const scenarioContext =
+      selectedScenario?.historicalContext ||
+      selectedScenario?.description ||
+      "Défi officiel créé sur-mesure par l'administrateur.";
 
     try {
       const matchResult = await submitDuelRun({
@@ -657,6 +670,13 @@ export const DuelArenaPage: React.FC = () => {
         tradesCount: playerTradesCount,
         equityCurve: finalCurve,
       });
+
+      // Enrichissement garanti avec les métadonnées du scénario de l'admin
+      matchResult.realAssetSymbol = matchResult.realAssetSymbol || scenarioSymbol;
+      matchResult.realAssetName = matchResult.realAssetName || scenarioName;
+      matchResult.realPeriod = matchResult.realPeriod || scenarioPeriod;
+      matchResult.historicalContext = matchResult.historicalContext || scenarioContext;
+
       setCompletedMatchResult(matchResult);
     } catch (e) {
       console.warn('[DUELS] Soumission backend échouée, fallback calcul local:', e);
@@ -667,12 +687,12 @@ export const DuelArenaPage: React.FC = () => {
         challengerName: user?.email?.split('@')[0] || 'Vous',
         opponentType: opponentMode === 'AI' ? 'AI_QUANT' : 'HUMAN',
         opponentName: opponentMode === 'AI' ? `Bot ${selectedBotProfile}` : friendEmail || 'Ami Invité',
-        scenarioId: selectedScenario?.id || 'BTC_2017',
+        scenarioId: selectedScenario?.id || 'CUSTOM_1',
         scenarioTitle: selectedScenario?.codeName || 'ACTIF MYSTÈRE',
         status: 'COMPLETED',
         inviteToken: 'mock_token',
         inviteUrl: '',
-        initialCapital: 50000,
+        initialCapital: initCap,
         challengerPnl: finalPnl,
         challengerRoi: finalRoi,
         challengerScore: Math.round(finalPnl * 1.5 + 1000),
@@ -685,10 +705,10 @@ export const DuelArenaPage: React.FC = () => {
         winnerName: isWin ? 'Vous' : `Bot ${selectedBotProfile}`,
         createdAt: new Date().toISOString(),
         completedAt: new Date().toISOString(),
-        realAssetSymbol: selectedScenario?.realAssetSymbol,
-        realAssetName: selectedScenario?.realAssetName,
-        realPeriod: selectedScenario?.realPeriod,
-        historicalContext: selectedScenario?.historicalContext,
+        realAssetSymbol: scenarioSymbol,
+        realAssetName: scenarioName,
+        realPeriod: scenarioPeriod,
+        historicalContext: scenarioContext,
       };
       setCompletedMatchResult(mockResult);
     }
@@ -706,30 +726,59 @@ export const DuelArenaPage: React.FC = () => {
   const copyShareDuelResult = () => {
     if (!completedMatchResult) return;
     const isWin = completedMatchResult.winnerRole === 'CHALLENGER';
-    const text = `🏆 ESPRIT Market Simulator - DUEL 1v1 BLIND REPLAY\n${isWin ? 'Victoire Écrasante' : 'Duel Épique'} sur l'actif secret ${completedMatchResult.realAssetName || 'Mystère'} !\nMon PnL : $${completedMatchResult.challengerPnl?.toLocaleString()} (${completedMatchResult.challengerRoi?.toFixed(2)}%)\nScore : ${completedMatchResult.challengerScore} pts.\nPrêt à me défier ? Rejoins l'arène !`;
+    const text = `🏆 ESPRIT Market Simulator - DUEL 1v1 BLIND REPLAY\n${isWin ? 'Victoire Écrasante' : 'Duel Épique'} sur l'actif ${completedMatchResult.realAssetName || 'Mystère'} !\nMon PnL : $${completedMatchResult.challengerPnl?.toLocaleString()} (${completedMatchResult.challengerRoi?.toFixed(2)}%)\nScore : ${completedMatchResult.challengerScore} pts.\nPrêt à me défier ? Rejoins l'arène !`;
     navigator.clipboard.writeText(text);
     setCopiedShareText(true);
     setTimeout(() => setCopiedShareText(false), 2500);
   };
 
-  // ── SVG CHART SCALING HELPERS ───────────────────────────────────────────────
+  // ── SVG CHART SCALING HELPERS (AXE DES PRIX & AXE DU TEMPS RÉEL) ────────────
   const chartSlices = useMemo(() => {
     const visiblePoints = priceTrajectory.slice(0, Math.max(1, currentStepIndex + 1));
-    if (visiblePoints.length === 0) return { minP: 0, maxP: 100, points: [] };
+    if (visiblePoints.length === 0) return { minP: 0, maxP: 100, range: 100, points: [] };
 
     let min = Infinity;
     let max = -Infinity;
-    for (const p of visiblePoints) {
+    const dataset = priceTrajectory.length > 0 ? priceTrajectory : visiblePoints;
+    for (const p of dataset) {
       if (p.low < min) min = p.low;
       if (p.high > max) max = p.high;
     }
-    const padding = (max - min) * 0.08 || 1;
+    const padding = (max - min) * 0.08 || 2;
+    const minP = Math.max(0.1, min - padding);
+    const maxP = max + padding;
+    const range = maxP - minP || 1;
     return {
-      minP: min - padding,
-      maxP: max + padding,
+      minP,
+      maxP,
+      range,
       points: visiblePoints,
     };
   }, [priceTrajectory, currentStepIndex]);
+
+  // 5 Paliers de Prix Réguliers pour l'Axe Y (Vertical Droite)
+  const priceScaleTicks = useMemo(() => {
+    const min = chartSlices.minP;
+    const range = chartSlices.range;
+    return [0, 0.25, 0.5, 0.75, 1.0].map((ratio) => {
+      const price = min + range * ratio;
+      const y = 195 - ratio * 180;
+      return { ratio, price, y };
+    });
+  }, [chartSlices.minP, chartSlices.range]);
+
+  // 5 Jalons Temporels pour l'Axe X (Horizontal Bas)
+  const timeScaleTicks = useMemo(() => {
+    const durSec = selectedScenario?.durationSeconds || 600;
+    return [0, 0.25, 0.5, 0.75, 1.0].map((ratio) => {
+      const x = 15 + ratio * 610;
+      const sec = Math.round(ratio * durSec);
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      const label = `${m}:${s < 10 ? '0' : ''}${s}`;
+      return { ratio, x, label };
+    });
+  }, [selectedScenario?.durationSeconds]);
 
   return (
     <AppShell
@@ -853,29 +902,82 @@ export const DuelArenaPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* CENTER TIME & LEAD GAUGE */}
-                <div className="md:col-span-2 flex flex-col items-center justify-center text-center">
-                  <div className="text-3xl font-black font-mono tracking-tight text-white">
-                    {Math.floor(remainingSeconds / 60)}:{(remainingSeconds % 60).toString().padStart(2, '0')}
+                {/* CENTER TIME, CONTROLS & LEAD GAUGE */}
+                <div className="md:col-span-2 flex flex-col items-center justify-center text-center space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-3xl font-black font-mono tracking-tight text-white">
+                      {Math.floor(remainingSeconds / 60)}:{(remainingSeconds % 60).toString().padStart(2, '0')}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIsPaused(!isPaused)}
+                      title={isPaused ? "Reprendre le marché" : "Mettre en pause"}
+                      className={`p-1.5 rounded-lg border text-xs font-bold transition-all ${
+                        isPaused
+                          ? "bg-amber-500 text-slate-950 border-amber-400 animate-pulse"
+                          : "bg-slate-800 text-slate-300 border-slate-700 hover:text-white"
+                      }`}
+                    >
+                      {isPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+                    </button>
                   </div>
-                  <div className="w-full bg-slate-800 rounded-full h-1.5 mt-2 overflow-hidden">
+
+                  {/* REPLAY SPEED SELECTOR */}
+                  <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-lg border border-slate-800">
+                    {[1, 2, 5, 10].map((spd) => (
+                      <button
+                        key={spd}
+                        type="button"
+                        onClick={() => setReplaySpeed(spd)}
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold transition-all ${
+                          replaySpeed === spd
+                            ? "bg-cyan-500 text-slate-950 font-black shadow-sm"
+                            : "text-slate-400 hover:text-white"
+                        }`}
+                        title={`Accélérer la simulation à ${spd}x`}
+                      >
+                        {spd}x
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
                     <div
                       className="bg-gradient-to-r from-cyan-400 to-blue-500 h-full transition-all duration-300"
-                      style={{ width: `${(remainingSeconds / (selectedScenario?.durationSeconds || 120)) * 100}%` }}
+                      style={{
+                        width: `${Math.min(
+                          100,
+                          Math.max(
+                            0,
+                            (remainingSeconds / Math.max(1, selectedScenario?.durationSeconds || 600)) * 100
+                          )
+                        )}%`,
+                      }}
                     />
                   </div>
-                  <div className="mt-2 text-[11px] font-bold tracking-wider uppercase">
-                    {leadDiff > 0 ? (
-                      <span className="text-emerald-400 flex items-center gap-1 justify-center">
-                        <TrendingUp className="w-3 h-3" /> En tête (+${leadDiff.toFixed(0)})
-                      </span>
-                    ) : leadDiff < 0 ? (
-                      <span className="text-rose-400 flex items-center gap-1 justify-center">
-                        <TrendingDown className="w-3 h-3" /> Retard (-${Math.abs(leadDiff).toFixed(0)})
-                      </span>
-                    ) : (
-                      <span className="text-amber-400">Égalité</span>
-                    )}
+
+                  <div className="flex items-center justify-between w-full text-[10px] text-slate-400 font-mono">
+                    <span>
+                      {leadDiff > 0 ? (
+                        <span className="text-emerald-400 font-bold flex items-center gap-0.5">
+                          <TrendingUp className="w-3 h-3" /> +${leadDiff.toFixed(0)}
+                        </span>
+                      ) : leadDiff < 0 ? (
+                        <span className="text-rose-400 font-bold flex items-center gap-0.5">
+                          <TrendingDown className="w-3 h-3" /> -${Math.abs(leadDiff).toFixed(0)}
+                        </span>
+                      ) : (
+                        <span className="text-amber-400 font-bold">Égalité</span>
+                      )}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={endGame}
+                      className="text-slate-400 hover:text-rose-300 flex items-center gap-0.5 px-1 rounded bg-slate-800/80 border border-slate-700/80 text-[10px] transition-all"
+                      title="Clôturer le défi immédiatement et valider le score final"
+                    >
+                      <Square className="w-2.5 h-2.5 fill-current" /> Finir
+                    </button>
                   </div>
                 </div>
 
@@ -988,9 +1090,9 @@ export const DuelArenaPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* SVG PRICE ACTION GRAPH */}
-                  <div className="h-64 w-full my-4 relative bg-slate-950/70 rounded-xl p-2 border border-slate-800/60 overflow-hidden flex flex-col justify-between">
-                    <svg className="w-full h-48" viewBox="0 0 600 200" preserveAspectRatio="none">
+                  {/* SVG PRICE ACTION GRAPH AVEC AXE DES PRIX & AXE DU TEMPS */}
+                  <div className="h-72 w-full my-4 relative bg-slate-950/80 rounded-xl p-3 border border-slate-800/80 overflow-hidden flex flex-col justify-between">
+                    <svg className="w-full h-52" viewBox="0 0 720 230" preserveAspectRatio="none">
                       <defs>
                         <linearGradient id="blindAreaGrad" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.35" />
@@ -998,27 +1100,48 @@ export const DuelArenaPage: React.FC = () => {
                         </linearGradient>
                       </defs>
 
-                      {/* Horizontal Grid lines */}
-                      {[30, 75, 120, 165].map((y) => (
-                        <line key={y} x1="0" y1={y} x2="600" y2={y} stroke="#1e293b" strokeWidth="0.8" strokeDasharray="3 3" />
+                      {/* 1. HORIZONTAL PRICE GRID LINES & Y-AXIS TICKS */}
+                      {priceScaleTicks.map((t) => (
+                        <g key={t.ratio}>
+                          <line x1="15" y1={t.y} x2="625" y2={t.y} stroke="#1e293b" strokeWidth="0.8" strokeDasharray="3 3" />
+                          <text x="632" y={t.y + 3.5} fill="#94a3b8" fontSize="10" fontFamily="monospace" fontWeight="600">
+                            ${t.price.toFixed(2)}
+                          </text>
+                        </g>
                       ))}
+
+                      {/* 2. VERTICAL TIME GRID LINES & X-AXIS TICKS */}
+                      {timeScaleTicks.map((t) => (
+                        <g key={t.ratio}>
+                          <line x1={t.x} y1="15" x2={t.x} y2="195" stroke="#1e293b" strokeWidth="0.8" strokeDasharray="2 4" />
+                          <line x1={t.x} y1="195" x2={t.x} y2="201" stroke="#475569" strokeWidth="1" />
+                          <text x={t.x} y="214" textAnchor="middle" fill="#64748b" fontSize="10" fontFamily="monospace">
+                            {t.label}
+                          </text>
+                        </g>
+                      ))}
+
+                      {/* Separation line between chart & right ruler */}
+                      <line x1="625" y1="15" x2="625" y2="195" stroke="#334155" strokeWidth="1" />
+                      {/* Separation line between chart & bottom ruler */}
+                      <line x1="15" y1="195" x2="625" y2="195" stroke="#334155" strokeWidth="1" />
 
                       {gameplayChartView === 'CANDLESTICKS' ? (
                         /* JAPANESE CANDLESTICKS RENDERING */
                         <g>
                           {chartSlices.points.map((p, idx) => {
                             const total = Math.max(1, priceTrajectory.length);
-                            const candleWidth = Math.max(3, (600 / total) * 0.75);
-                            const x = (idx / Math.max(1, total - 1)) * (600 - candleWidth) + candleWidth / 2;
+                            const candleWidth = Math.max(3, (610 / total) * 0.75);
+                            const x = 15 + (idx / Math.max(1, total - 1)) * (610 - candleWidth) + candleWidth / 2;
 
                             const isBullish = p.close >= p.open;
                             const candleColor = isBullish ? '#10b981' : '#f43f5e';
 
-                            const range = chartSlices.maxP - chartSlices.minP || 1;
-                            const yHigh = 200 - ((p.high - chartSlices.minP) / range) * 175 - 12;
-                            const yLow = 200 - ((p.low - chartSlices.minP) / range) * 175 - 12;
-                            const yOpen = 200 - ((p.open - chartSlices.minP) / range) * 175 - 12;
-                            const yClose = 200 - ((p.close - chartSlices.minP) / range) * 175 - 12;
+                            const range = chartSlices.range || 1;
+                            const yHigh = 195 - ((p.high - chartSlices.minP) / range) * 180;
+                            const yLow = 195 - ((p.low - chartSlices.minP) / range) * 180;
+                            const yOpen = 195 - ((p.open - chartSlices.minP) / range) * 180;
+                            const yClose = 195 - ((p.close - chartSlices.minP) / range) * 180;
 
                             const bodyTop = Math.min(yOpen, yClose);
                             const bodyHeight = Math.max(2, Math.abs(yClose - yOpen));
@@ -1043,22 +1166,22 @@ export const DuelArenaPage: React.FC = () => {
                         <g>
                           {chartSlices.points.length > 1 && (
                             <path
-                              d={`M 0 200 ${chartSlices.points
+                              d={`M 15 195 ${chartSlices.points
                                 .map((p, i) => {
-                                  const x = (i / Math.max(1, priceTrajectory.length - 1)) * 600;
-                                  const y = 200 - ((p.close - chartSlices.minP) / (chartSlices.maxP - chartSlices.minP || 1)) * 175 - 12;
+                                  const x = 15 + (i / Math.max(1, priceTrajectory.length - 1)) * 610;
+                                  const y = 195 - ((p.close - chartSlices.minP) / (chartSlices.range || 1)) * 180;
                                   return `L ${x} ${y}`;
                                 })
-                                .join(' ')} L ${(chartSlices.points.length / Math.max(1, priceTrajectory.length - 1)) * 600} 200 Z`}
+                                .join(' ')} L ${15 + (chartSlices.points.length / Math.max(1, priceTrajectory.length - 1)) * 610} 195 Z`}
                               fill="url(#blindAreaGrad)"
                             />
                           )}
                           {chartSlices.points.length > 1 && (
                             <path
-                              d={`M 0 ${200 - ((chartSlices.points[0].close - chartSlices.minP) / (chartSlices.maxP - chartSlices.minP || 1)) * 175 - 12} ${chartSlices.points
+                              d={`M 15 ${195 - ((chartSlices.points[0].close - chartSlices.minP) / (chartSlices.range || 1)) * 180} ${chartSlices.points
                                 .map((p, i) => {
-                                  const x = (i / Math.max(1, priceTrajectory.length - 1)) * 600;
-                                  const y = 200 - ((p.close - chartSlices.minP) / (chartSlices.maxP - chartSlices.minP || 1)) * 175 - 12;
+                                  const x = 15 + (i / Math.max(1, priceTrajectory.length - 1)) * 610;
+                                  const y = 195 - ((p.close - chartSlices.minP) / (chartSlices.range || 1)) * 180;
                                   return `L ${x} ${y}`;
                                 })
                                 .join(' ')}`}
@@ -1070,57 +1193,68 @@ export const DuelArenaPage: React.FC = () => {
                         </g>
                       )}
 
-                      {/* ACTIVE TRADE OVERLAY LINES (ENTRY, STOP LOSS, TAKE PROFIT) */}
-                      {positionSide !== 'FLAT' && entryPrice > 0 && (() => {
-                        const range = chartSlices.maxP - chartSlices.minP || 1;
-                        const yEntry = 200 - ((entryPrice - chartSlices.minP) / range) * 175 - 12;
-
+                      {/* ACTIVE POSITION PRU LEVEL LINE */}
+                      {ownedShares > 0 && avgBuyPrice > 0 && (() => {
+                        const range = chartSlices.range || 1;
+                        const yPru = 195 - ((avgBuyPrice - chartSlices.minP) / range) * 180;
+                        if (yPru < 10 || yPru > 200) return null;
                         return (
                           <g>
-                            {/* Entry line */}
-                            <line x1="0" y1={yEntry} x2="600" y2={yEntry} stroke="#06b6d4" strokeWidth="1.2" strokeDasharray="4 4" />
-                            <text x="590" y={yEntry - 4} textAnchor="end" fill="#22d3ee" fontSize="9" fontWeight="bold" fontFamily="monospace">
-                              {`📍 ENTRÉE $${entryPrice.toFixed(2)}`}
+                            <line x1="15" y1={yPru} x2="625" y2={yPru} stroke="#06b6d4" strokeWidth="1.2" strokeDasharray="4 4" />
+                            <rect x="20" y={yPru - 8} width="140" height="16" fill="#0e7490" rx="3" />
+                            <text x="25" y={yPru + 3.5} fill="#ffffff" fontSize="9" fontWeight="bold" fontFamily="monospace">
+                              {`📍 PRU: $${avgBuyPrice.toFixed(2)} (${ownedShares} act.)`}
                             </text>
-
-                            {/* Stop-Loss line if defined */}
-                            {stopLossPrice !== null && (() => {
-                              const ySL = 200 - ((stopLossPrice - chartSlices.minP) / range) * 175 - 12;
-                              return (
-                                <g>
-                                  <line x1="0" y1={ySL} x2="600" y2={ySL} stroke="#f43f5e" strokeWidth="1.5" strokeDasharray="3 3" />
-                                  <text x="590" y={ySL - 4} textAnchor="end" fill="#f43f5e" fontSize="9" fontWeight="bold" fontFamily="monospace">
-                                    {`🛡️ STOP-LOSS $${stopLossPrice.toFixed(2)}`}
-                                  </text>
-                                </g>
-                              );
-                            })()}
-
-                            {/* Take-Profit line if defined */}
-                            {takeProfitPrice !== null && (() => {
-                              const yTP = 200 - ((takeProfitPrice - chartSlices.minP) / range) * 175 - 12;
-                              return (
-                                <g>
-                                  <line x1="0" y1={yTP} x2="600" y2={yTP} stroke="#10b981" strokeWidth="1.5" strokeDasharray="3 3" />
-                                  <text x="590" y={yTP - 4} textAnchor="end" fill="#10b981" fontSize="9" fontWeight="bold" fontFamily="monospace">
-                                    {`🎯 TAKE-PROFIT $${takeProfitPrice.toFixed(2)}`}
-                                  </text>
-                                </g>
-                              );
-                            })()}
                           </g>
                         );
                       })()}
 
-                      {/* Current pulse dot */}
-                      {chartSlices.points.length > 0 && (() => {
-                        const total = Math.max(1, priceTrajectory.length);
-                        const lastX = ((chartSlices.points.length - 1) / Math.max(1, total - 1)) * 600;
-                        const lastY = 200 - ((chartSlices.points[chartSlices.points.length - 1].close - chartSlices.minP) / (chartSlices.maxP - chartSlices.minP || 1)) * 175 - 12;
+                      {/* STOP-LOSS LEVEL LINE */}
+                      {stopLossPrice !== null && (() => {
+                        const range = chartSlices.range || 1;
+                        const ySL = 195 - ((stopLossPrice - chartSlices.minP) / range) * 180;
+                        if (ySL < 10 || ySL > 200) return null;
                         return (
                           <g>
-                            <circle cx={lastX} cy={lastY} r="6" fill="#22d3ee" opacity="0.4" className="animate-ping" />
-                            <circle cx={lastX} cy={lastY} r="4" fill="#ffffff" stroke="#0891b2" strokeWidth="2" />
+                            <line x1="15" y1={ySL} x2="625" y2={ySL} stroke="#f43f5e" strokeWidth="1.5" strokeDasharray="3 3" />
+                            <rect x="20" y={ySL - 8} width="115" height="16" fill="#be123c" rx="3" />
+                            <text x="25" y={ySL + 3.5} fill="#ffffff" fontSize="9" fontWeight="bold" fontFamily="monospace">
+                              {`🛡️ SL: $${stopLossPrice.toFixed(2)}`}
+                            </text>
+                          </g>
+                        );
+                      })()}
+
+                      {/* TAKE-PROFIT LEVEL LINE */}
+                      {takeProfitPrice !== null && (() => {
+                        const range = chartSlices.range || 1;
+                        const yTP = 195 - ((takeProfitPrice - chartSlices.minP) / range) * 180;
+                        if (yTP < 10 || yTP > 200) return null;
+                        return (
+                          <g>
+                            <line x1="15" y1={yTP} x2="625" y2={yTP} stroke="#10b981" strokeWidth="1.5" strokeDasharray="3 3" />
+                            <rect x="20" y={yTP - 8} width="115" height="16" fill="#047857" rx="3" />
+                            <text x="25" y={yTP + 3.5} fill="#ffffff" fontSize="9" fontWeight="bold" fontFamily="monospace">
+                              {`🎯 TP: $${takeProfitPrice.toFixed(2)}`}
+                            </text>
+                          </g>
+                        );
+                      })()}
+
+                      {/* DYNAMIC LIVE PRICE POINTER & BADGE ON RIGHT AXIS */}
+                      {chartSlices.points.length > 0 && (() => {
+                        const total = Math.max(1, priceTrajectory.length);
+                        const lastX = 15 + ((chartSlices.points.length - 1) / Math.max(1, total - 1)) * 610;
+                        const lastY = 195 - ((currentPrice - chartSlices.minP) / (chartSlices.range || 1)) * 180;
+                        return (
+                          <g>
+                            <line x1={lastX} y1={lastY} x2="626" y2={lastY} stroke="#06b6d4" strokeWidth="1" strokeDasharray="2 2" />
+                            <circle cx={lastX} cy={lastY} r="5" fill="#22d3ee" opacity="0.4" className="animate-ping" />
+                            <circle cx={lastX} cy={lastY} r="3.5" fill="#ffffff" stroke="#0891b2" strokeWidth="2" />
+                            <rect x="626" y={lastY - 8} width="90" height="17" fill="#0891b2" rx="3" />
+                            <text x="632" y={lastY + 4} fill="#ffffff" fontSize="10" fontWeight="bold" fontFamily="monospace">
+                              ${currentPrice.toFixed(2)}
+                            </text>
                           </g>
                         );
                       })()}
@@ -1128,11 +1262,11 @@ export const DuelArenaPage: React.FC = () => {
 
                     {/* LIVE VOLUME SUB-BAR AT BOTTOM */}
                     <div className="h-8 w-full pt-1 border-t border-slate-900">
-                      <svg className="w-full h-full" viewBox="0 0 600 30" preserveAspectRatio="none">
+                      <svg className="w-full h-full" viewBox="0 0 720 30" preserveAspectRatio="none">
                         {chartSlices.points.map((p, idx) => {
                           const total = Math.max(1, priceTrajectory.length);
-                          const w = Math.max(2, (600 / total) * 0.7);
-                          const x = (idx / Math.max(1, total - 1)) * (600 - w) + w / 2;
+                          const w = Math.max(2, (610 / total) * 0.7);
+                          const x = 15 + (idx / Math.max(1, total - 1)) * (610 - w) + w / 2;
                           const isBullish = p.close >= p.open;
                           const barHeight = Math.min(26, Math.max(3, (p.volume / 80000) * 26));
 
@@ -1206,55 +1340,133 @@ export const DuelArenaPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* RIGHT : TRADING COCKPIT (4 COLS) */}
+                {/* RIGHT : TRADING COCKPIT (4 COLS) - REAL STOCK TRADING */}
                 <div className="lg:col-span-4 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between space-y-4">
-                  <div>
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300 mb-3 flex items-center gap-2">
-                      <Zap className="w-4 h-4 text-cyan-400" /> Cockpit d'Exécution Rapide
-                    </h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                      <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                        <Zap className="w-4 h-4 text-cyan-400" /> Ordres & Portefeuille
+                      </h3>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950/70 border border-cyan-800 text-cyan-300 font-bold">
+                        Marché Live
+                      </span>
+                    </div>
 
-                    {/* CURRENT POSITION SUMMARY */}
+                    {/* PORTFOLIO POSITION INVENTORY */}
                     <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3.5 space-y-2">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-slate-400">Position Active</span>
+                        <span className="text-slate-400">Actions Détenues</span>
                         <span
                           className={`font-mono font-bold px-2 py-0.5 rounded text-xs ${
-                            positionSide === 'LONG'
+                            ownedShares > 0
                               ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                              : positionSide === 'SHORT'
-                              ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
                               : 'bg-slate-800 text-slate-400 border border-slate-700'
                           }`}
                         >
-                          {positionSide === 'LONG' ? 'ACHAT (LONG)' : positionSide === 'SHORT' ? 'VENTE (SHORT)' : 'FLAT (NEUTRE)'}
+                          {ownedShares > 0 ? `${ownedShares} actions` : '0 action (Liquidité pure)'}
                         </span>
                       </div>
 
-                      {positionSide !== 'FLAT' && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-400">Cash Disponible</span>
+                        <span className="font-mono font-bold text-white">
+                          ${cash.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+
+                      {ownedShares > 0 && (
                         <>
                           <div className="flex items-center justify-between text-xs">
-                            <span className="text-slate-400">Prix d'entrée</span>
-                            <span className="font-mono text-white">${entryPrice.toFixed(2)}</span>
+                            <span className="text-slate-400">Prix Moyen (PRU)</span>
+                            <span className="font-mono text-white">${avgBuyPrice.toFixed(2)}</span>
                           </div>
                           <div className="flex items-center justify-between text-xs">
-                            <span className="text-slate-400">Volume & Levier</span>
-                            <span className="font-mono text-white">{positionUnits} unités ({leverage}x)</span>
+                            <span className="text-slate-400">Valeur Marchande</span>
+                            <span className="font-mono text-cyan-300">
+                              ${(ownedShares * currentPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
                           </div>
                           <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-800">
                             <span className="text-slate-400">Gain Latent</span>
                             <span className={`font-mono font-bold text-sm ${playerUnrealizedPnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                              ${playerUnrealizedPnl >= 0 ? '+' : ''}{playerUnrealizedPnl.toFixed(2)}
+                              ${playerUnrealizedPnl >= 0 ? '+' : ''}{playerUnrealizedPnl.toFixed(2)} ({playerUnrealizedPnlPct >= 0 ? '+' : ''}{playerUnrealizedPnlPct.toFixed(2)}%)
                             </span>
                           </div>
                         </>
                       )}
+
+                      {realizedPnl !== 0 && (
+                        <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-800/60 text-slate-400">
+                          <span>PnL Réalisé Encaissé</span>
+                          <span className={`font-mono font-bold ${realizedPnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            ${realizedPnl >= 0 ? '+' : ''}{realizedPnl.toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* QUANTITY SELECTOR & NOTIONAL QUOTE */}
+                    <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3.5 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                          Nombre d'actions (Quantité)
+                        </label>
+                        <span className="text-[11px] font-mono text-cyan-400 font-semibold">
+                          Cours: ${currentPrice.toFixed(2)}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="1"
+                          step="1"
+                          value={orderQuantity}
+                          onChange={(e) => setOrderQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white font-mono font-bold focus:outline-none focus:border-cyan-400"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setOrderQuantity(Math.max(1, Math.floor(cash / currentPrice)))}
+                          className="px-2.5 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-slate-700 rounded-lg text-xs font-mono font-bold transition-all"
+                          title="Acheter le maximum possible avec votre cash"
+                        >
+                          MAX
+                        </button>
+                      </div>
+
+                      {/* QUICK QUANTITY PRESETS */}
+                      <div className="flex items-center gap-1.5">
+                        {[1, 5, 10, 50, 100].map((q) => (
+                          <button
+                            key={q}
+                            type="button"
+                            onClick={() => setOrderQuantity(q)}
+                            className={`flex-1 py-1 rounded text-xs font-mono font-bold border transition-all ${
+                              orderQuantity === q
+                                ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+                                : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white'
+                            }`}
+                          >
+                            {q}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* NOTIONAL ORDER VALUE / ESTIMATE */}
+                      <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                        <span className="text-slate-400">Montant total de l'ordre</span>
+                        <span className="font-mono font-bold text-white">
+                          ${(orderQuantity * currentPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
                     </div>
 
                     {/* STOP-LOSS & TAKE-PROFIT CONTROLS */}
-                    <div className="mt-4 bg-slate-950/70 border border-slate-800 rounded-xl p-3.5 space-y-3">
+                    <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3.5 space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                          <Shield className="w-3.5 h-3.5 text-rose-400" /> Ordres de Protection
+                          <Shield className="w-3.5 h-3.5 text-rose-400" /> Protection SL / TP
                         </span>
                         {(stopLossPrice !== null || takeProfitPrice !== null) && (
                           <button
@@ -1274,7 +1486,7 @@ export const DuelArenaPage: React.FC = () => {
                       <div>
                         <div className="flex items-center justify-between text-xs mb-1">
                           <span className="text-slate-400 flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Stop-Loss
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Stop-Loss ($)
                           </span>
                           <span className="font-mono text-rose-400 font-bold text-[11px]">
                             {stopLossPrice !== null ? `$${stopLossPrice.toFixed(2)}` : 'Désactivé'}
@@ -1284,26 +1496,24 @@ export const DuelArenaPage: React.FC = () => {
                           <input
                             type="number"
                             step="0.01"
-                            placeholder={positionSide !== 'FLAT' ? `${(positionSide === 'LONG' ? entryPrice * 0.95 : entryPrice * 1.05).toFixed(2)}` : 'Prix SL ($)'}
+                            placeholder={avgBuyPrice > 0 ? `${(avgBuyPrice * 0.95).toFixed(2)}` : 'Prix SL ($)'}
                             value={stopLossPrice !== null ? stopLossPrice : ''}
                             onChange={(e) => setStopLossPrice(e.target.value ? parseFloat(e.target.value) : null)}
                             className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-white font-mono focus:outline-none focus:border-rose-400"
                           />
-                          {positionSide !== 'FLAT' && (
-                            <div className="flex items-center gap-1">
-                              {[2, 5, 10].map((pct) => (
-                                <button
-                                  key={pct}
-                                  type="button"
-                                  onClick={() => setSlPresetPct(pct)}
-                                  className="px-1.5 py-1 bg-slate-800 hover:bg-rose-950/60 hover:text-rose-300 border border-slate-700 rounded text-[10px] font-mono text-slate-300 font-bold transition-all"
-                                  title={`Placer le Stop-Loss à ${positionSide === 'LONG' ? '-' : '+'}${pct}%`}
-                                >
-                                  {positionSide === 'LONG' ? '-' : '+'}{pct}%
-                                </button>
-                              ))}
-                            </div>
-                          )}
+                          <div className="flex items-center gap-1">
+                            {[2, 5, 10].map((pct) => (
+                              <button
+                                key={pct}
+                                type="button"
+                                onClick={() => setSlPresetPct(pct)}
+                                className="px-1.5 py-1 bg-slate-800 hover:bg-rose-950/60 hover:text-rose-300 border border-slate-700 rounded text-[10px] font-mono text-slate-300 font-bold transition-all"
+                                title={`Placer le Stop-Loss à -${pct}% du PRU`}
+                              >
+                                -{pct}%
+                              </button>
+                            ))}
+                          </div>
                         </div>
                       </div>
 
@@ -1311,7 +1521,7 @@ export const DuelArenaPage: React.FC = () => {
                       <div>
                         <div className="flex items-center justify-between text-xs mb-1">
                           <span className="text-slate-400 flex items-center gap-1">
-                            <Target className="w-3.5 h-3.5 text-emerald-400" /> Take-Profit
+                            <Target className="w-3.5 h-3.5 text-emerald-400" /> Take-Profit ($)
                           </span>
                           <span className="font-mono text-emerald-400 font-bold text-[11px]">
                             {takeProfitPrice !== null ? `$${takeProfitPrice.toFixed(2)}` : 'Désactivé'}
@@ -1321,87 +1531,80 @@ export const DuelArenaPage: React.FC = () => {
                           <input
                             type="number"
                             step="0.01"
-                            placeholder={positionSide !== 'FLAT' ? `${(positionSide === 'LONG' ? entryPrice * 1.08 : entryPrice * 0.92).toFixed(2)}` : 'Prix TP ($)'}
+                            placeholder={avgBuyPrice > 0 ? `${(avgBuyPrice * 1.05).toFixed(2)}` : 'Prix TP ($)'}
                             value={takeProfitPrice !== null ? takeProfitPrice : ''}
                             onChange={(e) => setTakeProfitPrice(e.target.value ? parseFloat(e.target.value) : null)}
                             className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-white font-mono focus:outline-none focus:border-emerald-400"
                           />
-                          {positionSide !== 'FLAT' && (
-                            <div className="flex items-center gap-1">
-                              {[4, 8, 15].map((pct) => (
-                                <button
-                                  key={pct}
-                                  type="button"
-                                  onClick={() => setTpPresetPct(pct)}
-                                  className="px-1.5 py-1 bg-slate-800 hover:bg-emerald-950/60 hover:text-emerald-300 border border-slate-700 rounded text-[10px] font-mono text-slate-300 font-bold transition-all"
-                                  title={`Placer le Take-Profit à ${positionSide === 'LONG' ? '+' : '-'}${pct}%`}
-                                >
-                                  {positionSide === 'LONG' ? '+' : '-'}{pct}%
-                                </button>
-                              ))}
-                            </div>
-                          )}
+                          <div className="flex items-center gap-1">
+                            {[3, 5, 10].map((pct) => (
+                              <button
+                                key={pct}
+                                type="button"
+                                onClick={() => setTpPresetPct(pct)}
+                                className="px-1.5 py-1 bg-slate-800 hover:bg-emerald-950/60 hover:text-emerald-300 border border-slate-700 rounded text-[10px] font-mono text-slate-300 font-bold transition-all"
+                                title={`Placer le Take-Profit à +${pct}% du PRU`}
+                              >
+                                +{pct}%
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    </div>
-
-                    {/* LEVERAGE SELECTOR */}
-                    <div className="mt-4">
-                      <label className="text-xs text-slate-400 font-semibold uppercase tracking-wider block mb-1.5">
-                        Levier Stratégique
-                      </label>
-                      <div className="grid grid-cols-3 gap-2">
-                        {[1, 2, 5].map((lev) => (
-                          <button
-                            key={lev}
-                            onClick={() => setLeverage(lev)}
-                            className={`py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${
-                              leverage === lev
-                                ? 'bg-cyan-500 text-white shadow-sm shadow-cyan-500/30'
-                                : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700'
-                            }`}
-                          >
-                            {lev}x
-                          </button>
-                        ))}
                       </div>
                     </div>
                   </div>
 
-                  {/* ACTION BUTTONS */}
+                  {/* ACTION BUTTONS (ACHETER / VENDRE / TOUT VENDRE) */}
                   <div className="space-y-2 pt-2">
                     <div className="grid grid-cols-2 gap-2">
                       <button
-                        onClick={handleBuy}
-                        className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex flex-col items-center justify-center gap-0.5"
+                        type="button"
+                        onClick={() => handleBuyShares(orderQuantity)}
+                        disabled={cash < orderQuantity * currentPrice}
+                        className={`w-full py-3 px-2 font-bold rounded-xl shadow-lg transition-all flex flex-col items-center justify-center gap-0.5 ${
+                          cash >= orderQuantity * currentPrice
+                            ? 'bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white shadow-emerald-500/20 active:scale-95'
+                            : 'bg-slate-800/80 text-slate-500 border border-slate-700/60 cursor-not-allowed opacity-50'
+                        }`}
                       >
-                        <span className="flex items-center gap-1.5 text-sm">
-                          <TrendingUp className="w-4 h-4" /> ACHETER (LONG)
+                        <span className="flex items-center gap-1.5 text-xs">
+                          <TrendingUp className="w-3.5 h-3.5" /> ACHETER ({orderQuantity})
                         </span>
-                        <span className="text-[10px] text-emerald-100 font-mono">Parier sur la hausse</span>
+                        <span className="text-[10px] font-mono">
+                          -${(orderQuantity * currentPrice).toFixed(0)}
+                        </span>
                       </button>
 
                       <button
-                        onClick={handleSell}
-                        className="w-full py-3.5 bg-gradient-to-r from-rose-600 to-red-500 hover:from-rose-500 hover:to-red-400 text-white font-bold rounded-xl shadow-lg shadow-rose-500/20 active:scale-95 transition-all flex flex-col items-center justify-center gap-0.5"
+                        type="button"
+                        onClick={() => handleSellShares(orderQuantity)}
+                        disabled={ownedShares <= 0}
+                        className={`w-full py-3 px-2 font-bold rounded-xl shadow-lg transition-all flex flex-col items-center justify-center gap-0.5 ${
+                          ownedShares > 0
+                            ? 'bg-gradient-to-r from-rose-600 to-red-500 hover:from-rose-500 hover:to-red-400 text-white shadow-rose-500/20 active:scale-95'
+                            : 'bg-slate-800/80 text-slate-500 border border-slate-700/60 cursor-not-allowed opacity-50'
+                        }`}
                       >
-                        <span className="flex items-center gap-1.5 text-sm">
-                          <TrendingDown className="w-4 h-4" /> VENDRE (SHORT)
+                        <span className="flex items-center gap-1.5 text-xs">
+                          <TrendingDown className="w-3.5 h-3.5" /> VENDRE ({Math.min(ownedShares, orderQuantity)})
                         </span>
-                        <span className="text-[10px] text-rose-100 font-mono">Parier sur la baisse</span>
+                        <span className="text-[10px] font-mono">
+                          +${(Math.min(ownedShares, orderQuantity) * currentPrice).toFixed(0)}
+                        </span>
                       </button>
                     </div>
 
                     <button
-                      onClick={handleClosePosition}
-                      disabled={positionSide === 'FLAT'}
-                      className={`w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all ${
-                        positionSide !== 'FLAT'
-                          ? 'bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 shadow-sm active:scale-95'
+                      type="button"
+                      onClick={handleCloseAllShares}
+                      disabled={ownedShares <= 0}
+                      className={`w-full py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                        ownedShares > 0
+                          ? 'bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 shadow-sm active:scale-95'
                           : 'bg-slate-900 text-slate-600 cursor-not-allowed border border-slate-800'
                       }`}
                     >
-                      CLÔTURER POSITION (FLAT)
+                      <X className="w-3.5 h-3.5" /> Tout Vendre ({ownedShares} actions)
                     </button>
                   </div>
                 </div>
@@ -1833,18 +2036,20 @@ export const DuelArenaPage: React.FC = () => {
                     <Sparkles className="w-3.5 h-3.5" /> DÉVOILEMENT DE L'ACTIF
                   </span>
                   <span className="text-xs font-mono font-bold text-white bg-slate-800 px-2 py-0.5 rounded">
-                    {completedMatchResult.realAssetSymbol || 'BTC/USD'}
+                    {completedMatchResult.realAssetSymbol || selectedScenario?.realAssetSymbol || 'ACTIF X'}
                   </span>
                 </div>
                 <div className="text-lg font-bold text-white">
-                  {completedMatchResult.realAssetName || 'Bitcoin (Rally Historique 2017)'}
+                  {completedMatchResult.realAssetName || selectedScenario?.realAssetName || selectedScenario?.codeName || 'Scénario Officiel'}
                 </div>
                 <div className="text-xs text-amber-300 font-mono">
-                  Période réelle : {completedMatchResult.realPeriod || '2017'}
+                  Période réelle : {completedMatchResult.realPeriod || selectedScenario?.realPeriod || 'Session Officielle'}
                 </div>
                 <p className="text-xs text-slate-300 leading-relaxed pt-1 border-t border-slate-800/80">
                   {completedMatchResult.historicalContext ||
-                    "Vous avez tradé l'une des phases les plus intenses de l'histoire financière moderne."}
+                    selectedScenario?.historicalContext ||
+                    selectedScenario?.description ||
+                    "Vous avez tradé un scénario officiel sur-mesure confectionné par l'administrateur."}
                 </p>
               </div>
 
