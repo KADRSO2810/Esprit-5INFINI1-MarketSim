@@ -41,6 +41,7 @@ export interface CreateCustomChallengePayload {
   initialCapital?: number;
   maxLeverage?: number;
   phases: ChallengePhase[];
+  customTrajectory?: DuelPricePoint[];
 }
 
 export interface SubmitChallengeRunPayload {

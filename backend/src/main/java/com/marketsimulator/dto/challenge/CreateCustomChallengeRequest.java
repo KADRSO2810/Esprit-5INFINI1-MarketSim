@@ -40,6 +40,8 @@ public class CreateCustomChallengeRequest {
     private BigDecimal initialCapital;
     private Integer maxLeverage;
 
-    @NotNull(message = "Au moins une phase doit être configurée dans le scénario")
     private List<ChallengePhaseDto> phases;
+
+    // Trajectoire personnalisée tracée directement par l'admin (Chandeliers japonais OHLCV)
+    private List<com.marketsimulator.dto.duel.DuelPricePointDto> customTrajectory;
 }

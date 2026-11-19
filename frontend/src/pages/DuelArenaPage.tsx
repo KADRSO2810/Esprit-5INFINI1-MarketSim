@@ -18,6 +18,9 @@ import {
   RotateCcw,
   Zap,
   Sparkles,
+  Shield,
+  Target,
+  X,
 } from 'lucide-react';
 import { AppShell } from '../components/layout/AppShell';
 import { useAuth } from '../context/AuthContext';
@@ -84,6 +87,14 @@ export const DuelArenaPage: React.FC = () => {
   const [playerEquityCurve, setPlayerEquityCurve] = useState<number[]>([50000]);
   const [playerPeakEquity, setPlayerPeakEquity] = useState<number>(50000);
   const [playerMaxDrawdown, setPlayerMaxDrawdown] = useState<number>(0);
+
+  // Stop-Loss & Take-Profit State
+  const [stopLossPrice, setStopLossPrice] = useState<number | null>(null);
+  const [takeProfitPrice, setTakeProfitPrice] = useState<number | null>(null);
+  const [lastAutoExitMessage, setLastAutoExitMessage] = useState<string | null>(null);
+
+  // Chart Rendering Mode ('CANDLESTICKS' | 'LINE')
+  const [gameplayChartView, setGameplayChartView] = useState<'CANDLESTICKS' | 'LINE'>('CANDLESTICKS');
 
   // Opponent Live Simulation State
   const [botEquityCurve, setBotEquityCurve] = useState<number[]>([50000]);
@@ -256,6 +267,121 @@ export const DuelArenaPage: React.FC = () => {
     };
   }, [isPlaying, priceTrajectory.length, playerTotalEquity, playerPeakEquity, playerMaxDrawdown, playSfx]);
 
+  // ── AUTOMATED STOP-LOSS & TAKE-PROFIT TRIGGER ENGINE ────────────────────────
+  useEffect(() => {
+    if (!isPlaying || positionSide === 'FLAT' || !currentPricePoint) return;
+
+    const candle = currentPricePoint;
+
+    if (positionSide === 'LONG') {
+      // 1. Déclenchement du STOP LOSS (en cas de baisse du cours sous le niveau de SL)
+      if (stopLossPrice !== null && (candle.low <= stopLossPrice || candle.close <= stopLossPrice)) {
+        playSfx('defeat');
+        const exitPrice = stopLossPrice;
+        const pnl = (exitPrice - entryPrice) * positionUnits * leverage;
+        setCash((c) => c + pnl);
+        setPositionSide('FLAT');
+        setPositionUnits(0);
+        setEntryPrice(0);
+        setStopLossPrice(null);
+        setTakeProfitPrice(null);
+        setPlayerTradesCount((t) => t + 1);
+        setLastAutoExitMessage(
+          `🛡️ Stop-Loss Déclenché à $${exitPrice.toFixed(2)} (${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)})`
+        );
+        return;
+      }
+
+      // 2. Déclenchement du TAKE PROFIT (en cas de hausse du cours au niveau de TP)
+      if (takeProfitPrice !== null && (candle.high >= takeProfitPrice || candle.close >= takeProfitPrice)) {
+        playSfx('victory');
+        const exitPrice = takeProfitPrice;
+        const pnl = (exitPrice - entryPrice) * positionUnits * leverage;
+        setCash((c) => c + pnl);
+        setPositionSide('FLAT');
+        setPositionUnits(0);
+        setEntryPrice(0);
+        setStopLossPrice(null);
+        setTakeProfitPrice(null);
+        setPlayerTradesCount((t) => t + 1);
+        setLastAutoExitMessage(
+          `🎯 Take-Profit Touché avec Succès à $${exitPrice.toFixed(2)} (+${pnl.toFixed(2)}$) !`
+        );
+        return;
+      }
+    } else if (positionSide === 'SHORT') {
+      // 1. Déclenchement du STOP LOSS en Short (perte si le cours monte au-dessus du SL)
+      if (stopLossPrice !== null && (candle.high >= stopLossPrice || candle.close >= stopLossPrice)) {
+        playSfx('defeat');
+        const exitPrice = stopLossPrice;
+        const pnl = (entryPrice - exitPrice) * positionUnits * leverage;
+        setCash((c) => c + pnl);
+        setPositionSide('FLAT');
+        setPositionUnits(0);
+        setEntryPrice(0);
+        setStopLossPrice(null);
+        setTakeProfitPrice(null);
+        setPlayerTradesCount((t) => t + 1);
+        setLastAutoExitMessage(
+          `🛡️ Stop-Loss Short Déclenché à $${exitPrice.toFixed(2)} (${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)})`
+        );
+        return;
+      }
+
+      // 2. Déclenchement du TAKE PROFIT en Short (gain si le cours baisse au niveau du TP)
+      if (takeProfitPrice !== null && (candle.low <= takeProfitPrice || candle.close <= takeProfitPrice)) {
+        playSfx('victory');
+        const exitPrice = takeProfitPrice;
+        const pnl = (entryPrice - exitPrice) * positionUnits * leverage;
+        setCash((c) => c + pnl);
+        setPositionSide('FLAT');
+        setPositionUnits(0);
+        setEntryPrice(0);
+        setStopLossPrice(null);
+        setTakeProfitPrice(null);
+        setPlayerTradesCount((t) => t + 1);
+        setLastAutoExitMessage(
+          `🎯 Take-Profit Short Atteint à $${exitPrice.toFixed(2)} (+${pnl.toFixed(2)}$) !`
+        );
+        return;
+      }
+    }
+  }, [
+    currentStepIndex,
+    isPlaying,
+    positionSide,
+    positionUnits,
+    entryPrice,
+    leverage,
+    stopLossPrice,
+    takeProfitPrice,
+    currentPricePoint,
+    playSfx,
+  ]);
+
+  // Quick SL / TP preset percentages
+  const setSlPresetPct = (pct: number) => {
+    if (positionSide === 'FLAT' || entryPrice <= 0) return;
+    if (positionSide === 'LONG') {
+      const target = Math.round(entryPrice * (1 - pct / 100) * 100) / 100;
+      setStopLossPrice(target);
+    } else {
+      const target = Math.round(entryPrice * (1 + pct / 100) * 100) / 100;
+      setStopLossPrice(target);
+    }
+  };
+
+  const setTpPresetPct = (pct: number) => {
+    if (positionSide === 'FLAT' || entryPrice <= 0) return;
+    if (positionSide === 'LONG') {
+      const target = Math.round(entryPrice * (1 + pct / 100) * 100) / 100;
+      setTakeProfitPrice(target);
+    } else {
+      const target = Math.round(entryPrice * (1 - pct / 100) * 100) / 100;
+      setTakeProfitPrice(target);
+    }
+  };
+
   // ── PLAYER TRADING ACTIONS ──────────────────────────────────────────────────
   const handleBuy = () => {
     if (!isPlaying || !currentPricePoint) return;
@@ -273,6 +399,9 @@ export const DuelArenaPage: React.FC = () => {
     setPositionSide('LONG');
     setPositionUnits(units);
     setEntryPrice(currentPrice);
+    setStopLossPrice(null);
+    setTakeProfitPrice(null);
+    setLastAutoExitMessage(null);
     setPlayerTradesCount((t) => t + 1);
   };
 
@@ -292,6 +421,9 @@ export const DuelArenaPage: React.FC = () => {
     setPositionSide('SHORT');
     setPositionUnits(units);
     setEntryPrice(currentPrice);
+    setStopLossPrice(null);
+    setTakeProfitPrice(null);
+    setLastAutoExitMessage(null);
     setPlayerTradesCount((t) => t + 1);
   };
 
@@ -304,6 +436,8 @@ export const DuelArenaPage: React.FC = () => {
     setPositionSide('FLAT');
     setPositionUnits(0);
     setEntryPrice(0);
+    setStopLossPrice(null);
+    setTakeProfitPrice(null);
     setPlayerTradesCount((t) => t + 1);
   };
 
@@ -677,6 +811,22 @@ export const DuelArenaPage: React.FC = () => {
                 )}
               </div>
 
+              {/* AUTO-TRIGGER NOTIFICATION BANNER (STOP-LOSS / TAKE-PROFIT) */}
+              {lastAutoExitMessage && (
+                <div className="bg-gradient-to-r from-amber-950/80 via-slate-900 to-amber-950/80 border border-amber-500/40 rounded-xl px-4 py-3 flex items-center justify-between text-xs text-amber-200 animate-fadeIn shadow-lg">
+                  <div className="flex items-center gap-2 font-mono font-bold">
+                    <span>⚡ EXÉCUTION AUTOMATIQUE :</span>
+                    <span className="text-white">{lastAutoExitMessage}</span>
+                  </div>
+                  <button
+                    onClick={() => setLastAutoExitMessage(null)}
+                    className="text-slate-400 hover:text-white p-1"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+
               {/* MAIN TRADING ENGINE & CHARTS */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* LEFT & CENTER : BLIND CANDLESTICK / PRICE SVG CHART (8 COLS) */}
@@ -690,19 +840,48 @@ export const DuelArenaPage: React.FC = () => {
                         ÉCHELLE TEMPORELLE BLIND
                       </span>
                     </div>
-                    <div className="text-right">
-                      <div className="text-xl font-black font-mono text-white">
-                        ${currentPrice.toFixed(2)}
+
+                    <div className="flex items-center gap-4">
+                      {/* VIEW TOGGLE */}
+                      <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setGameplayChartView('CANDLESTICKS')}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                            gameplayChartView === 'CANDLESTICKS'
+                              ? 'bg-cyan-600 text-white shadow-sm'
+                              : 'text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          🕯️ Chandeliers (OHLC)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setGameplayChartView('LINE')}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                            gameplayChartView === 'LINE'
+                              ? 'bg-cyan-600 text-white shadow-sm'
+                              : 'text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          📈 Ligne
+                        </button>
                       </div>
-                      <div className="text-[11px] text-slate-400 font-mono">
-                        Vol: {currentPricePoint?.volume.toLocaleString() || '---'}
+
+                      <div className="text-right">
+                        <div className="text-xl font-black font-mono text-white">
+                          ${currentPrice.toFixed(2)}
+                        </div>
+                        <div className="text-[11px] text-slate-400 font-mono">
+                          Vol: {currentPricePoint?.volume.toLocaleString() || '---'}
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   {/* SVG PRICE ACTION GRAPH */}
-                  <div className="h-64 w-full my-4 relative bg-slate-950/70 rounded-xl p-2 border border-slate-800/60 overflow-hidden">
-                    <svg className="w-full h-full" viewBox="0 0 600 240" preserveAspectRatio="none">
+                  <div className="h-64 w-full my-4 relative bg-slate-950/70 rounded-xl p-2 border border-slate-800/60 overflow-hidden flex flex-col justify-between">
+                    <svg className="w-full h-48" viewBox="0 0 600 200" preserveAspectRatio="none">
                       <defs>
                         <linearGradient id="blindAreaGrad" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.35" />
@@ -711,44 +890,124 @@ export const DuelArenaPage: React.FC = () => {
                       </defs>
 
                       {/* Horizontal Grid lines */}
-                      {[40, 90, 140, 190].map((y) => (
-                        <line key={y} x1="0" y1={y} x2="600" y2={y} stroke="#334155" strokeWidth="0.5" strokeDasharray="3 3" />
+                      {[30, 75, 120, 165].map((y) => (
+                        <line key={y} x1="0" y1={y} x2="600" y2={y} stroke="#1e293b" strokeWidth="0.8" strokeDasharray="3 3" />
                       ))}
 
-                      {/* Area Fill */}
-                      {chartSlices.points.length > 1 && (
-                        <path
-                          d={`M 0 240 ${chartSlices.points
-                            .map((p, i) => {
-                              const x = (i / Math.max(1, priceTrajectory.length - 1)) * 600;
-                              const y = 240 - ((p.close - chartSlices.minP) / (chartSlices.maxP - chartSlices.minP || 1)) * 220 - 10;
-                              return `L ${x} ${y}`;
-                            })
-                            .join(' ')} L ${(chartSlices.points.length / Math.max(1, priceTrajectory.length - 1)) * 600} 240 Z`}
-                          fill="url(#blindAreaGrad)"
-                        />
+                      {gameplayChartView === 'CANDLESTICKS' ? (
+                        /* JAPANESE CANDLESTICKS RENDERING */
+                        <g>
+                          {chartSlices.points.map((p, idx) => {
+                            const total = Math.max(1, priceTrajectory.length);
+                            const candleWidth = Math.max(3, (600 / total) * 0.75);
+                            const x = (idx / Math.max(1, total - 1)) * (600 - candleWidth) + candleWidth / 2;
+
+                            const isBullish = p.close >= p.open;
+                            const candleColor = isBullish ? '#10b981' : '#f43f5e';
+
+                            const range = chartSlices.maxP - chartSlices.minP || 1;
+                            const yHigh = 200 - ((p.high - chartSlices.minP) / range) * 175 - 12;
+                            const yLow = 200 - ((p.low - chartSlices.minP) / range) * 175 - 12;
+                            const yOpen = 200 - ((p.open - chartSlices.minP) / range) * 175 - 12;
+                            const yClose = 200 - ((p.close - chartSlices.minP) / range) * 175 - 12;
+
+                            const bodyTop = Math.min(yOpen, yClose);
+                            const bodyHeight = Math.max(2, Math.abs(yClose - yOpen));
+
+                            return (
+                              <g key={p.step}>
+                                <line x1={x} y1={yHigh} x2={x} y2={yLow} stroke={candleColor} strokeWidth="1.2" />
+                                <rect
+                                  x={x - candleWidth / 2}
+                                  y={bodyTop}
+                                  width={candleWidth}
+                                  height={bodyHeight}
+                                  fill={candleColor}
+                                  rx="1"
+                                />
+                              </g>
+                            );
+                          })}
+                        </g>
+                      ) : (
+                        /* CONTINUOUS LINE PLOT */
+                        <g>
+                          {chartSlices.points.length > 1 && (
+                            <path
+                              d={`M 0 200 ${chartSlices.points
+                                .map((p, i) => {
+                                  const x = (i / Math.max(1, priceTrajectory.length - 1)) * 600;
+                                  const y = 200 - ((p.close - chartSlices.minP) / (chartSlices.maxP - chartSlices.minP || 1)) * 175 - 12;
+                                  return `L ${x} ${y}`;
+                                })
+                                .join(' ')} L ${(chartSlices.points.length / Math.max(1, priceTrajectory.length - 1)) * 600} 200 Z`}
+                              fill="url(#blindAreaGrad)"
+                            />
+                          )}
+                          {chartSlices.points.length > 1 && (
+                            <path
+                              d={`M 0 ${200 - ((chartSlices.points[0].close - chartSlices.minP) / (chartSlices.maxP - chartSlices.minP || 1)) * 175 - 12} ${chartSlices.points
+                                .map((p, i) => {
+                                  const x = (i / Math.max(1, priceTrajectory.length - 1)) * 600;
+                                  const y = 200 - ((p.close - chartSlices.minP) / (chartSlices.maxP - chartSlices.minP || 1)) * 175 - 12;
+                                  return `L ${x} ${y}`;
+                                })
+                                .join(' ')}`}
+                              fill="none"
+                              stroke="#22d3ee"
+                              strokeWidth="2.5"
+                            />
+                          )}
+                        </g>
                       )}
 
-                      {/* Line Plot */}
-                      {chartSlices.points.length > 1 && (
-                        <path
-                          d={`M 0 ${240 - ((chartSlices.points[0].close - chartSlices.minP) / (chartSlices.maxP - chartSlices.minP || 1)) * 220 - 10} ${chartSlices.points
-                            .map((p, i) => {
-                              const x = (i / Math.max(1, priceTrajectory.length - 1)) * 600;
-                              const y = 240 - ((p.close - chartSlices.minP) / (chartSlices.maxP - chartSlices.minP || 1)) * 220 - 10;
-                              return `L ${x} ${y}`;
-                            })
-                            .join(' ')}`}
-                          fill="none"
-                          stroke="#22d3ee"
-                          strokeWidth="2.5"
-                        />
-                      )}
+                      {/* ACTIVE TRADE OVERLAY LINES (ENTRY, STOP LOSS, TAKE PROFIT) */}
+                      {positionSide !== 'FLAT' && entryPrice > 0 && (() => {
+                        const range = chartSlices.maxP - chartSlices.minP || 1;
+                        const yEntry = 200 - ((entryPrice - chartSlices.minP) / range) * 175 - 12;
+
+                        return (
+                          <g>
+                            {/* Entry line */}
+                            <line x1="0" y1={yEntry} x2="600" y2={yEntry} stroke="#06b6d4" strokeWidth="1.2" strokeDasharray="4 4" />
+                            <text x="590" y={yEntry - 4} textAnchor="end" fill="#22d3ee" fontSize="9" fontWeight="bold" fontFamily="monospace">
+                              {`📍 ENTRÉE $${entryPrice.toFixed(2)}`}
+                            </text>
+
+                            {/* Stop-Loss line if defined */}
+                            {stopLossPrice !== null && (() => {
+                              const ySL = 200 - ((stopLossPrice - chartSlices.minP) / range) * 175 - 12;
+                              return (
+                                <g>
+                                  <line x1="0" y1={ySL} x2="600" y2={ySL} stroke="#f43f5e" strokeWidth="1.5" strokeDasharray="3 3" />
+                                  <text x="590" y={ySL - 4} textAnchor="end" fill="#f43f5e" fontSize="9" fontWeight="bold" fontFamily="monospace">
+                                    {`🛡️ STOP-LOSS $${stopLossPrice.toFixed(2)}`}
+                                  </text>
+                                </g>
+                              );
+                            })()}
+
+                            {/* Take-Profit line if defined */}
+                            {takeProfitPrice !== null && (() => {
+                              const yTP = 200 - ((takeProfitPrice - chartSlices.minP) / range) * 175 - 12;
+                              return (
+                                <g>
+                                  <line x1="0" y1={yTP} x2="600" y2={yTP} stroke="#10b981" strokeWidth="1.5" strokeDasharray="3 3" />
+                                  <text x="590" y={yTP - 4} textAnchor="end" fill="#10b981" fontSize="9" fontWeight="bold" fontFamily="monospace">
+                                    {`🎯 TAKE-PROFIT $${takeProfitPrice.toFixed(2)}`}
+                                  </text>
+                                </g>
+                              );
+                            })()}
+                          </g>
+                        );
+                      })()}
 
                       {/* Current pulse dot */}
                       {chartSlices.points.length > 0 && (() => {
-                        const lastX = ((chartSlices.points.length - 1) / Math.max(1, priceTrajectory.length - 1)) * 600;
-                        const lastY = 240 - ((chartSlices.points[chartSlices.points.length - 1].close - chartSlices.minP) / (chartSlices.maxP - chartSlices.minP || 1)) * 220 - 10;
+                        const total = Math.max(1, priceTrajectory.length);
+                        const lastX = ((chartSlices.points.length - 1) / Math.max(1, total - 1)) * 600;
+                        const lastY = 200 - ((chartSlices.points[chartSlices.points.length - 1].close - chartSlices.minP) / (chartSlices.maxP - chartSlices.minP || 1)) * 175 - 12;
                         return (
                           <g>
                             <circle cx={lastX} cy={lastY} r="6" fill="#22d3ee" opacity="0.4" className="animate-ping" />
@@ -757,6 +1016,31 @@ export const DuelArenaPage: React.FC = () => {
                         );
                       })()}
                     </svg>
+
+                    {/* LIVE VOLUME SUB-BAR AT BOTTOM */}
+                    <div className="h-8 w-full pt-1 border-t border-slate-900">
+                      <svg className="w-full h-full" viewBox="0 0 600 30" preserveAspectRatio="none">
+                        {chartSlices.points.map((p, idx) => {
+                          const total = Math.max(1, priceTrajectory.length);
+                          const w = Math.max(2, (600 / total) * 0.7);
+                          const x = (idx / Math.max(1, total - 1)) * (600 - w) + w / 2;
+                          const isBullish = p.close >= p.open;
+                          const barHeight = Math.min(26, Math.max(3, (p.volume / 80000) * 26));
+
+                          return (
+                            <rect
+                              key={p.step}
+                              x={x - w / 2}
+                              y={30 - barHeight}
+                              width={w}
+                              height={barHeight}
+                              fill={isBullish ? '#10b981' : '#f43f5e'}
+                              opacity="0.45"
+                            />
+                          );
+                        })}
+                      </svg>
+                    </div>
                   </div>
 
                   {/* DUAL EQUITY CURVE COMPARISON MINI-CHART */}
@@ -855,6 +1139,101 @@ export const DuelArenaPage: React.FC = () => {
                           </div>
                         </>
                       )}
+                    </div>
+
+                    {/* STOP-LOSS & TAKE-PROFIT CONTROLS */}
+                    <div className="mt-4 bg-slate-950/70 border border-slate-800 rounded-xl p-3.5 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                          <Shield className="w-3.5 h-3.5 text-rose-400" /> Ordres de Protection
+                        </span>
+                        {(stopLossPrice !== null || takeProfitPrice !== null) && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setStopLossPrice(null);
+                              setTakeProfitPrice(null);
+                            }}
+                            className="text-[10px] text-slate-500 hover:text-rose-400 flex items-center gap-0.5"
+                          >
+                            <X className="w-3 h-3" /> Réinitialiser
+                          </button>
+                        )}
+                      </div>
+
+                      {/* STOP LOSS */}
+                      <div>
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="text-slate-400 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Stop-Loss
+                          </span>
+                          <span className="font-mono text-rose-400 font-bold text-[11px]">
+                            {stopLossPrice !== null ? `$${stopLossPrice.toFixed(2)}` : 'Désactivé'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="number"
+                            step="0.01"
+                            placeholder={positionSide !== 'FLAT' ? `${(positionSide === 'LONG' ? entryPrice * 0.95 : entryPrice * 1.05).toFixed(2)}` : 'Prix SL ($)'}
+                            value={stopLossPrice !== null ? stopLossPrice : ''}
+                            onChange={(e) => setStopLossPrice(e.target.value ? parseFloat(e.target.value) : null)}
+                            className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-white font-mono focus:outline-none focus:border-rose-400"
+                          />
+                          {positionSide !== 'FLAT' && (
+                            <div className="flex items-center gap-1">
+                              {[2, 5, 10].map((pct) => (
+                                <button
+                                  key={pct}
+                                  type="button"
+                                  onClick={() => setSlPresetPct(pct)}
+                                  className="px-1.5 py-1 bg-slate-800 hover:bg-rose-950/60 hover:text-rose-300 border border-slate-700 rounded text-[10px] font-mono text-slate-300 font-bold transition-all"
+                                  title={`Placer le Stop-Loss à ${positionSide === 'LONG' ? '-' : '+'}${pct}%`}
+                                >
+                                  {positionSide === 'LONG' ? '-' : '+'}{pct}%
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* TAKE PROFIT */}
+                      <div>
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="text-slate-400 flex items-center gap-1">
+                            <Target className="w-3.5 h-3.5 text-emerald-400" /> Take-Profit
+                          </span>
+                          <span className="font-mono text-emerald-400 font-bold text-[11px]">
+                            {takeProfitPrice !== null ? `$${takeProfitPrice.toFixed(2)}` : 'Désactivé'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="number"
+                            step="0.01"
+                            placeholder={positionSide !== 'FLAT' ? `${(positionSide === 'LONG' ? entryPrice * 1.08 : entryPrice * 0.92).toFixed(2)}` : 'Prix TP ($)'}
+                            value={takeProfitPrice !== null ? takeProfitPrice : ''}
+                            onChange={(e) => setTakeProfitPrice(e.target.value ? parseFloat(e.target.value) : null)}
+                            className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-white font-mono focus:outline-none focus:border-emerald-400"
+                          />
+                          {positionSide !== 'FLAT' && (
+                            <div className="flex items-center gap-1">
+                              {[4, 8, 15].map((pct) => (
+                                <button
+                                  key={pct}
+                                  type="button"
+                                  onClick={() => setTpPresetPct(pct)}
+                                  className="px-1.5 py-1 bg-slate-800 hover:bg-emerald-950/60 hover:text-emerald-300 border border-slate-700 rounded text-[10px] font-mono text-slate-300 font-bold transition-all"
+                                  title={`Placer le Take-Profit à ${positionSide === 'LONG' ? '+' : '-'}${pct}%`}
+                                >
+                                  {positionSide === 'LONG' ? '+' : '-'}{pct}%
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
 
                     {/* LEVERAGE SELECTOR */}

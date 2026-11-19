@@ -36,16 +36,24 @@ public class CustomChallengeService {
     @Transactional
     public CustomChallengeDto createChallenge(User admin, CreateCustomChallengeRequest request) {
         List<ChallengePhaseDto> phases = request.getPhases();
-        if (phases == null || phases.isEmpty()) {
-            phases = generateDefaultPhases(request.getDurationMinutes());
-        }
+        List<DuelPricePointDto> trajectory = request.getCustomTrajectory();
 
-        // Génération de la trajectoire point par point d'après les phases créées manuellement
-        List<DuelPricePointDto> trajectory = generateTrajectoryFromPhases(
-                request.getInitialPrice(),
-                request.getDurationMinutes(),
-                phases
-        );
+        if (trajectory != null && !trajectory.isEmpty()) {
+            // Trajectoire personnalisée (chandeliers dessinés par l'admin)
+            if (phases == null || phases.isEmpty()) {
+                phases = derivePhasesFromTrajectory(trajectory, request.getDurationMinutes());
+            }
+        } else {
+            // Trajectoire générée à partir des phases temporelles
+            if (phases == null || phases.isEmpty()) {
+                phases = generateDefaultPhases(request.getDurationMinutes());
+            }
+            trajectory = generateTrajectoryFromPhases(
+                    request.getInitialPrice(),
+                    request.getDurationMinutes(),
+                    phases
+            );
+        }
 
         String phasesJson = serialize(phases);
         String trajectoryJson = serialize(trajectory);
@@ -219,6 +227,46 @@ public class CustomChallengeService {
         }
 
         return trajectory;
+    }
+
+    private List<ChallengePhaseDto> derivePhasesFromTrajectory(List<DuelPricePointDto> trajectory, int durationMinutes) {
+        int quarter = Math.max(1, trajectory.size() / 4);
+        List<ChallengePhaseDto> list = new ArrayList<>();
+
+        for (int i = 0; i < 4; i++) {
+            int startIdx = i * quarter;
+            int endIdx = (i == 3) ? trajectory.size() - 1 : Math.min(trajectory.size() - 1, (i + 1) * quarter);
+            DuelPricePointDto pStart = trajectory.get(startIdx);
+            DuelPricePointDto pEnd = trajectory.get(endIdx);
+
+            double openP = pStart.getOpen() != null ? pStart.getOpen().doubleValue() : 100.0;
+            double closeP = pEnd.getClose() != null ? pEnd.getClose().doubleValue() : openP;
+            double changePct = openP > 0 ? ((closeP - openP) / openP) * 100.0 : 0.0;
+
+            String trend = changePct >= 5.0 ? "BULLISH" : (changePct <= -5.0 ? "BEARISH" : "VOLATILE_RANGE");
+            String headline = switch (i) {
+                case 0 -> "Ouverture du challenge et première impulsion";
+                case 1 -> "Afflux de volume et accélération du momentum";
+                case 2 -> "Test des zones clés et bataille sur les supports";
+                default -> "Dénouement final et clôture des positions";
+            };
+
+            int startMin = (int) Math.round((i / 4.0) * durationMinutes);
+            int endMin = (int) Math.round(((i + 1) / 4.0) * durationMinutes);
+
+            list.add(ChallengePhaseDto.builder()
+                    .phaseOrder(i + 1)
+                    .name("Phase " + (i + 1) + " (Tracé Admin)")
+                    .startMinute(startMin)
+                    .endMinute(endMin)
+                    .trendType(trend)
+                    .targetPriceChangePct(Math.round(changePct * 10.0) / 10.0)
+                    .volatilityLevel("HIGH")
+                    .breakingNewsHeadline(headline)
+                    .breakingNewsSeverity(changePct < -10.0 ? "PANIC" : (changePct > 15.0 ? "EUPHORIA" : "INFO"))
+                    .build());
+        }
+        return list;
     }
 
     private List<ChallengePhaseDto> generateDefaultPhases(int durationMinutes) {
