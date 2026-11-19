@@ -166,6 +166,26 @@ public class OrderService {
     }
 
     private BigDecimal resolvePrice(String symbol, String side) {
+        // 0. Pour les classes d'actifs alternatives (Matières Premières comme GLD, Forex, Obligations), résolution dédiée
+        AssetClass assetClass = AssetClass.EQUITY;
+        if (multiAssetMarketService != null) {
+            try {
+                assetClass = multiAssetMarketService.resolveAssetClass(symbol);
+            } catch (Throwable ignored) {}
+        }
+
+        if (assetClass == AssetClass.COMMODITY || assetClass == AssetClass.FOREX || assetClass == AssetClass.BOND) {
+            if (multiAssetMarketService != null) {
+                try {
+                    return multiAssetMarketService.resolveExecutionPrice(symbol, side);
+                } catch (NoRecentPriceException e) {
+                    throw e;
+                } catch (Throwable ex) {
+                    log.warn("[ORDER] Échec résolution multi-actif prioritaire pour {}: {}", symbol, ex.getMessage());
+                }
+            }
+        }
+
         // 1. Cotation directe en temps réel (Actions US / Crypto)
         if (ingestionService != null) {
             MarketQuoteDto quote = null;

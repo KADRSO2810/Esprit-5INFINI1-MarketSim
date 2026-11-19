@@ -1,5 +1,6 @@
 package com.marketsimulator.service;
 
+import com.marketsimulator.domain.AssetClass;
 import com.marketsimulator.domain.Portfolio;
 import com.marketsimulator.domain.Position;
 import com.marketsimulator.domain.RiskLimit;
@@ -424,6 +425,16 @@ public class PreTradeRiskService {
         if (overridePrice != null && overridePrice.compareTo(BigDecimal.ZERO) > 0) {
             return overridePrice;
         }
+
+        if (multiAssetMarketService != null) {
+            try {
+                AssetClass cls = multiAssetMarketService.resolveAssetClass(symbol);
+                if (cls == AssetClass.COMMODITY || cls == AssetClass.FOREX || cls == AssetClass.BOND) {
+                    return multiAssetMarketService.resolveExecutionPrice(symbol, "BUY");
+                }
+            } catch (Throwable ignored) {}
+        }
+
         var quote = ingestionService.getLatestQuote(symbol);
         if (quote != null && quote.getPrice() != null && quote.getPrice().compareTo(BigDecimal.ZERO) > 0) {
             return quote.getPrice();

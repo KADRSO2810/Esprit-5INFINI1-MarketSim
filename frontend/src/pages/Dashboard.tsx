@@ -270,6 +270,7 @@ export const Dashboard: React.FC = () => {
     side: 'BUY' | 'SELL';
     orderType?: 'MARKET' | 'LIMIT';
     limitPrice?: number | null;
+    price?: number | null;
     quantity?: number | null;
     stopLoss?: number | null;
     takeProfit?: number | null;
@@ -435,9 +436,18 @@ export const Dashboard: React.FC = () => {
     symbol: string,
     side: 'BUY' | 'SELL',
     limitPrice?: number | null,
-    orderType: 'MARKET' | 'LIMIT' = 'MARKET'
+    orderType: 'MARKET' | 'LIMIT' = 'MARKET',
+    initialPrice?: number | null,
+    initialQty?: number | null
   ) => {
-    setOrderModal({ symbol, side, orderType, limitPrice });
+    setOrderModal({
+      symbol,
+      side,
+      orderType,
+      limitPrice: limitPrice ?? (orderType === 'LIMIT' ? initialPrice : null),
+      price: initialPrice ?? quotes[symbol]?.price ?? null,
+      quantity: initialQty ?? null,
+    });
   };
 
   const handleOrderFilled = () => {
@@ -525,7 +535,7 @@ export const Dashboard: React.FC = () => {
         initialQty={orderModal?.quantity ?? null}
         initialStopLoss={orderModal?.stopLoss ?? null}
         initialTakeProfit={orderModal?.takeProfit ?? null}
-        lastPrice={quotes[orderModal?.symbol ?? selectedSymbol]?.price ?? null}
+        lastPrice={orderModal?.price ?? quotes[orderModal?.symbol ?? selectedSymbol]?.price ?? null}
         onClose={() => setOrderModal(null)}
         onFilled={() => {
           handleOrderFilled();
@@ -799,8 +809,8 @@ export const Dashboard: React.FC = () => {
               positions={positions}
               trades={trades}
               loading={portfolioLoading}
-              onBuy={(sym) => openOrder(sym, 'BUY')}
-              onSell={(sym) => openOrder(sym, 'SELL')}
+              onBuy={(sym, price) => openOrder(sym, 'BUY', null, 'MARKET', price)}
+              onSell={(sym, price, qty) => openOrder(sym, 'SELL', null, 'MARKET', price, qty)}
               onPositionUpdated={refreshPortfolio}
             />
           </div>

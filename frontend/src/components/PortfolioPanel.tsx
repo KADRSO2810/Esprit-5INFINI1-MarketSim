@@ -24,8 +24,8 @@ interface PortfolioPanelProps {
   positions: PositionItem[];
   trades: TradeItem[];
   loading: boolean;
-  onBuy: (symbol: string) => void;
-  onSell: (symbol: string) => void;
+  onBuy: (symbol: string, currentPrice?: number) => void;
+  onSell: (symbol: string, currentPrice?: number, quantity?: number) => void;
   onPositionUpdated?: () => void;
 }
 
@@ -297,14 +297,14 @@ export const PortfolioPanel: React.FC<PortfolioPanelProps> = ({
                               <SlidersHorizontal className="w-3 h-3" />
                             </button>
                             <button
-                              onClick={() => onBuy(pos.symbol)}
+                              onClick={() => onBuy(pos.symbol, pos.lastPrice)}
                               className="px-2 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/25 transition text-[10px] font-bold"
                               title="Renforcer"
                             >
                               +
                             </button>
                             <button
-                              onClick={() => onSell(pos.symbol)}
+                              onClick={() => onSell(pos.symbol, pos.lastPrice, Number(pos.quantity))}
                               className="px-2 py-1 rounded-md bg-rose-500/10 border border-rose-500/25 text-rose-400 hover:bg-rose-500/25 transition text-[10px] font-bold"
                               title="Alléger / Vendre"
                             >

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { placeMarketOrder, OrderFill, assessPreTradeRisk, PreTradeRiskResponse } from '../api/trading';
+import { multiAssetApi } from '../api/multiAsset';
 import { useToast, AnimatedModal, OrbitalSpinner, AssetLogo, TradingScrollArea, TradingScrollSection } from './ui';
 import { PreTradeRiskPanel } from './risk/PreTradeRiskPanel';
 
@@ -71,7 +72,41 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [riskAssessment, setRiskAssessment] = useState<PreTradeRiskResponse | null>(null);
   const [evaluatingRisk, setEvaluatingRisk] = useState(false);
+  const [fetchedPrice, setFetchedPrice] = useState<number | null>(null);
+  const [priceLoading, setPriceLoading] = useState<boolean>(false);
   const toast = useToast();
+
+  const effectivePrice = (lastPrice != null && lastPrice > 0) ? lastPrice : fetchedPrice;
+
+  // Si le cours n'est pas fourni dans les props (ex: commodité GLD, SLV ou forex hors watchlist WebSocket)
+  useEffect(() => {
+    if (!isOpen) return;
+    if (lastPrice != null && lastPrice > 0) {
+      setFetchedPrice(lastPrice);
+      return;
+    }
+
+    let isMounted = true;
+    setPriceLoading(true);
+    multiAssetApi.getInstrumentDetails(symbol)
+      .then((inst) => {
+        if (isMounted && inst && inst.currentPrice != null) {
+          const p = Number(inst.currentPrice);
+          setFetchedPrice(p);
+          if (orderType === 'LIMIT' && (!limitPrice || limitPrice === '0.00' || limitPrice === '0')) {
+            setLimitPrice(String(p));
+          }
+        }
+      })
+      .catch((e) => {
+        console.debug('[OrderModal] lookup error:', e);
+      })
+      .finally(() => {
+        if (isMounted) setPriceLoading(false);
+      });
+
+    return () => { isMounted = false; };
+  }, [isOpen, symbol, lastPrice]);
 
   useEffect(() => {
     if (isOpen) {
@@ -93,7 +128,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   const numTP = takeProfit ? parseFloat(takeProfit) : null;
 
   useEffect(() => {
-    if (!isOpen || !lastPrice || !numQty || numQty <= 0) {
+    if (!isOpen || !effectivePrice || !numQty || numQty <= 0) {
       return;
     }
 
@@ -105,7 +140,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
           symbol,
           side,
           quantity: numQty,
-          price: lastPrice,
+          price: effectivePrice,
           stopLoss: side === 'BUY' ? numSL : null,
           takeProfit: side === 'BUY' ? numTP : null,
           sessionId,
@@ -126,16 +161,16 @@ export const OrderModal: React.FC<OrderModalProps> = ({
       isMounted = false;
       clearTimeout(timer);
     };
-  }, [isOpen, symbol, side, qty, stopLoss, takeProfit, sessionId]);
+  }, [isOpen, symbol, side, qty, stopLoss, takeProfit, sessionId, effectivePrice]);
 
   // Calculs de risque
   const riskAmount =
-    lastPrice != null && numSL != null && numQty > 0
-      ? (lastPrice - numSL) * numQty
+    effectivePrice != null && numSL != null && numQty > 0
+      ? (effectivePrice - numSL) * numQty
       : null;
   const rewardAmount =
-    lastPrice != null && numTP != null && numQty > 0
-      ? (numTP - lastPrice) * numQty
+    effectivePrice != null && numTP != null && numQty > 0
+      ? (numTP - effectivePrice) * numQty
       : null;
   const rrRatio =
     riskAmount != null && rewardAmount != null && riskAmount > 0
@@ -143,28 +178,28 @@ export const OrderModal: React.FC<OrderModalProps> = ({
       : null;
 
   const estCost =
-    lastPrice != null && !isNaN(Number(qty)) && Number(qty) > 0
-      ? (lastPrice * Number(qty)).toLocaleString('en-US', {
+    effectivePrice != null && !isNaN(Number(qty)) && Number(qty) > 0
+      ? (effectivePrice * Number(qty)).toLocaleString('en-US', {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2,
         })
       : '—';
 
   const applySlPreset = (pct: number) => {
-    if (!lastPrice) return;
-    setStopLoss((lastPrice * (1 - pct / 100)).toFixed(2));
+    if (!effectivePrice) return;
+    setStopLoss((effectivePrice * (1 - pct / 100)).toFixed(2));
     setError(null);
   };
 
   const applyTpPreset = (pct: number) => {
-    if (!lastPrice) return;
-    setTakeProfit((lastPrice * (1 + pct / 100)).toFixed(2));
+    if (!effectivePrice) return;
+    setTakeProfit((effectivePrice * (1 + pct / 100)).toFixed(2));
     setError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!lastPrice) {
+    if (!effectivePrice) {
       setError('Aucun cours live disponible pour ce symbole.');
       return;
     }
@@ -180,8 +215,8 @@ export const OrderModal: React.FC<OrderModalProps> = ({
           setError('Le Stop-Loss doit être strictement supérieur à 0.');
           return;
         }
-        if (numSL >= lastPrice) {
-          setError(`Le Stop-Loss ($${numSL.toFixed(2)}) doit être strictement inférieur au cours actuel ($${lastPrice.toFixed(2)}).`);
+        if (numSL >= effectivePrice) {
+          setError(`Le Stop-Loss ($${numSL.toFixed(2)}) doit être strictement inférieur au cours actuel ($${effectivePrice.toFixed(2)}).`);
           return;
         }
       }
@@ -190,8 +225,8 @@ export const OrderModal: React.FC<OrderModalProps> = ({
           setError('Le Take-Profit doit être strictement supérieur à 0.');
           return;
         }
-        if (numTP <= lastPrice) {
-          setError(`Le Take-Profit ($${numTP.toFixed(2)}) doit être strictement supérieur au cours actuel ($${lastPrice.toFixed(2)}).`);
+        if (numTP <= effectivePrice) {
+          setError(`Le Take-Profit ($${numTP.toFixed(2)}) doit être strictement supérieur au cours actuel ($${effectivePrice.toFixed(2)}).`);
           return;
         }
       }
@@ -367,11 +402,16 @@ export const OrderModal: React.FC<OrderModalProps> = ({
             <div id="section-quote" className="space-y-2">
               <div className="bg-[#070B14] border border-subtle rounded-xl px-4 py-3 flex items-center justify-between">
                 <span className="text-[11px] font-medium text-slate-400">Prix marché live</span>
-                {lastPrice != null ? (
+                {priceLoading ? (
+                  <span className="flex items-center gap-2 text-xs text-sky-400 font-mono">
+                    <OrbitalSpinner size="xs" tone="cyan" />
+                    Chargement du cours...
+                  </span>
+                ) : effectivePrice != null ? (
                   <span className="text-base font-bold font-mono tabular-nums text-white">
                     $
-                    {lastPrice.toLocaleString('en-US', {
-                      minimumFractionDigits: lastPrice < 1 ? 4 : 2,
+                    {effectivePrice.toLocaleString('en-US', {
+                      minimumFractionDigits: effectivePrice < 1 ? 4 : 2,
                       maximumFractionDigits: 4,
                     })}
                   </span>
@@ -471,7 +511,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                   type="button"
                   onClick={() => {
                     setOrderType('LIMIT');
-                    if (!limitPrice && lastPrice) setLimitPrice(String(lastPrice));
+                    if (!limitPrice && effectivePrice) setLimitPrice(String(effectivePrice));
                   }}
                   className={`py-1.5 rounded-lg font-bold transition ${
                     orderType === 'LIMIT'
@@ -495,7 +535,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                     step="any"
                     value={limitPrice}
                     onChange={(e) => setLimitPrice(e.target.value)}
-                    placeholder={lastPrice ? String(lastPrice) : '0.00'}
+                    placeholder={effectivePrice ? String(effectivePrice) : '0.00'}
                     className="w-full bg-[#070B14] border border-slate-700 text-white font-mono tabular-nums text-sm px-3.5 py-2 rounded-lg focus:outline-none focus:border-sky-400 transition"
                     required
                   />
@@ -687,7 +727,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                 <PreTradeRiskPanel
                   assessment={riskAssessment}
                   loading={evaluatingRisk}
-                  entryPrice={lastPrice}
+                  entryPrice={effectivePrice}
                   stopLoss={numSL}
                   symbol={symbol}
                   onApplyQuantity={(newQ) => setQty(newQ)}
@@ -706,7 +746,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
 
               <button
                 type="submit"
-                disabled={loading || !lastPrice || riskAssessment?.decision === 'REJECTED'}
+                disabled={loading || priceLoading || !effectivePrice || riskAssessment?.decision === 'REJECTED'}
                 className={`w-full py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.985] flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed ${
                   riskAssessment?.decision === 'REJECTED'
                     ? 'bg-rose-950/60 border border-rose-500/40 text-rose-300 cursor-not-allowed'
