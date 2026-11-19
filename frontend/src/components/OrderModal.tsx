@@ -610,9 +610,9 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                           <span className="text-rose-300 font-medium flex items-center gap-1">
                             <TrendingDown className="w-3 h-3 text-rose-400" /> Stop-Loss
                           </span>
-                          {lastPrice && numSL && (
+                          {effectivePrice && numSL && (
                             <span className="font-mono text-rose-400 text-[10px]">
-                              -{(((lastPrice - numSL) / lastPrice) * 100).toFixed(1)}%
+                              -{(((effectivePrice - numSL) / effectivePrice) * 100).toFixed(1)}%
                             </span>
                           )}
                         </div>
@@ -621,7 +621,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                           <input
                             type="number"
                             step="0.01"
-                            placeholder={lastPrice ? (lastPrice * 0.95).toFixed(2) : '0.00'}
+                            placeholder={effectivePrice ? (effectivePrice * 0.95).toFixed(2) : '0.00'}
                             value={stopLoss}
                             onChange={(e) => {
                               setStopLoss(e.target.value);
@@ -650,9 +650,9 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                           <span className="text-emerald-300 font-medium flex items-center gap-1">
                             <TrendingUp className="w-3 h-3 text-emerald-400" /> Take-Profit
                           </span>
-                          {lastPrice && numTP && (
+                          {effectivePrice && numTP && (
                             <span className="font-mono text-emerald-400 text-[10px]">
-                              +{(((numTP - lastPrice) / lastPrice) * 100).toFixed(1)}%
+                              +{(((numTP - effectivePrice) / effectivePrice) * 100).toFixed(1)}%
                             </span>
                           )}
                         </div>
@@ -661,7 +661,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                           <input
                             type="number"
                             step="0.01"
-                            placeholder={lastPrice ? (lastPrice * 1.1).toFixed(2) : '0.00'}
+                            placeholder={effectivePrice ? (effectivePrice * 1.1).toFixed(2) : '0.00'}
                             value={takeProfit}
                             onChange={(e) => {
                               setTakeProfit(e.target.value);
