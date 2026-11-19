@@ -76,7 +76,7 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
                         ).permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/market/last-quotes", "/api/market/quotes", "/api/orders/orderbook", "/api/arena/bosses/**", "/api/arena/leaderboard", "/api/duels/scenarios/**", "/api/duels/invite/**", "/api/duels/leaderboard").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/market/last-quotes", "/api/market/quotes", "/api/orders/orderbook", "/api/arena/bosses/**", "/api/arena/leaderboard", "/api/duels/scenarios/**", "/api/duels/invite/**", "/api/duels/leaderboard", "/api/challenges/active", "/api/challenges/{id}", "/api/challenges/{id}/leaderboard").permitAll()
                         .requestMatchers("/api/market/watchlist/**").authenticated()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/me").authenticated()

@@ -28,6 +28,7 @@ import {
   DuelPricePoint,
   DuelScenario,
 } from '../types/duel';
+import { CustomChallenge } from '../types/challenge';
 import {
   getDuelScenarios,
   createAiDuel,
@@ -37,9 +38,10 @@ import {
   getDuelLeaderboard,
   getDuelInvite,
 } from '../api/duel';
+import { getActiveCustomChallenges } from '../api/challenge';
 import { playDuelSfx } from '../utils/duelAudio';
 
-type LobbyTab = 'lobby' | 'leaderboard' | 'history';
+type LobbyTab = 'lobby' | 'admin_challenges' | 'leaderboard' | 'history';
 type OpponentMode = 'AI' | 'FRIEND';
 type PositionSide = 'FLAT' | 'LONG' | 'SHORT';
 
@@ -64,6 +66,7 @@ export const DuelArenaPage: React.FC = () => {
   // Leaderboard & History
   const [leaderboard, setLeaderboard] = useState<DuelLeaderboardEntry[]>([]);
   const [myDuels, setMyDuels] = useState<DuelMatch[]>([]);
+  const [customChallenges, setCustomChallenges] = useState<CustomChallenge[]>([]);
 
   // ── IN-GAME COMBAT ENGINE STATE ─────────────────────────────────────────────
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -118,10 +121,15 @@ export const DuelArenaPage: React.FC = () => {
           }
         }
 
-        const [lb, my] = await Promise.all([getDuelLeaderboard(), getMyDuels()]);
+        const [lb, my, cChs] = await Promise.all([
+          getDuelLeaderboard(),
+          getMyDuels(),
+          getActiveCustomChallenges(),
+        ]);
         if (isMounted) {
           setLeaderboard(lb);
           setMyDuels(my);
+          setCustomChallenges(cChs);
         }
       } catch (err) {
         console.error('[DUELS] Erreur chargement initial:', err);
@@ -297,6 +305,31 @@ export const DuelArenaPage: React.FC = () => {
     setPositionUnits(0);
     setEntryPrice(0);
     setPlayerTradesCount((t) => t + 1);
+  };
+
+  const handleStartCustomChallenge = (challenge: CustomChallenge, mode: 'SOLO' | '1V1') => {
+    const sc: DuelScenario = {
+      id: `CUSTOM_${challenge.id}`,
+      codeName: `${challenge.assetName} (${challenge.assetSymbol})`,
+      category: challenge.category,
+      difficulty: challenge.durationMinutes >= 20 ? 'HARD' : 'NORMAL',
+      description: challenge.description,
+      durationSeconds: Math.min(300, challenge.durationMinutes * 60),
+      initialCapital: challenge.initialCapital || 50000,
+      priceTrajectory: challenge.trajectory,
+      realAssetSymbol: challenge.assetSymbol,
+      realAssetName: challenge.assetName,
+      realPeriod: `Challenge Admin de ${challenge.durationMinutes} Minutes`,
+      historicalContext: `Scénario créé sur-mesure par l'administrateur (${challenge.creatorName}) pour éprouver la discipline et les réflexes des traders sur ${challenge.assetName}.`,
+    };
+
+    setSelectedScenario(sc);
+    if (mode === 'SOLO') {
+      setOpponentMode('AI');
+    } else {
+      setOpponentMode('FRIEND');
+    }
+    setActiveTab('lobby');
   };
 
   // ── START DUEL ──────────────────────────────────────────────────────────────
@@ -496,6 +529,17 @@ export const DuelArenaPage: React.FC = () => {
               >
                 <Zap className="w-3.5 h-3.5" />
                 L'Arène
+              </button>
+              <button
+                onClick={() => setActiveTab('admin_challenges')}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  activeTab === 'admin_challenges'
+                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-purple-300" />
+                Défis de l'Admin ({customChallenges.length})
               </button>
               <button
                 onClick={() => setActiveTab('leaderboard')}
@@ -1071,6 +1115,107 @@ export const DuelArenaPage: React.FC = () => {
                   <Play className="w-5 h-5 fill-current" />
                   ENTRER DANS L'ARÈNE 1v1 MAINTENANT
                 </button>
+              </div>
+            </div>
+          ) : activeTab === 'admin_challenges' ? (
+            /* ─────────────────────────────────────────────────────────────────── */
+            /* 2.5 DÉFIS OFFICIELS DE L'ADMIN (ACTIF X, 10/20/30 MIN)             */
+            /* ─────────────────────────────────────────────────────────────────── */
+            <div className="space-y-6 animate-fadeIn">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-purple-950/60 via-slate-900 to-indigo-950/50 border border-purple-500/30 rounded-3xl p-7 shadow-xl">
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-300 text-xs font-mono font-bold mb-2">
+                    <Sparkles className="w-3.5 h-3.5" /> ÉPREUVES DU MAÎTRE DU JEU
+                  </div>
+                  <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                    Défis Officiels de l'Admin <span className="text-purple-400">Actif X</span>
+                  </h2>
+                  <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                    Scénarios sur-mesure confectionnés manuellement par l'administrateur avec des chocs programmés, fausses alertes news et retournements paraboliques sur 10, 20 ou 30 minutes.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {customChallenges.map((c) => (
+                  <div
+                    key={c.id}
+                    className="bg-slate-900/90 border border-slate-800 hover:border-purple-500/50 rounded-2xl p-6 shadow-xl flex flex-col justify-between transition-all group"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-xs font-mono font-black px-2.5 py-1 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/40">
+                          {c.assetSymbol}
+                        </span>
+                        <span className="text-xs font-bold font-mono px-3 py-1 rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/30">
+                          ⏱ {c.durationMinutes} MINUTES
+                        </span>
+                      </div>
+
+                      <h3 className="text-base font-bold text-white group-hover:text-purple-300 transition-colors">
+                        {c.assetName}
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-2 line-clamp-3 leading-relaxed">
+                        {c.description}
+                      </p>
+
+                      {/* PHASE PREVIEWS */}
+                      {c.phases && c.phases.length > 0 && (
+                        <div className="mt-4 pt-3 border-t border-slate-800 space-y-1.5">
+                          <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                            Chronologie des Chocs :
+                          </div>
+                          <div className="space-y-1">
+                            {c.phases.slice(0, 3).map((p, idx) => (
+                              <div
+                                key={idx}
+                                className="flex items-center justify-between text-[11px] font-mono bg-slate-950/80 px-2.5 py-1 rounded-lg border border-slate-800/80"
+                              >
+                                <span className="text-slate-300 truncate max-w-[170px]">{p.name}</span>
+                                <span
+                                  className={`font-bold ${
+                                    p.targetPriceChangePct >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                                  }`}
+                                >
+                                  {p.targetPriceChangePct >= 0 ? '+' : ''}
+                                  {p.targetPriceChangePct}%
+                                </span>
+                              </div>
+                            ))}
+                            {c.phases.length > 3 && (
+                              <div className="text-[10px] text-purple-400 font-mono text-center">
+                                + {c.phases.length - 3} autres phases...
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mt-6 pt-4 border-t border-slate-800 space-y-2">
+                      <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 mb-2">
+                        <span>Capital: ${c.initialCapital.toLocaleString()}</span>
+                        <span>Levier Max: {c.maxLeverage}x</span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => handleStartCustomChallenge(c, 'SOLO')}
+                          className="w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs rounded-xl shadow-md shadow-purple-500/20 active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                        >
+                          <Play className="w-3.5 h-3.5 fill-current" /> Jouer Solo
+                        </button>
+
+                        <button
+                          onClick={() => handleStartCustomChallenge(c, '1V1')}
+                          className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl border border-slate-700 active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                        >
+                          <Swords className="w-3.5 h-3.5 text-cyan-400" /> Duel 1v1
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           ) : activeTab === 'leaderboard' ? (

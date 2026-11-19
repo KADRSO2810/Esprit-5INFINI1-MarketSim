@@ -4,6 +4,9 @@ import { AppShell } from '../components/layout/AppShell';
 import { useAuth } from '../context/AuthContext';
 import { useToast, PageTransition, QuantOrbitalLoader } from '../components/ui';
 import { adminApi, PlatformOverview, UserSummary } from '../api/admin';
+import { CustomChallenge } from '../types/challenge';
+import { getActiveCustomChallenges } from '../api/challenge';
+import { CustomScenarioStudio } from '../components/admin/CustomScenarioStudio';
 import {
   ShieldCheck,
   ShieldAlert,
@@ -16,26 +19,31 @@ import {
   RefreshCw,
   CheckCircle2,
   ArrowLeft,
+  Sparkles,
 } from 'lucide-react';
 
 export const AdminPage: React.FC = () => {
   const toast = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [activeAdminTab, setActiveAdminTab] = useState<'supervision' | 'studio'>('supervision');
   const [overview, setOverview] = useState<PlatformOverview | null>(null);
   const [users, setUsers] = useState<UserSummary[]>([]);
+  const [challenges, setChallenges] = useState<CustomChallenge[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [updatingUserId, setUpdatingUserId] = useState<number | null>(null);
 
   const fetchAdminData = async () => {
     try {
-      const [ov, usrs] = await Promise.all([
+      const [ov, usrs, chs] = await Promise.all([
         adminApi.getOverview(),
         adminApi.getUsers(),
+        getActiveCustomChallenges(),
       ]);
       setOverview(ov);
       setUsers(usrs);
+      setChallenges(chs);
     } catch (err: any) {
       toast.error('Erreur Administration', err?.message || 'Accès réservé aux administrateurs ou serveur indisponible');
     } finally {
@@ -146,6 +154,38 @@ export const AdminPage: React.FC = () => {
               </div>
             </div>
 
+            {/* TAB SELECTOR: SUPERVISION vs STUDIO DE SCÉNARIOS */}
+            <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+              <button
+                onClick={() => setActiveAdminTab('supervision')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                  activeAdminTab === 'supervision'
+                    ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/20'
+                    : 'bg-slate-900/60 text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                <Activity className="w-4 h-4" />
+                Supervision Plateforme & Utilisateurs
+              </button>
+
+              <button
+                onClick={() => setActiveAdminTab('studio')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                  activeAdminTab === 'studio'
+                    ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20'
+                    : 'bg-slate-900/60 text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                <Sparkles className="w-4 h-4 text-purple-300" />
+                Studio Scénarios & Défis (Actif X)
+                <span className="ml-1 px-2 py-0.5 rounded-full bg-purple-500/20 text-[10px] text-purple-300 font-mono">
+                  {challenges.length}
+                </span>
+              </button>
+            </div>
+
+            {activeAdminTab === 'supervision' ? (
+              <>
             {/* Platform Metrics KPI Grid */}
             {overview && (
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
@@ -293,6 +333,13 @@ export const AdminPage: React.FC = () => {
                 </table>
               </div>
             </div>
+            </>
+            ) : (
+              <CustomScenarioStudio
+                existingChallenges={challenges}
+                onChallengeCreated={fetchAdminData}
+              />
+            )}
 
           </div>
         )}
