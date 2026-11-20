@@ -18,10 +18,15 @@ export interface ExpertSignal {
   riskManagementRule: string;
   indicatorsUsed: string[];
   telegramFormattedText: string;
-  status: 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'TP_HIT' | 'SL_HIT' | string;
-  recommendedPositionSizePct: number;
-  createdAt: string;
-  validUntil: string;
+  status: 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'TP1_HIT' | 'TP2_HIT' | 'TP3_HIT' | 'SL_HIT' | string;
+  recommendedPositionSizePct?: number;
+  currentProfitPct?: number;
+  progressToTp1Pct?: number;
+  detectedPattern?: string;
+  beginnerAdvice?: string;
+  isInstantAlert?: boolean;
+  createdAt?: string;
+  validUntil?: string;
 }
 
 export interface MarketHealth {

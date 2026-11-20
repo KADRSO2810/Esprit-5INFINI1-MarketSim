@@ -27,11 +27,15 @@ public class ExpertSignalDto {
     private BigDecimal takeProfit2;
     private BigDecimal takeProfit3;
     private Double riskRewardRatio;
-    private Integer confidenceScore; // 0-100%
-    private String qualityGrade; // A+, A, B+
-    private String status; // ACTIVE, TARGET_HIT, STOPPED_OUT, CANCELLED
+    private Integer confidenceScore; // 0-100% (ex: 91%)
+    private String qualityGrade; // AAA, A+, A, B+
+    private String status; // ACTIVE, TP1_HIT, TP2_HIT, TP3_HIT, SL_HIT, EXPIRED
     private Double potentialGainPct;
     private Double potentialLossPct;
+    private Double currentProfitPct; // Profit / perte latent en direct (%)
+    private Double progressToTp1Pct; // 0 à 100% vers le premier objectif
+    private String detectedPattern; // ex: "Marteau Haussier (Hammer) + Rebond SMA 50"
+    private String beginnerAdvice; // Phrase ultra claire pour le mode débutant
     private String technicalThesis;
     private String fundamentalCatalyst;
     private String riskManagementRule;
@@ -41,4 +45,5 @@ public class ExpertSignalDto {
     private String telegramFormattedText;
     private Boolean isMarketOpen;
     private Boolean isHighProbability;
+    private Boolean isInstantAlert;
 }
