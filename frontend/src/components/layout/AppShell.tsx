@@ -76,6 +76,7 @@ const NAV_SECTIONS: NavSection[] = [
   {
     group: 'AI Intelligence',
     items: [
+      { to: '/app/signals', label: 'Signaux Experts (VIP)', icon: Radio, matchPrefix: '/app/signals', accent: 'text-amber-400' },
       { to: '/app/news', label: 'News & FinBERT', icon: Newspaper, matchPrefix: '/app/news', accent: 'text-cyan-400' },
       { to: '/app/stress-testing', label: 'AI Stress Testing', icon: ShieldAlert, matchPrefix: '/app/stress-testing', accent: 'text-violet-400' },
     ],
