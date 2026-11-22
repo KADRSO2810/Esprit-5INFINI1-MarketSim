@@ -226,11 +226,11 @@ public class ExpertSignalService {
 
         if (isWeekend) {
             // SÉANCE WEEK-END : Top Cryptomonnaies 24/7
-            BigDecimal solPrice = resolvePrice("BINANCE:SOLUSDT", BigDecimal.valueOf(110.90));
-            BigDecimal avaxPrice = resolvePrice("BINANCE:AVAXUSDT", BigDecimal.valueOf(28.50));
-            BigDecimal ethPrice = resolvePrice("BINANCE:ETHUSDT", BigDecimal.valueOf(3150.00));
-            BigDecimal btcPrice = resolvePrice("BINANCE:BTCUSDT", BigDecimal.valueOf(60680.00));
-            BigDecimal dogePrice = resolvePrice("BINANCE:DOGEUSDT", BigDecimal.valueOf(0.38));
+            BigDecimal solPrice = resolvePrice("BINANCE:SOLUSDT", BigDecimal.valueOf(70.30));
+            BigDecimal avaxPrice = resolvePrice("BINANCE:AVAXUSDT", BigDecimal.valueOf(6.70));
+            BigDecimal ethPrice = resolvePrice("BINANCE:ETHUSDT", BigDecimal.valueOf(1707.00));
+            BigDecimal btcPrice = resolvePrice("BINANCE:BTCUSDT", BigDecimal.valueOf(60740.00));
+            BigDecimal dogePrice = resolvePrice("BINANCE:DOGEUSDT", BigDecimal.valueOf(0.055));
 
             list.add(DailyTopPickDto.builder()
                     .rank(1)
@@ -570,25 +570,25 @@ public class ExpertSignalService {
                     "Breakout Résistance J-1 + Volume 24/7",
                     "Cassure nette du plus haut de clôture J-1. Carnet d'ordres à +74% d'acheteurs. Top 1 rentabilité du jour !",
                     "Forte dynamique haussière sur Solana avec liquidité continue 24/7.",
-                    BigDecimal.valueOf(110.90), BigDecimal.valueOf(106.50));
+                    BigDecimal.valueOf(70.30), BigDecimal.valueOf(67.50));
 
             generateOrUpdateSignal("BINANCE:AVAXUSDT", "Avalanche (AVAX/USDT 24/7)", "CRYPTO", 2, 3.00, 94,
                     "Compression Triangle Ascendant M15",
                     "Figure de continuation haussière propre avec delta acheteur agressif. Rebond sur support J-1.",
                     "Forte vélocité de transaction sur les carnets réels Binance.",
-                    BigDecimal.valueOf(28.50), BigDecimal.valueOf(27.20));
+                    BigDecimal.valueOf(6.70), BigDecimal.valueOf(6.40));
 
             generateOrUpdateSignal("BINANCE:ETHUSDT", "Ethereum (ETH/USDT 24/7)", "CRYPTO", 3, 2.20, 93,
                     "Double Creux (W-Bottom) H1 + Rebond Support J-1",
                     "Double creux de retournement validé sur la clôture J-1. Divergence haussière sur RSI(14).",
                     "Accumulation continue sur Ethereum tout au long du week-end.",
-                    BigDecimal.valueOf(3150.00), BigDecimal.valueOf(3080.00));
+                    BigDecimal.valueOf(1707.00), BigDecimal.valueOf(1670.00));
 
             generateOrUpdateSignal("BINANCE:BTCUSDT", "Bitcoin (BTC/USDT 24/7)", "CRYPTO", 4, 1.80, 91,
                     "Rejet Support EMA50 H1 + Marteau d'Inversion",
                     "Défense du seuil de clôture J-1. Compression de volatilité prête à éclater vers le haut.",
                     "Short squeeze en cours sur les positions vendeuses. SL protégé avec marge de sécurité anti-bruit.",
-                    BigDecimal.valueOf(60680.00), BigDecimal.valueOf(59850.00));
+                    BigDecimal.valueOf(60740.00), BigDecimal.valueOf(59850.00));
 
         } else {
             // MODE SEMAINE (Lundi à Vendredi) : Scan dynamique de tout l'univers boursier US & Matières Premières

@@ -122,6 +122,10 @@ public class FinnhubMarketDataProvider implements MarketDataProvider {
     public void subscribe(String symbol) {
         if (symbol == null || symbol.isBlank()) return;
         String normalized = symbol.trim().toUpperCase();
+        if (isCrypto(normalized)) {
+            log.debug("[FINNHUB] Symbole crypto {} ignoré (délégué au flux Binance 24/7)", normalized);
+            return;
+        }
         subscribedSymbols.add(normalized);
 
         if (isConnected && webSocket != null) {
@@ -133,11 +137,18 @@ public class FinnhubMarketDataProvider implements MarketDataProvider {
     public void unsubscribe(String symbol) {
         if (symbol == null || symbol.isBlank()) return;
         String normalized = symbol.trim().toUpperCase();
+        if (isCrypto(normalized)) {
+            return;
+        }
         subscribedSymbols.remove(normalized);
 
         if (isConnected && webSocket != null) {
             sendUnsubscribe(webSocket, normalized);
         }
+    }
+
+    private boolean isCrypto(String symbol) {
+        return symbol.startsWith("BINANCE:") || symbol.contains("USDT") || symbol.contains("BUSD");
     }
 
     private void sendSubscribe(WebSocket ws, String symbol) {

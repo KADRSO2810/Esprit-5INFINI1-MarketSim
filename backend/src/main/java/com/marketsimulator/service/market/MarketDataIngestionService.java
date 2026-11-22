@@ -28,19 +28,19 @@ import java.util.stream.Collectors;
 @EnableScheduling
 public class MarketDataIngestionService {
 
-    private final MarketDataProvider marketDataProvider;
+    private final List<MarketDataProvider> marketDataProviders;
     private final MarketAssetRepository assetRepository;
     private final MarketQuoteRepository quoteRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final StopLossTakeProfitService slTpService;
 
     public MarketDataIngestionService(
-            MarketDataProvider marketDataProvider,
+            List<MarketDataProvider> marketDataProviders,
             MarketAssetRepository assetRepository,
             MarketQuoteRepository quoteRepository,
             SimpMessagingTemplate messagingTemplate,
             @Lazy StopLossTakeProfitService slTpService) {
-        this.marketDataProvider = marketDataProvider;
+        this.marketDataProviders = marketDataProviders;
         this.assetRepository = assetRepository;
         this.quoteRepository = quoteRepository;
         this.messagingTemplate = messagingTemplate;
@@ -56,8 +56,10 @@ public class MarketDataIngestionService {
 
     @PostConstruct
     public void init() {
-        // Enregistrement du listener sur les cotations reçues du provider
-        marketDataProvider.setQuoteListener(this::handleIncomingQuote);
+        // Enregistrement du listener sur les cotations reçues de tous les providers
+        for (MarketDataProvider provider : marketDataProviders) {
+            provider.setQuoteListener(this::handleIncomingQuote);
+        }
 
         // Chargement de la watchlist initiale
         List<String> initialSymbols = Arrays.stream(defaultWatchlistConfig.split(","))
@@ -85,12 +87,16 @@ public class MarketDataIngestionService {
                 log.debug("[MARKET] Erreur pré-chargement quote pour {} : {}", sym, ex.getMessage());
             }
 
-            marketDataProvider.subscribe(sym);
+            for (MarketDataProvider provider : marketDataProviders) {
+                provider.subscribe(sym);
+            }
         }
 
-        // Connexion au flux WebSocket distant
-        marketDataProvider.connect();
-        log.info("[MARKET] Ingestion initialisée avec la watchlist : {}", activeWatchlist);
+        // Connexion aux flux de tous les providers (Finnhub & Binance)
+        for (MarketDataProvider provider : marketDataProviders) {
+            provider.connect();
+        }
+        log.info("[MARKET] Ingestion initialisée avec {} providers et la watchlist : {}", marketDataProviders.size(), activeWatchlist);
     }
 
     public void handleIncomingQuote(MarketQuoteDto quoteDto) {
@@ -187,7 +193,9 @@ public class MarketDataIngestionService {
         toRemove.removeAll(targetSymbols);
         for (String sym : toRemove) {
             activeWatchlist.remove(sym);
-            marketDataProvider.unsubscribe(sym);
+            for (MarketDataProvider provider : marketDataProviders) {
+                provider.unsubscribe(sym);
+            }
         }
 
         // Identifier les symboles à ajouter
@@ -196,7 +204,9 @@ public class MarketDataIngestionService {
         for (String sym : toAdd) {
             ensureAssetExists(sym);
             activeWatchlist.add(sym);
-            marketDataProvider.subscribe(sym);
+            for (MarketDataProvider provider : marketDataProviders) {
+                provider.subscribe(sym);
+            }
         }
 
         log.info("[MARKET] Watchlist mise à jour. Nouveaux symboles suivis : {}", activeWatchlist);
