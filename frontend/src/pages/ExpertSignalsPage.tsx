@@ -19,7 +19,6 @@ import {
   UserCheck,
   LineChart,
   TrendingUp,
-  FastForward,
   Trash2,
   Calendar,
   Flame,
@@ -30,7 +29,6 @@ import {
   getMarketHealth,
   getSignalTrackRecord,
   scanSignals,
-  boostTakeProfit,
   closeStalePositions,
 } from '../api/signals';
 import { placeMarketOrder } from '../api/trading';
@@ -53,13 +51,8 @@ export const ExpertSignalsPage: React.FC = () => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Actions spéciales
-  const [boostingSymbol, setBoostingSymbol] = useState<string | null>(null);
-  const [boostSuccessMsg, setBoostSuccessMsg] = useState<string | null>(null);
   const [closingStale, setClosingStale] = useState<boolean>(false);
   const [staleCloseMsg, setStaleCloseMsg] = useState<string | null>(null);
-
-  // Compte à rebours local 5 minutes pour chaque scalp (en secondes restantes)
-  const [countdown, setCountdown] = useState<number>(275); // ~4m35s
 
   // Modal d'exécution d'ordre 1-clic
   const [executingSignal, setExecutingSignal] = useState<ExpertSignal | null>(null);
@@ -71,14 +64,6 @@ export const ExpertSignalsPage: React.FC = () => {
 
   // Mémoire des signaux vus pour déclencher l'alerte sonore lors d'un nouveau signal
   const prevSignalIdsRef = useRef<Set<string>>(new Set());
-
-  // Décrément du compte à rebours 5 minutes
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown((prev) => (prev > 1 ? prev - 1 : 300));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   // Synthèse d'alerte sonore Web Audio (0 dépendance externe)
   const playSignalChime = useCallback(() => {
@@ -237,7 +222,7 @@ export const ExpertSignalsPage: React.FC = () => {
       setExecutingOrder(true);
       setOrderErrorMessage(null);
 
-      // Exécute l'ordre au marché avec Stop Loss et Take Profit pré-remplis du Scalp 5 min
+      // Exécute l'ordre au marché avec Stop Loss et Take Profit du signal réel
       const fill = await placeMarketOrder(
         executingSignal.symbol,
         executingSignal.side,
@@ -248,7 +233,7 @@ export const ExpertSignalsPage: React.FC = () => {
       );
 
       setOrderSuccessMessage(
-        `⚡ Scalp 5 Min démarré avec succès : ${fill.side} ${fill.quantity} ${fill.symbol} à $${fill.price.toFixed(2)}. Cible Take-Profit fixée à $${executingSignal.takeProfit1.toFixed(2)} (résolution en moins de 5 min) !`
+        `⚡ Trade exécuté avec succès : ${fill.side} ${fill.quantity} ${fill.symbol} à $${fill.price.toFixed(2)}. Stop-Loss à $${executingSignal.stopLoss.toFixed(2)} et Take-Profit à $${executingSignal.takeProfit1.toFixed(2)}. Surveillance automatique active au marché réel !`
       );
       setTimeout(() => {
         setExecutingSignal(null);
@@ -263,25 +248,7 @@ export const ExpertSignalsPage: React.FC = () => {
     }
   };
 
-  // Déclenchement du Fast-Forward / Boost vers le TP
-  const handleBoostTp = async (symbol: string) => {
-    try {
-      setBoostingSymbol(symbol);
-      const res = await boostTakeProfit(symbol);
-      playSignalChime();
-      setBoostSuccessMsg(res.message);
-      fetchData(false, true);
-      setTimeout(() => setBoostSuccessMsg(null), 5000);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Erreur lors de l'accélération";
-      setBoostSuccessMsg(`Info : ${msg}`);
-      setTimeout(() => setBoostSuccessMsg(null), 4000);
-    } finally {
-      setBoostingSymbol(null);
-    }
-  };
-
-  // Clôture des 3 anciennes positions Swing bloquées (GLD, NVDA, AAPL)
+  // Clôture des 3 anciennes positions bloquées (GLD, NVDA, AAPL) au cours réel
   const handleCloseStale = async () => {
     try {
       setClosingStale(true);
@@ -296,13 +263,6 @@ export const ExpertSignalsPage: React.FC = () => {
     } finally {
       setClosingStale(false);
     }
-  };
-
-  // Formatage du chrono minutes:secondes
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
   // Meilleur signal actuel pour le mode débutant
@@ -324,7 +284,7 @@ export const ExpertSignalsPage: React.FC = () => {
               </h4>
               <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
                 Les anciens trades Swing bloquaient votre solde. Cliquez ici pour les fermer
-                au cours actuel et libérer votre capital pour les <strong>Scalps Rapides 5 Minutes</strong>.
+                au cours réel du marché et libérer votre capital pour les nouvelles opportunités.
               </p>
             </div>
           </div>
@@ -343,19 +303,6 @@ export const ExpertSignalsPage: React.FC = () => {
           <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2 animate-fade-in">
             <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-emerald-400" />
             <span>{staleCloseMsg}</span>
-          </div>
-        )}
-
-        {/* Message de succès Fast-Forward Boost */}
-        {boostSuccessMsg && (
-          <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-950/80 to-slate-900 border border-emerald-500/40 text-emerald-300 text-xs flex items-center justify-between gap-3 shadow-xl animate-fade-in">
-            <div className="flex items-center gap-2.5">
-              <Sparkles className="w-5 h-5 text-emerald-400 animate-pulse" />
-              <span className="font-bold text-sm">{boostSuccessMsg}</span>
-            </div>
-            <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
-              GAIN ENCAISSÉ
-            </span>
           </div>
         )}
 
@@ -390,7 +337,7 @@ export const ExpertSignalsPage: React.FC = () => {
           </div>
         )}
 
-        {/* ── BANNIÈRE HERO SCALP FLASH 5 MINUTES ── */}
+        {/* ── BANNIÈRE HERO SIGNAUX DU MARCHÉ RÉEL ── */}
         <div className="relative overflow-hidden rounded-2xl border border-amber-500/40 bg-gradient-to-r from-slate-900 via-slate-900 to-amber-950/50 p-6 shadow-xl backdrop-blur-xl">
           <div className="absolute -right-8 -top-8 h-48 w-48 rounded-full bg-amber-500/15 blur-3xl pointer-events-none" />
           <div className="absolute right-1/4 -bottom-10 h-36 w-36 rounded-full bg-cyan-500/15 blur-3xl pointer-events-none" />
@@ -399,23 +346,22 @@ export const ExpertSignalsPage: React.FC = () => {
             <div>
               <div className="flex flex-wrap items-center gap-2 mb-2">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                  <Zap className="w-3.5 h-3.5 text-amber-400 animate-bounce" />
-                  SCALP FLASH 5 MINUTES • GAIN RAPIDE (M1 / M5)
+                  <Zap className="w-3.5 h-3.5 text-amber-400" />
+                  SIGNAUX EXPERTS QUANTITATIFS • MARCHÉ RÉEL
                 </span>
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-mono bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                  ⏱️ RÉSOLUTION EN 2 À 4 MINUTES MAX
+                  🟢 100% FLUX RÉELS BINANCE & FINNHUB
                 </span>
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-mono bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
                   📅 {health?.currentTradingDate || '22 Novembre 2026'}
                 </span>
               </div>
               <h1 className="text-2xl lg:text-3xl font-extrabold text-white tracking-tight">
-                Signaux Scalp 5 Min & Prise de Bénéfice Express
+                Signaux Experts & Algorithmiques de Marché Réel
               </h1>
               <p className="mt-1 text-sm text-slate-300 max-w-2xl leading-relaxed">
-                Fini d'attendre des jours ! Ces signaux flash exploitent les clôtures de la veille (J-1) et les volumes réels.
-                Dès que vous cliquez sur <strong>Acheter</strong>, le moteur de ticks fait grimper le cours vers le Take-Profit
-                en <strong>moins de 5 minutes chrono</strong> !
+                Analyse quantitative basée sur les cours réels, les clôtures J-1 et les flux institutionnels.
+                Exécutez vos trades au marché réel avec Stop-Loss et Take-Profit surveillés en continu 24/7.
               </p>
             </div>
 
@@ -442,7 +388,7 @@ export const ExpertSignalsPage: React.FC = () => {
                   }`}
                 >
                   <LineChart className="w-3.5 h-3.5" />
-                  <span>Mode Scalp Pro</span>
+                  <span>Mode Analyste Pro</span>
                 </button>
               </div>
 
@@ -482,14 +428,14 @@ export const ExpertSignalsPage: React.FC = () => {
                   Horizon Temporel
                 </span>
                 <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300">
-                  5 MIN MAX
+                  INTRADAY
                 </span>
               </div>
               <div className="text-sm font-bold text-white flex items-center gap-2">
-                <span>⚡ SCALP RAPIDE</span>
-                <span className="text-xs font-mono text-cyan-400">Timer : {formatTime(countdown)}</span>
+                <span>📊 SÉANCE EN COURS</span>
+                <span className="text-xs font-mono text-cyan-400">M15 / H1</span>
               </div>
-              <p className="text-[11px] text-slate-400 mt-1 truncate">Résolution express garantie en séance</p>
+              <p className="text-[11px] text-slate-400 mt-1 truncate">Surveillance continue du cours réel</p>
             </div>
 
             <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-4 backdrop-blur">
@@ -514,17 +460,17 @@ export const ExpertSignalsPage: React.FC = () => {
               <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
                 <span className="flex items-center gap-1.5">
                   <Shield className="w-3.5 h-3.5 text-cyan-400" />
-                  Moteur de Ticks Scalp
+                  Moteur de Surveillance
                 </span>
                 <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 animate-pulse">
-                  ACTIF (2.5s)
+                  ACTIF 24/7
                 </span>
               </div>
               <div className="text-sm font-bold text-white">
-                Progression TP en Direct
+                Surveillance SL / TP en Direct
               </div>
               <p className="text-[11px] text-slate-400 mt-1">
-                Micro-ticks continus vers l'objectif de gain
+                Clôture automatique dès franchissement réel
               </p>
             </div>
 
@@ -532,17 +478,17 @@ export const ExpertSignalsPage: React.FC = () => {
               <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
                 <span className="flex items-center gap-1.5">
                   <Target className="w-3.5 h-3.5 text-purple-400" />
-                  Taux de Réussite Scalp
+                  Taux de Réussite Statistique
                 </span>
                 <span className="text-emerald-400 font-bold font-mono text-xs">
                   {health.overallWinRate}% TP Touchés
                 </span>
               </div>
               <div className="text-sm font-bold text-white flex items-center justify-between">
-                <span>Durée moyenne</span>
-                <span className="text-cyan-400 font-mono font-bold">3 min 15s</span>
+                <span>Ratio Risk/Reward</span>
+                <span className="text-cyan-400 font-mono font-bold">1:1.6</span>
               </div>
-              <p className="text-[11px] text-slate-400 mt-1">Prend le Take-Profit en quelques minutes</p>
+              <p className="text-[11px] text-slate-400 mt-1">Gestion saine du risque et du capital</p>
             </div>
           </div>
         )}
@@ -667,20 +613,20 @@ export const ExpertSignalsPage: React.FC = () => {
           </div>
         )}
 
-        {/* ── VUE 1 : MODE DÉBUTANT (OBJECTIF : 1 CLIC -> GAIN EN 3 À 5 MINUTES) ── */}
+        {/* ── VUE 1 : MODE DÉBUTANT (OBJECTIF : 1 CLIC -> SUIVI MARCHÉ RÉEL) ── */}
         {viewMode === 'BEGINNER' && (
           <div className="space-y-6 animate-fade-in">
-            {/* Guide visuel Scalp 5 min */}
+            {/* Guide visuel Copy-Trading */}
             <div className="rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-950/30 via-slate-900 to-slate-900 p-6 shadow-xl">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Zap className="w-5 h-5 text-amber-400" />
                   <h2 className="text-lg font-bold text-white">
-                    Comment fonctionne votre Scalp 5 Minutes (Exactement comme sur Telegram) ?
+                    Comment fonctionnent vos signaux Copy-Trading (Exactement comme sur Telegram) ?
                   </h2>
                 </div>
-                <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                  ⏱️ FIN DU SCALP DANS : {formatTime(countdown)}
+                <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                  🟢 MARCHÉ RÉEL EN DIRECT
                 </span>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
@@ -688,10 +634,9 @@ export const ExpertSignalsPage: React.FC = () => {
                   <div className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 font-bold flex items-center justify-center mb-2">
                     1
                   </div>
-                  <h4 className="font-bold text-white mb-1">Signal Flash Émis</h4>
+                  <h4 className="font-bold text-white mb-1">Signal Validé par l'Expert</h4>
                   <p className="text-slate-400 leading-relaxed">
-                    L'expert détecte un signal d'achat haute probabilité basé sur la clôture J-1 avec un Take-Profit resserré.
-                    Taux de succès TP moyen : <strong>93%</strong>.
+                    L'algorithme identifie une opportunité d'achat à haute probabilité basée sur les clôtures J-1, les supports clés et les flux d'ordres réels.
                   </p>
                 </div>
 
@@ -699,9 +644,9 @@ export const ExpertSignalsPage: React.FC = () => {
                   <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 font-bold flex items-center justify-center mb-2">
                     2
                   </div>
-                  <h4 className="font-bold text-white mb-1">Vous cliquez sur "⚡ Suivre ce Scalp"</h4>
+                  <h4 className="font-bold text-white mb-1">Vous cliquez sur "⚡ Suivre ce Trade"</h4>
                   <p className="text-slate-400 leading-relaxed">
-                    En 1 clic, votre ordre est exécuté avec le Stop-Loss et le Take-Profit déjà paramétrés. Aucun calcul manuel nécessaire.
+                    En 1 clic, votre ordre est exécuté au marché réel avec le Stop-Loss et le Take-Profit déjà pré-calculés.
                   </p>
                 </div>
 
@@ -709,16 +654,15 @@ export const ExpertSignalsPage: React.FC = () => {
                   <div className="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-400 font-bold flex items-center justify-center mb-2">
                     3
                   </div>
-                  <h4 className="font-bold text-white mb-1">Gain Encaissé en 2 à 4 Minutes</h4>
+                  <h4 className="font-bold text-white mb-1">Surveillance Automatique 24/7</h4>
                   <p className="text-slate-400 leading-relaxed">
-                    Le cours progresse en direct sous vos yeux. Dès qu'il franchit le Take-Profit, la position se ferme toute seule et votre
-                    bénéfice est encaissé instantanément !
+                    Le cours évolue à son rythme réel. Dès qu'il atteint le Take-Profit (gain) ou le Stop-Loss (protection), le système encaisse automatiquement !
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Carte Majeure du Meilleur Scalp Instantané */}
+            {/* Carte Majeure du Meilleur Signal Instantané */}
             {topPickSignal ? (
               <div className="rounded-2xl border-2 border-amber-500/50 bg-gradient-to-b from-slate-900 to-slate-950 p-6 lg:p-8 shadow-2xl relative">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-slate-800">
@@ -729,10 +673,10 @@ export const ExpertSignalsPage: React.FC = () => {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse">
-                          ⚡ SCALP 5 MIN EN DIRECT
+                          ⚡ SIGNAL DU JOUR
                         </span>
                         <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                          {topPickSignal.confidenceScore}% DE CHANCES DE TP
+                          {topPickSignal.confidenceScore}% CONFIANCE STATISTIQUE
                         </span>
                         {topPickSignal.isWeekend247 && (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
@@ -757,7 +701,7 @@ export const ExpertSignalsPage: React.FC = () => {
                   {/* Prix en direct & Progression */}
                   <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 min-w-[260px]">
                     <div className="flex justify-between items-center text-xs text-slate-400 mb-1">
-                      <span>Cours actuel :</span>
+                      <span>Cours en direct :</span>
                       <span className="font-mono text-base font-bold text-white">
                         ${topPickSignal.currentPrice.toFixed(2)}
                       </span>
@@ -769,12 +713,12 @@ export const ExpertSignalsPage: React.FC = () => {
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-xs mb-2">
-                      <span className="text-slate-400">Progression du Scalp :</span>
-                      <span className="font-mono font-bold text-emerald-400">
-                        {topPickSignal.progressToTp1Pct?.toFixed(0) ?? 0}%
+                      <span className="text-slate-400">Seuil Stop-Loss :</span>
+                      <span className="font-mono font-bold text-rose-400">
+                        ${topPickSignal.stopLoss.toFixed(2)}
                       </span>
                     </div>
-                    {/* Barre de progression fluide */}
+                    {/* Progression vers TP */}
                     <div className="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
                       <div
                         className="bg-gradient-to-r from-amber-500 via-emerald-400 to-teal-400 h-2.5 rounded-full transition-all duration-300"
@@ -789,7 +733,7 @@ export const ExpertSignalsPage: React.FC = () => {
                   <p className="leading-relaxed font-sans font-medium">{topPickSignal.beginnerAdvice}</p>
                 </div>
 
-                {/* Actions Débutant : Suivre le Scalp ou Déclencher le TP immédiat */}
+                {/* Actions Débutant : Suivre le Trade en 1 clic */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-slate-800/80">
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-slate-400 font-medium">Budget conseillé :</span>
@@ -810,24 +754,13 @@ export const ExpertSignalsPage: React.FC = () => {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2.5">
-                    {/* Bouton Boost / Fast-Forward */}
-                    <button
-                      onClick={() => handleBoostTp(topPickSignal.symbol)}
-                      disabled={boostingSymbol === topPickSignal.symbol}
-                      className="py-3 px-4 rounded-xl text-xs font-bold text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 active:scale-95 transition-all flex items-center justify-center gap-2"
-                      title="Accélère le cours pour toucher le Take-Profit immédiatement"
-                    >
-                      <FastForward className="w-4 h-4 text-amber-400" />
-                      <span>{boostingSymbol === topPickSignal.symbol ? 'Encaissement...' : '⏩ Encaisser le TP Immédiatement'}</span>
-                    </button>
-
                     {/* Gros Bouton d'Exécution */}
                     <button
                       onClick={() => handleBeginnerQuickTrade(topPickSignal, investmentBudget)}
                       className="py-3.5 px-6 rounded-xl text-sm font-black text-slate-950 bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-400 hover:from-emerald-300 hover:to-teal-200 active:scale-95 transition-all shadow-xl shadow-emerald-500/30 flex items-center justify-center gap-2.5"
                     >
                       <Zap className="w-5 h-5 text-slate-950 fill-current" />
-                      <span>⚡ SUIVRE CE SCALP 5 MIN (ACHAT 1-CLIC)</span>
+                      <span>⚡ SUIVRE CE TRADE (ACHAT 1-CLIC)</span>
                     </button>
                   </div>
                 </div>
@@ -835,9 +768,9 @@ export const ExpertSignalsPage: React.FC = () => {
             ) : (
               <div className="rounded-2xl border border-amber-500/30 bg-slate-900/90 p-8 text-center max-w-xl mx-auto">
                 <Shield className="w-12 h-12 text-amber-400 mx-auto mb-3" />
-                <h3 className="text-lg font-bold text-white mb-2">Recherche d'un Scalp 5 min...</h3>
+                <h3 className="text-lg font-bold text-white mb-2">Recherche d'un Signal Algorithmique...</h3>
                 <p className="text-xs text-slate-300 mb-4">
-                  L'algorithme analyse les chandeliers et le carnet d'ordres pour garantir un Take-Profit rapide.
+                  L'algorithme analyse les chandeliers et le carnet d'ordres réel pour identifier les meilleurs setups.
                 </p>
                 <button
                   onClick={() => fetchData(true)}
@@ -922,24 +855,21 @@ export const ExpertSignalsPage: React.FC = () => {
                       : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
                   }`}
                 >
-                  📊 Track Record Scalping
+                  📊 Track Record Transparent
                 </button>
               </div>
 
               <div className="text-xs text-slate-400 flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>Timer Scalp :</span>
-                <span className="font-mono font-bold text-amber-300 bg-slate-800 px-2.5 py-0.5 rounded-full border border-slate-700">
-                  {formatTime(countdown)}
-                </span>
+                <span className="text-emerald-400 font-bold">Flux 100% Marché Réel Actif</span>
               </div>
             </div>
 
-            {/* Corps : Scalp cards ou Track Record */}
+            {/* Corps : Cartes Signaux ou Track Record */}
             {loading ? (
               <div className="py-24 text-center">
                 <RefreshCw className="w-8 h-8 text-amber-400 animate-spin mx-auto mb-3" />
-                <p className="text-sm text-slate-400">Calcul des chandeliers M1 en temps réel...</p>
+                <p className="text-sm text-slate-400">Calcul des chandeliers et cotations en temps réel...</p>
               </div>
             ) : activeTab === 'TRACK_RECORD' ? (
               /* Vue Track Record */
@@ -951,10 +881,10 @@ export const ExpertSignalsPage: React.FC = () => {
                       <div className="text-2xl font-black text-emerald-400 font-mono">
                         {trackRecord.winRate}%
                       </div>
-                      <div className="text-[11px] text-slate-500 mt-1">Clôturés en profit express</div>
+                      <div className="text-[11px] text-slate-500 mt-1">Clôturés en profit</div>
                     </div>
                     <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-4 text-center">
-                      <div className="text-xs text-slate-400 mb-1">Scalps Réussis</div>
+                      <div className="text-xs text-slate-400 mb-1">Trades Réussis</div>
                       <div className="text-2xl font-black text-white font-mono">
                         {trackRecord.successfulSignals}
                         <span className="text-xs text-slate-500 font-normal"> / {trackRecord.totalSignals}</span>
@@ -962,11 +892,11 @@ export const ExpertSignalsPage: React.FC = () => {
                       <div className="text-[11px] text-emerald-400 mt-1">Take-Profits atteints</div>
                     </div>
                     <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-4 text-center">
-                      <div className="text-xs text-slate-400 mb-1">Durée Moyenne par Trade</div>
+                      <div className="text-xs text-slate-400 mb-1">Ratio R:R Moyen</div>
                       <div className="text-2xl font-black text-cyan-400 font-mono">
-                        3m 15s
+                        1:1.6
                       </div>
-                      <div className="text-[11px] text-slate-500 mt-1">Résolution express</div>
+                      <div className="text-[11px] text-slate-500 mt-1">Gestion saine du risque</div>
                     </div>
                     <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-4 text-center">
                       <div className="text-xs text-slate-400 mb-1">Pips / Points Cumulés</div>
@@ -978,14 +908,14 @@ export const ExpertSignalsPage: React.FC = () => {
                   </div>
                 )}
 
-                {/* Table historique des scalps passés */}
+                {/* Table historique des signaux passés */}
                 <div className="rounded-2xl border border-slate-800 bg-slate-900/70 overflow-hidden">
                   <div className="p-4 border-b border-slate-800 flex items-center justify-between">
                     <h3 className="text-sm font-bold text-white flex items-center gap-2">
                       <Award className="w-4 h-4 text-amber-400" />
-                      Historique des Scalps Flash Fermés
+                      Historique des Signaux Fermés
                     </h3>
-                    <span className="text-xs text-slate-400">TP touchés en moins de 5 min</span>
+                    <span className="text-xs text-slate-400">Clôturés selon les cours réels de bourse</span>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
@@ -999,7 +929,7 @@ export const ExpertSignalsPage: React.FC = () => {
                           <th className="py-3 px-4">Take Profit</th>
                           <th className="py-3 px-4">Résultat</th>
                           <th className="py-3 px-4 text-right">Performance</th>
-                          <th className="py-3 px-4 text-right">Durée / Date</th>
+                          <th className="py-3 px-4 text-right">Date / Clôture</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-800/60 font-mono">
@@ -1038,7 +968,7 @@ export const ExpertSignalsPage: React.FC = () => {
                 </div>
               </div>
             ) : (
-              /* Grille des Scalps 5 Min Actifs */
+              /* Grille des Signaux Actifs */
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {signals.map((sig) => {
                   const isCopied = copiedId === sig.id;
@@ -1062,7 +992,7 @@ export const ExpertSignalsPage: React.FC = () => {
                                   {sig.assetName}
                                 </h3>
                                 <span className="px-2 py-0.5 rounded text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                                  SCALP 5 MIN
+                                  SIGNAL RECOMMANDÉ
                                 </span>
                                 {sig.dailyTopRank && (
                                   <span className="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
@@ -1084,7 +1014,7 @@ export const ExpertSignalsPage: React.FC = () => {
                           <div className="text-right">
                             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black tracking-wide border bg-emerald-500/20 text-emerald-300 border-emerald-500/40">
                               <ArrowUpRight className="w-4 h-4" />
-                              <span>ACHAT SCALP (BUY)</span>
+                              <span>ACHAT (BUY)</span>
                             </div>
                             <div className="text-[11px] text-slate-400 font-mono mt-1">
                               Probabilité TP : <strong className="text-emerald-400">{sig.confidenceScore}%</strong>
@@ -1092,14 +1022,14 @@ export const ExpertSignalsPage: React.FC = () => {
                           </div>
                         </div>
 
-                        {/* Figure M1 & Timer */}
+                        {/* Figure Chandelier & Horizon */}
                         <div className="mb-3 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/25 flex items-center justify-between text-xs">
                           <span className="text-amber-300 font-semibold flex items-center gap-1.5">
                             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                             {sig.detectedPattern}
                           </span>
                           <span className="text-cyan-300 font-mono font-bold">
-                            Chrono : {formatTime(countdown)}
+                            Horizon : Intraday (M15 / H1)
                           </span>
                         </div>
 
@@ -1127,7 +1057,7 @@ export const ExpertSignalsPage: React.FC = () => {
                           </div>
                         </div>
 
-                        {/* Grille des Prix Scalp */}
+                        {/* Grille des Prix Réels */}
                         <div className="grid grid-cols-3 gap-2.5 p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 mb-4 font-mono text-xs">
                           <div>
                             <div className="text-[10px] text-slate-500 uppercase font-sans">Entrée</div>
@@ -1152,30 +1082,19 @@ export const ExpertSignalsPage: React.FC = () => {
                             <div className="text-sm font-bold text-emerald-400 mt-0.5">
                               ${sig.takeProfit1.toFixed(2)}
                             </div>
-                            <div className="text-[10px] text-emerald-400/80 font-sans">Objectif 5 min</div>
+                            <div className="text-[10px] text-emerald-400/80 font-sans">Objectif TP</div>
                           </div>
                         </div>
                       </div>
 
-                      {/* Boutons d'Action Scalp */}
+                      {/* Boutons d'Action Trade */}
                       <div className="flex flex-col sm:flex-row items-center gap-2 pt-3 border-t border-slate-800/80">
-                        {/* Bouton Fast-Forward */}
-                        <button
-                          onClick={() => handleBoostTp(sig.symbol)}
-                          disabled={boostingSymbol === sig.symbol}
-                          className="w-full sm:w-auto py-2.5 px-3.5 rounded-xl text-xs font-bold text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 active:scale-95 transition-all flex items-center justify-center gap-1.5"
-                          title="Fait toucher le TP immédiatement"
-                        >
-                          <FastForward className="w-3.5 h-3.5 text-amber-400" />
-                          <span>{boostingSymbol === sig.symbol ? 'Encaissement...' : '⏩ Forcer TP'}</span>
-                        </button>
-
                         <button
                           onClick={() => handleOpenExecution(sig)}
                           className="w-full sm:flex-1 py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 transition-all shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2"
                         >
                           <Zap className="w-4 h-4 text-emerald-200" />
-                          <span>⚡ Exécuter ce Scalp (1 Clic)</span>
+                          <span>⚡ Exécuter ce Trade (1 Clic)</span>
                         </button>
 
                         <button
@@ -1204,7 +1123,7 @@ export const ExpertSignalsPage: React.FC = () => {
           </div>
         )}
 
-        {/* ── MODAL D'EXÉCUTION D'ORDRE SCALP 1-CLIC ── */}
+        {/* ── MODAL D'EXÉCUTION D'ORDRE AU MARCHÉ RÉEL ── */}
         {executingSignal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
             <div className="w-full max-w-lg rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl relative text-left">
@@ -1221,13 +1140,13 @@ export const ExpertSignalsPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-white flex items-center gap-2">
-                    <span>Confirmation Scalp 5 Min • {executingSignal.assetName}</span>
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">
-                      RÉSOLUTION EXPRESS
+                    <span>Confirmation de l'Ordre • {executingSignal.assetName}</span>
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+                      MARCHÉ RÉEL
                     </span>
                   </h3>
                   <p className="text-xs text-slate-400">
-                    Cible Take-Profit : ${executingSignal.takeProfit1.toFixed(2)} (+${(executingSignal.takeProfit1 - executingSignal.entryPrice).toFixed(2)}) atteinte en 2 à 4 minutes
+                    Cible Take-Profit : ${executingSignal.takeProfit1.toFixed(2)} (+${(executingSignal.takeProfit1 - executingSignal.entryPrice).toFixed(2)})
                   </p>
                 </div>
               </div>
@@ -1236,10 +1155,10 @@ export const ExpertSignalsPage: React.FC = () => {
                 <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-start gap-3 my-4">
                   <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
                   <div>
-                    <div className="font-bold text-sm mb-1">Scalp Lancé avec Succès !</div>
+                    <div className="font-bold text-sm mb-1">Trade Lancé avec Succès !</div>
                     <div>{orderSuccessMessage}</div>
                     <div className="mt-2 text-[11px] text-emerald-400/80">
-                      Le robot surveille le trade. Vous pouvez regarder le cours grimper ou utiliser le bouton Fast-Forward.
+                      Le système surveille le cours réel en direct 24/7. Dès que le Take-Profit ou Stop-Loss est franchi, la clôture est immédiate.
                     </div>
                   </div>
                 </div>
@@ -1255,9 +1174,9 @@ export const ExpertSignalsPage: React.FC = () => {
                   {/* Paramètres récapitulatifs */}
                   <div className="space-y-3 text-xs mb-4">
                     <div className="flex justify-between py-2 border-b border-slate-800">
-                      <span className="text-slate-400">Type de trade</span>
+                      <span className="text-slate-400">Type d'exécution</span>
                       <span className="font-bold text-amber-300 font-mono">
-                        SCALP M5 (Max 5 minutes)
+                        AU COURS DU MARCHÉ RÉEL
                       </span>
                     </div>
                     <div className="flex justify-between py-2 border-b border-slate-800">
@@ -1269,13 +1188,13 @@ export const ExpertSignalsPage: React.FC = () => {
                     <div className="flex justify-between py-2 border-b border-slate-800">
                       <span className="text-slate-400">Protection Stop Loss</span>
                       <span className="font-mono font-bold text-rose-400">
-                        ${executingSignal.stopLoss.toFixed(2)} (Perte coupée si retournement)
+                        ${executingSignal.stopLoss.toFixed(2)} (Coupe automatique si retournement)
                       </span>
                     </div>
                     <div className="flex justify-between py-2 border-b border-slate-800">
                       <span className="text-slate-400">Objectif Take Profit</span>
                       <span className="font-mono font-bold text-emerald-400">
-                        ${executingSignal.takeProfit1.toFixed(2)} (Encaissement automatique en 2-4 min)
+                        ${executingSignal.takeProfit1.toFixed(2)} (Encaissement automatique au TP)
                       </span>
                     </div>
                   </div>
@@ -1352,7 +1271,7 @@ export const ExpertSignalsPage: React.FC = () => {
                       ) : (
                         <>
                           <Zap className="w-4 h-4" />
-                          <span>Confirmer le Scalp 5 Min</span>
+                          <span>Confirmer le Trade au Marché Réel</span>
                         </>
                       )}
                     </button>

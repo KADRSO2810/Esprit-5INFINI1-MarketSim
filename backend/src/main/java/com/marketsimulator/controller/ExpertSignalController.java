@@ -64,7 +64,7 @@ public class ExpertSignalController {
         return ResponseEntity.ok(signalService.getTrackRecord());
     }
 
-    @Operation(summary = "Accélérer l'exécution d'une position vers son Take-Profit (Fast-Forward TP)")
+    @Operation(summary = "Clôturer manuellement une position au cours réel du marché")
     @PostMapping("/boost-tp/{symbol}")
     public ResponseEntity<Map<String, Object>> boostTakeProfit(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -73,7 +73,7 @@ public class ExpertSignalController {
         return ResponseEntity.ok(signalService.boostTakeProfit(userId, symbol));
     }
 
-    @Operation(summary = "Clôturer les anciennes positions Swing bloquées pour faire place aux Scalps 5 minutes")
+    @Operation(summary = "Clôturer les anciennes positions au cours réel du marché")
     @PostMapping("/close-stale-positions")
     public ResponseEntity<Map<String, Object>> closeStalePositions(
             @AuthenticationPrincipal UserDetails userDetails) {

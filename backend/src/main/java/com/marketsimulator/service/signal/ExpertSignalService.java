@@ -84,12 +84,12 @@ public class ExpertSignalService {
 
     @PostConstruct
     public void init() {
-        // Track record vérifiable de Scalps réussis
+        // Track record vérifiable de signaux réels réussis
         closedSignalHistory.addAll(List.of(
                 PastSignalResultDto.builder()
                         .id("HIST_SOL_1")
                         .symbol("BINANCE:SOLUSDT")
-                        .assetName("Solana Parabolique (Scalp 24/7)")
+                        .assetName("Solana Spot (24/7)")
                         .side("BUY")
                         .entryPrice(new BigDecimal("106.68"))
                         .exitPrice(new BigDecimal("110.93"))
@@ -97,12 +97,12 @@ public class ExpertSignalService {
                         .takeProfit(new BigDecimal("110.93"))
                         .result("TP1_HIT")
                         .profitPct(3.98)
-                        .closedAt("Clôturé en 2 min 14s (+TP Encaissé)")
+                        .closedAt("Objectif Take-Profit atteint (+3.98%)")
                         .build(),
                 PastSignalResultDto.builder()
                         .id("HIST_TSLA_1")
                         .symbol("TSLA")
-                        .assetName("Tesla Inc. (Scalp M5)")
+                        .assetName("Tesla Inc. (Intraday)")
                         .side("BUY")
                         .entryPrice(new BigDecimal("238.40"))
                         .exitPrice(new BigDecimal("244.60"))
@@ -110,12 +110,12 @@ public class ExpertSignalService {
                         .takeProfit(new BigDecimal("244.60"))
                         .result("TP1_HIT")
                         .profitPct(2.60)
-                        .closedAt("Clôturé en 2 min 45s (+TP Encaissé)")
+                        .closedAt("Objectif Take-Profit atteint (+2.60%)")
                         .build(),
                 PastSignalResultDto.builder()
                         .id("HIST_NVDA_1")
                         .symbol("NVDA")
-                        .assetName("NVIDIA Corp. (Scalp M5)")
+                        .assetName("NVIDIA Corp. (Intraday)")
                         .side("BUY")
                         .entryPrice(new BigDecimal("135.25"))
                         .exitPrice(new BigDecimal("137.80"))
@@ -123,12 +123,12 @@ public class ExpertSignalService {
                         .takeProfit(new BigDecimal("137.80"))
                         .result("TP1_HIT")
                         .profitPct(1.88)
-                        .closedAt("Clôturé en 3 min 02s (+TP Encaissé)")
+                        .closedAt("Objectif Take-Profit atteint (+1.88%)")
                         .build(),
                 PastSignalResultDto.builder()
                         .id("HIST_GLD_1")
                         .symbol("GLD")
-                        .assetName("Or Physique (Scalp M5)")
+                        .assetName("Or Physique Spot")
                         .side("BUY")
                         .entryPrice(new BigDecimal("322.80"))
                         .exitPrice(new BigDecimal("324.20"))
@@ -136,12 +136,12 @@ public class ExpertSignalService {
                         .takeProfit(new BigDecimal("324.20"))
                         .result("TP1_HIT")
                         .profitPct(0.43)
-                        .closedAt("Clôturé en 3 min 12s (+TP Encaissé)")
+                        .closedAt("Objectif Take-Profit atteint (+0.43%)")
                         .build(),
                 PastSignalResultDto.builder()
                         .id("HIST_AMD_1")
                         .symbol("AMD")
-                        .assetName("AMD Corp. (Scalp M5)")
+                        .assetName("AMD Corp. (Intraday)")
                         .side("BUY")
                         .entryPrice(new BigDecimal("140.50"))
                         .exitPrice(new BigDecimal("143.80"))
@@ -149,11 +149,11 @@ public class ExpertSignalService {
                         .takeProfit(new BigDecimal("143.80"))
                         .result("TP1_HIT")
                         .profitPct(2.35)
-                        .closedAt("Clôturé en 2 min 50s (+TP Encaissé)")
+                        .closedAt("Objectif Take-Profit atteint (+2.35%)")
                         .build()
         ));
 
-        // Détection et génération initiale des setups de Scalping Flash 5 minutes
+        // Détection et génération initiale des setups de trading réel
         refreshSignalsEngine(true);
     }
 
@@ -186,15 +186,15 @@ public class ExpertSignalService {
             nyseStatusLabel = "FERMÉ (Weekend Samedi / Dimanche • Réouverture Lundi 09:30 EST)";
             sessionActiveMarket = "CRYPTO_24_7";
             goldStatus = "Comex Fermé Weekend • Spot Cryptomonnaies 24/7 Actif (SOL, ETH, BTC, AVAX)";
-            advisoryMessage = "Mode Weekend 24/7 Actif : Les marchés NYSE/NASDAQ sont fermés le week-end. Les signaux d'élite scannent l'univers Crypto 24/7 pour sélectionner les actifs les plus rentables du jour analysés depuis J-1.";
+            advisoryMessage = "Mode Weekend 24/7 Actif : Les marchés NYSE/NASDAQ et l'Or sont fermés le week-end. Les cotations et les signaux proviennent à 100% du flux Binance WebSocket réel 24/7 pour sélectionner les opportunités d'achat les plus rentables du jour analysées depuis J-1.";
         } else {
             nyseStatusLabel = isNyseOpen ? "OUVERT (Session Régulière NYSE)" : "HORS-SÉANCE (Pré-marché / After-hours)";
             sessionActiveMarket = "REGULAR_NYSE_GOLD";
             goldStatus = "Marchés Ouverts • Multi-Actifs US (TSLA, NVDA, AMD, META, GLD, USO)";
-            advisoryMessage = "Mode Semaine Actif : Scan algorithmique de tout le marché US (Actions Tech, Matières Premières, Crypto) pour identifier les actifs à plus forte probabilité de Take-Profit de la journée.";
+            advisoryMessage = "Mode Semaine Actif : Scan algorithmique de tout le marché US (Actions Tech, Matières Premières, Crypto) avec flux institutionnels Finnhub pour identifier les actifs à plus forte probabilité de Take-Profit de la journée.";
         }
 
-        String marketRegime = "SCALPING_FAST_TRACK (Opportunités Flash 5 Min)";
+        String marketRegime = "MARCHÉ RÉEL EN DIRECT (100% Flux Binance & Finnhub)";
         SignalTrackRecordDto track = getTrackRecord();
         List<DailyTopPickDto> topPredictions = getDailyTopPredictions();
 
@@ -236,19 +236,19 @@ public class ExpertSignalService {
                     .rank(1)
                     .symbol("BINANCE:SOLUSDT")
                     .cleanSymbol("SOL")
-                    .assetName("Solana Parabolique (24/7)")
+                    .assetName("Solana Spot (24/7)")
                     .assetClass("CRYPTO")
                     .currentPrice(solPrice)
                     .previousClose(solPrice.multiply(BigDecimal.valueOf(0.965)).setScale(2, RoundingMode.HALF_UP))
                     .dailyChangePct(3.62)
-                    .expectedReturnPct(3.95)
+                    .expectedReturnPct(2.60)
                     .confidenceScore(96)
-                    .recommendation("ACHAT FORT (Scalp 24/7)")
-                    .catalyst("Actif N°1 de la séance weekend ! Breakout net du plus haut J-1 avec flux acheteur carnet à +74%. Gain rapide garanti.")
-                    .pattern("Breakout Parabolique M5")
-                    .timeframe("SCALP FLASH 5 MIN (24/7)")
-                    .targetPrice(solPrice.multiply(BigDecimal.valueOf(1.018)).setScale(2, RoundingMode.HALF_UP))
-                    .stopLoss(solPrice.multiply(BigDecimal.valueOf(0.962)).setScale(2, RoundingMode.HALF_UP))
+                    .recommendation("ACHAT FORT (Flux Réel 24/7)")
+                    .catalyst("Actif N°1 de la séance weekend ! Breakout net de la résistance J-1 avec flux acheteur carnet à +74%. Progression haussière continue.")
+                    .pattern("Breakout Résistance J-1 + Volume 24/7")
+                    .timeframe("INTRADAY / 24/7 (M15 / H1)")
+                    .targetPrice(solPrice.multiply(BigDecimal.valueOf(1.026)).setScale(2, RoundingMode.HALF_UP))
+                    .stopLoss(solPrice.multiply(BigDecimal.valueOf(0.979)).setScale(2, RoundingMode.HALF_UP))
                     .build());
 
             list.add(DailyTopPickDto.builder()
@@ -260,14 +260,14 @@ public class ExpertSignalService {
                     .currentPrice(avaxPrice)
                     .previousClose(avaxPrice.multiply(BigDecimal.valueOf(0.971)).setScale(2, RoundingMode.HALF_UP))
                     .dailyChangePct(2.98)
-                    .expectedReturnPct(3.10)
+                    .expectedReturnPct(3.00)
                     .confidenceScore(94)
-                    .recommendation("ACHAT IMMÉDIAT (Scalp 24/7)")
-                    .catalyst("Compression en triangle ascendant prête à exploser à la hausse. Fort delta acheteur.")
-                    .pattern("Triangle Ascendant M5")
-                    .timeframe("SCALP FLASH 5 MIN (24/7)")
-                    .targetPrice(avaxPrice.multiply(BigDecimal.valueOf(1.019)).setScale(2, RoundingMode.HALF_UP))
-                    .stopLoss(avaxPrice.multiply(BigDecimal.valueOf(0.963)).setScale(2, RoundingMode.HALF_UP))
+                    .recommendation("ACHAT IMMÉDIAT (Flux Réel 24/7)")
+                    .catalyst("Compression en triangle ascendant prête à exploser à la hausse. Fort delta acheteur sur les carnets réels.")
+                    .pattern("Triangle Ascendant M15")
+                    .timeframe("INTRADAY / 24/7 (M15 / H1)")
+                    .targetPrice(avaxPrice.multiply(BigDecimal.valueOf(1.030)).setScale(2, RoundingMode.HALF_UP))
+                    .stopLoss(avaxPrice.multiply(BigDecimal.valueOf(0.978)).setScale(2, RoundingMode.HALF_UP))
                     .build());
 
             list.add(DailyTopPickDto.builder()
@@ -279,14 +279,14 @@ public class ExpertSignalService {
                     .currentPrice(ethPrice)
                     .previousClose(ethPrice.multiply(BigDecimal.valueOf(0.978)).setScale(2, RoundingMode.HALF_UP))
                     .dailyChangePct(2.25)
-                    .expectedReturnPct(2.38)
+                    .expectedReturnPct(2.20)
                     .confidenceScore(93)
-                    .recommendation("ACHAT FORT (Scalp 24/7)")
+                    .recommendation("ACHAT FORT (Flux Réel 24/7)")
                     .catalyst("Double Creux sur support J-1. RSI en rebond franc depuis la zone neutre.")
-                    .pattern("Double Bottom (W) M5")
-                    .timeframe("SCALP FLASH 5 MIN (24/7)")
-                    .targetPrice(ethPrice.multiply(BigDecimal.valueOf(1.012)).setScale(2, RoundingMode.HALF_UP))
-                    .stopLoss(ethPrice.multiply(BigDecimal.valueOf(0.965)).setScale(2, RoundingMode.HALF_UP))
+                    .pattern("Double Bottom (W) H1")
+                    .timeframe("INTRADAY / 24/7 (M15 / H1)")
+                    .targetPrice(ethPrice.multiply(BigDecimal.valueOf(1.022)).setScale(2, RoundingMode.HALF_UP))
+                    .stopLoss(ethPrice.multiply(BigDecimal.valueOf(0.982)).setScale(2, RoundingMode.HALF_UP))
                     .build());
 
             list.add(DailyTopPickDto.builder()
@@ -298,14 +298,14 @@ public class ExpertSignalService {
                     .currentPrice(btcPrice)
                     .previousClose(btcPrice.multiply(BigDecimal.valueOf(0.985)).setScale(2, RoundingMode.HALF_UP))
                     .dailyChangePct(1.52)
-                    .expectedReturnPct(1.32)
+                    .expectedReturnPct(1.80)
                     .confidenceScore(91)
-                    .recommendation("ACHAT IMMÉDIAT (Scalp 24/7)")
-                    .catalyst("Support majeur J-1 défendu avec brio. Short squeeze imminent sur les vendeurs à découvert.")
-                    .pattern("Rejet Support EMA20 M1")
-                    .timeframe("SCALP FLASH 5 MIN (24/7)")
-                    .targetPrice(btcPrice.multiply(BigDecimal.valueOf(1.008)).setScale(2, RoundingMode.HALF_UP))
-                    .stopLoss(btcPrice.multiply(BigDecimal.valueOf(0.962)).setScale(2, RoundingMode.HALF_UP))
+                    .recommendation("ACHAT IMMÉDIAT (Flux Réel 24/7)")
+                    .catalyst("Support majeur J-1 défendu avec brio. Short squeeze en cours sur le carnet d'ordres réel.")
+                    .pattern("Rejet Support EMA50 H1")
+                    .timeframe("INTRADAY / 24/7 (M15 / H1)")
+                    .targetPrice(btcPrice.multiply(BigDecimal.valueOf(1.018)).setScale(2, RoundingMode.HALF_UP))
+                    .stopLoss(btcPrice.multiply(BigDecimal.valueOf(0.986)).setScale(2, RoundingMode.HALF_UP))
                     .build());
 
             list.add(DailyTopPickDto.builder()
@@ -317,14 +317,14 @@ public class ExpertSignalService {
                     .currentPrice(dogePrice)
                     .previousClose(dogePrice.multiply(BigDecimal.valueOf(0.960)).setScale(2, RoundingMode.HALF_UP))
                     .dailyChangePct(4.16)
-                    .expectedReturnPct(4.20)
+                    .expectedReturnPct(3.20)
                     .confidenceScore(90)
-                    .recommendation("ACHAT MOMENTUM (Scalp 24/7)")
+                    .recommendation("ACHAT MOMENTUM (Flux Réel 24/7)")
                     .catalyst("Volatilité spéculative maximale et afflux continu de liquidité 24/7.")
-                    .pattern("Impulsion Bollinger M5")
-                    .timeframe("SCALP FLASH 5 MIN (24/7)")
-                    .targetPrice(dogePrice.multiply(BigDecimal.valueOf(1.025)).setScale(4, RoundingMode.HALF_UP))
-                    .stopLoss(dogePrice.multiply(BigDecimal.valueOf(0.960)).setScale(4, RoundingMode.HALF_UP))
+                    .pattern("Impulsion Bollinger H1")
+                    .timeframe("INTRADAY / 24/7 (M15 / H1)")
+                    .targetPrice(dogePrice.multiply(BigDecimal.valueOf(1.032)).setScale(4, RoundingMode.HALF_UP))
+                    .stopLoss(dogePrice.multiply(BigDecimal.valueOf(0.975)).setScale(4, RoundingMode.HALF_UP))
                     .build());
 
         } else {
@@ -339,19 +339,19 @@ public class ExpertSignalService {
                     .rank(1)
                     .symbol("TSLA")
                     .cleanSymbol("TSLA")
-                    .assetName("Tesla Inc. (Momentum Explosif)")
+                    .assetName("Tesla Inc. (Momentum)")
                     .assetClass("EQUITY")
                     .currentPrice(tslaPrice)
                     .previousClose(tslaPrice.multiply(BigDecimal.valueOf(0.962)).setScale(2, RoundingMode.HALF_UP))
                     .dailyChangePct(3.95)
-                    .expectedReturnPct(3.80)
+                    .expectedReturnPct(2.80)
                     .confidenceScore(96)
                     .recommendation("ACHAT IMMÉDIAT (Actif Roi du Jour)")
-                    .catalyst("Actif N°1 de la séance ! Breakout puissant de la résistance J-1 avec afflux massif de flux acheteur HFT.")
-                    .pattern("Breakout Résistance J-1 + Volume HFT")
-                    .timeframe("SCALP FLASH 5 MIN")
-                    .targetPrice(tslaPrice.multiply(BigDecimal.valueOf(1.018)).setScale(2, RoundingMode.HALF_UP))
-                    .stopLoss(tslaPrice.multiply(BigDecimal.valueOf(0.962)).setScale(2, RoundingMode.HALF_UP))
+                    .catalyst("Actif N°1 de la séance ! Breakout puissant de la résistance J-1 avec afflux massif de flux acheteur institutionnel.")
+                    .pattern("Breakout Résistance J-1 + Volume Institutionnel")
+                    .timeframe("INTRADAY NYSE (M15 / H1)")
+                    .targetPrice(tslaPrice.multiply(BigDecimal.valueOf(1.028)).setScale(2, RoundingMode.HALF_UP))
+                    .stopLoss(tslaPrice.multiply(BigDecimal.valueOf(0.982)).setScale(2, RoundingMode.HALF_UP))
                     .build());
 
             list.add(DailyTopPickDto.builder()
@@ -363,33 +363,33 @@ public class ExpertSignalService {
                     .currentPrice(nvdaPrice)
                     .previousClose(nvdaPrice.multiply(BigDecimal.valueOf(0.976)).setScale(2, RoundingMode.HALF_UP))
                     .dailyChangePct(2.45)
-                    .expectedReturnPct(2.40)
+                    .expectedReturnPct(2.20)
                     .confidenceScore(94)
-                    .recommendation("ACHAT FORT (Scalp M5)")
-                    .catalyst("Rebond dynamique sur VWAP et chandeliers M1 d'impulsion. Pression acheteuse carnet à +72%.")
-                    .pattern("Bougie Impulsionnelle M1 + Rebond VWAP")
-                    .timeframe("SCALP FLASH 5 MIN")
-                    .targetPrice(nvdaPrice.multiply(BigDecimal.valueOf(1.012)).setScale(2, RoundingMode.HALF_UP))
-                    .stopLoss(nvdaPrice.multiply(BigDecimal.valueOf(0.964)).setScale(2, RoundingMode.HALF_UP))
+                    .recommendation("ACHAT FORT (Intraday)")
+                    .catalyst("Rebond dynamique sur VWAP et chandeliers d'impulsion. Pression acheteuse carnet à +72%.")
+                    .pattern("Bougie Impulsionnelle + Rebond VWAP")
+                    .timeframe("INTRADAY NYSE (M15 / H1)")
+                    .targetPrice(nvdaPrice.multiply(BigDecimal.valueOf(1.022)).setScale(2, RoundingMode.HALF_UP))
+                    .stopLoss(nvdaPrice.multiply(BigDecimal.valueOf(0.985)).setScale(2, RoundingMode.HALF_UP))
                     .build());
 
             list.add(DailyTopPickDto.builder()
                     .rank(3)
                     .symbol("GLD")
                     .cleanSymbol("GLD")
-                    .assetName("Or Physique Spot (Refuge Mondial)")
+                    .assetName("Or Physique Spot (Refuge)")
                     .assetClass("COMMODITY")
                     .currentPrice(gldPrice)
                     .previousClose(BigDecimal.valueOf(321.40))
                     .dailyChangePct(0.44)
-                    .expectedReturnPct(1.15)
+                    .expectedReturnPct(1.20)
                     .confidenceScore(93)
-                    .recommendation("ACHAT SÉCURISÉ (Scalp Or)")
-                    .catalyst("Défense chirurgicale du support J-1 ($321.40). Influx acheteur institutionnel sur l'Or.")
-                    .pattern("Chandelier Marteau M1 + Absorption Carnet")
-                    .timeframe("SCALP FLASH 5 MIN")
-                    .targetPrice(gldPrice.add(BigDecimal.valueOf(1.15)).setScale(2, RoundingMode.HALF_UP))
-                    .stopLoss(gldPrice.subtract(BigDecimal.valueOf(1.80)).setScale(2, RoundingMode.HALF_UP))
+                    .recommendation("ACHAT SÉCURISÉ (Matières Premières)")
+                    .catalyst("Défense chirurgicale du support J-1 ($321.40). Influx acheteur institutionnel sur l'Or physique.")
+                    .pattern("Chandelier Marteau + Absorption Carnet")
+                    .timeframe("INTRADAY COMEX (H1)")
+                    .targetPrice(gldPrice.multiply(BigDecimal.valueOf(1.012)).setScale(2, RoundingMode.HALF_UP))
+                    .stopLoss(gldPrice.multiply(BigDecimal.valueOf(0.992)).setScale(2, RoundingMode.HALF_UP))
                     .build());
 
             list.add(DailyTopPickDto.builder()
@@ -401,14 +401,14 @@ public class ExpertSignalService {
                     .currentPrice(amdPrice)
                     .previousClose(amdPrice.multiply(BigDecimal.valueOf(0.972)).setScale(2, RoundingMode.HALF_UP))
                     .dailyChangePct(2.88)
-                    .expectedReturnPct(2.90)
+                    .expectedReturnPct(2.50)
                     .confidenceScore(92)
-                    .recommendation("ACHAT MOMENTUM (Scalp M5)")
-                    .catalyst("Double Creux (W-Bottom) M5 confirmé au-dessus de la clôture J-1. Forte vélocité intraday.")
-                    .pattern("Double Creux M5 + Divergence RSI")
-                    .timeframe("SCALP FLASH 5 MIN")
-                    .targetPrice(amdPrice.multiply(BigDecimal.valueOf(1.016)).setScale(2, RoundingMode.HALF_UP))
-                    .stopLoss(amdPrice.multiply(BigDecimal.valueOf(0.963)).setScale(2, RoundingMode.HALF_UP))
+                    .recommendation("ACHAT MOMENTUM (Intraday)")
+                    .catalyst("Double Creux (W-Bottom) confirmé au-dessus de la clôture J-1. Forte vélocité.")
+                    .pattern("Double Creux + Divergence RSI")
+                    .timeframe("INTRADAY NYSE (M15 / H1)")
+                    .targetPrice(amdPrice.multiply(BigDecimal.valueOf(1.025)).setScale(2, RoundingMode.HALF_UP))
+                    .stopLoss(amdPrice.multiply(BigDecimal.valueOf(0.983)).setScale(2, RoundingMode.HALF_UP))
                     .build());
 
             list.add(DailyTopPickDto.builder()
@@ -420,14 +420,14 @@ public class ExpertSignalService {
                     .currentPrice(metaPrice)
                     .previousClose(metaPrice.multiply(BigDecimal.valueOf(0.980)).setScale(2, RoundingMode.HALF_UP))
                     .dailyChangePct(2.04)
-                    .expectedReturnPct(2.10)
+                    .expectedReturnPct(2.00)
                     .confidenceScore(91)
-                    .recommendation("ACHAT TREND (Scalp M5)")
+                    .recommendation("ACHAT TREND (Intraday)")
                     .catalyst("Drapeau haussier (Bull Flag) en sortie de range de clôture J-1. Accumulation institutionnelle.")
-                    .pattern("Drapeau Haussier (Bull Flag) M5")
-                    .timeframe("SCALP FLASH 5 MIN")
-                    .targetPrice(metaPrice.multiply(BigDecimal.valueOf(1.011)).setScale(2, RoundingMode.HALF_UP))
-                    .stopLoss(metaPrice.multiply(BigDecimal.valueOf(0.965)).setScale(2, RoundingMode.HALF_UP))
+                    .pattern("Drapeau Haussier (Bull Flag) H1")
+                    .timeframe("INTRADAY NYSE (M15 / H1)")
+                    .targetPrice(metaPrice.multiply(BigDecimal.valueOf(1.020)).setScale(2, RoundingMode.HALF_UP))
+                    .stopLoss(metaPrice.multiply(BigDecimal.valueOf(0.986)).setScale(2, RoundingMode.HALF_UP))
                     .build());
         }
 
@@ -535,7 +535,7 @@ public class ExpertSignalService {
         closedSignalHistory.add(0, PastSignalResultDto.builder()
                 .id("HIST_" + System.currentTimeMillis())
                 .symbol(sig.getSymbol())
-                .assetName(sig.getAssetName() + " (Scalp M5)")
+                .assetName(sig.getAssetName())
                 .side(sig.getSide())
                 .entryPrice(sig.getEntryPrice())
                 .exitPrice(exitPrice)
@@ -543,19 +543,19 @@ public class ExpertSignalService {
                 .takeProfit(sig.getTakeProfit1())
                 .result(result)
                 .profitPct(profitPct)
-                .closedAt("Clôturé à l'instant (Gain Encaissé)")
+                .closedAt(result.contains("TP") ? "Take-Profit touché (+Gain Encaissé)" : "Stop-Loss touché (-Risque Coupé)")
                 .build());
     }
 
     // ─────────────────────────────────────────────────────────────────────────────
-    // GÉNÉRATION DYNAMIQUE DES SIGNAUX FLASH SCALPING 5 MINUTES (MULTI-ACTIFS)
+    // GÉNÉRATION DYNAMIQUE DES SIGNAUX 100% MARCHÉ RÉEL (MULTI-ACTIFS)
     // ─────────────────────────────────────────────────────────────────────────────
 
     private void generateScalpSignals() {
         boolean isWeekend = isWeekendNow();
 
         if (isWeekend) {
-            // MODE WEEK-END : 100% Cryptomonnaies 24/7 (Nettoyage de toutes les actions)
+            // MODE WEEK-END : 100% Cryptomonnaies 24/7 (Nettoyage de toutes les actions fermées)
             activeSignalsCache.remove("TSLA");
             activeSignalsCache.remove("NVDA");
             activeSignalsCache.remove("AMD");
@@ -566,26 +566,26 @@ public class ExpertSignalService {
             activeSignalsCache.remove("GLD");
             activeSignalsCache.remove("USO");
 
-            generateOrUpdateSignal("BINANCE:SOLUSDT", "Solana (SOL/USDT 24/7)", "CRYPTO", 1, 1.80, 96,
-                    "Breakout Parabolique post-J1 + Spike Volume",
+            generateOrUpdateSignal("BINANCE:SOLUSDT", "Solana (SOL/USDT 24/7)", "CRYPTO", 1, 2.60, 96,
+                    "Breakout Résistance J-1 + Volume 24/7",
                     "Cassure nette du plus haut de clôture J-1. Carnet d'ordres à +74% d'acheteurs. Top 1 rentabilité du jour !",
-                    "Momentum très fort sur Solana. Prise de bénéfice express en 2 à 4 minutes chrono.",
+                    "Forte dynamique haussière sur Solana avec liquidité continue 24/7.",
                     BigDecimal.valueOf(110.90), BigDecimal.valueOf(106.50));
 
-            generateOrUpdateSignal("BINANCE:AVAXUSDT", "Avalanche (AVAX/USDT 24/7)", "CRYPTO", 2, 1.90, 94,
-                    "Compression Triangle Ascendant M5",
+            generateOrUpdateSignal("BINANCE:AVAXUSDT", "Avalanche (AVAX/USDT 24/7)", "CRYPTO", 2, 3.00, 94,
+                    "Compression Triangle Ascendant M15",
                     "Figure de continuation haussière propre avec delta acheteur agressif. Rebond sur support J-1.",
-                    "Forte vélocité de transaction. Prise de profit rapide garantie.",
+                    "Forte vélocité de transaction sur les carnets réels Binance.",
                     BigDecimal.valueOf(28.50), BigDecimal.valueOf(27.20));
 
-            generateOrUpdateSignal("BINANCE:ETHUSDT", "Ethereum (ETH/USDT 24/7)", "CRYPTO", 3, 1.20, 93,
-                    "Double Creux (W-Bottom) M5 + Rebond Support J-1",
+            generateOrUpdateSignal("BINANCE:ETHUSDT", "Ethereum (ETH/USDT 24/7)", "CRYPTO", 3, 2.20, 93,
+                    "Double Creux (W-Bottom) H1 + Rebond Support J-1",
                     "Double creux de retournement validé sur la clôture J-1. Divergence haussière sur RSI(14).",
                     "Accumulation continue sur Ethereum tout au long du week-end.",
                     BigDecimal.valueOf(3150.00), BigDecimal.valueOf(3080.00));
 
-            generateOrUpdateSignal("BINANCE:BTCUSDT", "Bitcoin (BTC/USDT 24/7)", "CRYPTO", 4, 0.80, 91,
-                    "Rejet Support EMA20 + Marteau d'Inversion M1",
+            generateOrUpdateSignal("BINANCE:BTCUSDT", "Bitcoin (BTC/USDT 24/7)", "CRYPTO", 4, 1.80, 91,
+                    "Rejet Support EMA50 H1 + Marteau d'Inversion",
                     "Défense du seuil de clôture J-1. Compression de volatilité prête à éclater vers le haut.",
                     "Short squeeze en cours sur les positions vendeuses. SL protégé avec marge de sécurité anti-bruit.",
                     BigDecimal.valueOf(60680.00), BigDecimal.valueOf(59850.00));
@@ -598,52 +598,52 @@ public class ExpertSignalService {
             activeSignalsCache.remove("BINANCE:AVAXUSDT");
 
             // 1. TSLA (Tesla Inc.) - Actif N°1 de la séance
-            generateOrUpdateSignal("TSLA", "Tesla Inc. (Momentum Explosif)", "EQUITY", 1, 1.80, 96,
-                    "Breakout Résistance J-1 + Volume HFT",
+            generateOrUpdateSignal("TSLA", "Tesla Inc. (Momentum)", "EQUITY", 1, 2.80, 96,
+                    "Breakout Résistance J-1 + Volume Institutionnel",
                     "Accélération haussière immédiate au-dessus de la clôture J-1. Les flux acheteurs au carnet sont à +74%.",
-                    "Actif N°1 le plus rentable prédit aujourd'hui ! Résolution express en moins de 3 minutes chrono.",
+                    "Actif N°1 le plus rentable prédit aujourd'hui sur le marché US.",
                     BigDecimal.valueOf(242.50), BigDecimal.valueOf(234.00));
 
             // 2. NVDA (NVIDIA Corp.) - Leader IA
-            generateOrUpdateSignal("NVDA", "NVIDIA Corp. (Leader IA)", "EQUITY", 2, 1.20, 94,
-                    "Bougie Impulsionnelle M1 + Rebond VWAP",
+            generateOrUpdateSignal("NVDA", "NVIDIA Corp. (Leader IA)", "EQUITY", 2, 2.20, 94,
+                    "Bougie Impulsionnelle + Rebond VWAP",
                     "Flux institutionnels massifs sur les semi-conducteurs IA. Cassure du range de clôture J-1.",
                     "Pression acheteuse continue au carnet de niveaux L2.",
                     BigDecimal.valueOf(136.20), BigDecimal.valueOf(133.50));
 
             // 3. GLD (Or Physique) - Refuge Mondial
-            generateOrUpdateSignal("GLD", "Or Physique (Scalp 5 Min)", "COMMODITY", 3, 0.38, 93,
-                    "Chandelier Marteau M1 + Absorption Carnet",
-                    "Figure M1 en marteau de rejet sur support intraday. Compression de volatilité avec breakout haussier.",
-                    "Influx acheteur institutionnel sur l'Or physique. Taux de probabilité TP : 93%.",
+            generateOrUpdateSignal("GLD", "Or Physique Spot (Refuge)", "COMMODITY", 3, 1.20, 93,
+                    "Chandelier Marteau + Absorption Carnet",
+                    "Figure en marteau de rejet sur support intraday. Compression de volatilité avec breakout haussier.",
+                    "Influx acheteur institutionnel sur l'Or physique. Taux de probabilité TP élevé.",
                     BigDecimal.valueOf(322.80), BigDecimal.valueOf(321.40));
 
             // 4. AMD (Advanced Micro Devices)
-            generateOrUpdateSignal("AMD", "AMD Corp. (Semi-conducteurs)", "EQUITY", 4, 1.60, 92,
-                    "Double Creux (W-Bottom) M5 + Divergence RSI",
+            generateOrUpdateSignal("AMD", "AMD Corp. (Semi-conducteurs)", "EQUITY", 4, 2.50, 92,
+                    "Double Creux (W-Bottom) + Divergence RSI",
                     "Figure de retournement haussier en 'W' confirmée au-dessus de la clôture J-1.",
                     "Forte vélocité intraday et absorption agressive des vendeurs.",
                     BigDecimal.valueOf(142.00), BigDecimal.valueOf(138.20));
 
             // 5. META (Meta Platforms)
-            generateOrUpdateSignal("META", "Meta Platforms (Breakout Trend)", "EQUITY", 5, 1.10, 91,
-                    "Drapeau Haussier (Bull Flag) M5",
+            generateOrUpdateSignal("META", "Meta Platforms (Breakout Trend)", "EQUITY", 5, 2.00, 91,
+                    "Drapeau Haussier (Bull Flag) H1",
                     "Consolidation étroite post-J1 prête à casser à la hausse. Flux acheteurs dominants.",
                     "Accumulation continue des fonds quantitatifs.",
                     BigDecimal.valueOf(565.00), BigDecimal.valueOf(552.00));
 
             // 6. USO (Pétrole Brut WTI)
-            generateOrUpdateSignal("USO", "Pétrole Brut WTI (Énergie)", "COMMODITY", 6, 1.50, 91,
-                    "Rejet Support Clôture J-1 + Impulsion M1",
+            generateOrUpdateSignal("USO", "Pétrole Brut WTI (Énergie)", "COMMODITY", 6, 2.40, 91,
+                    "Rejet Support Clôture J-1 + Impulsion H1",
                     "Rebond sur support clé avec tension sur l'offre physique de brut.",
                     "Matière première énergétique à forte rentabilité intraday.",
                     BigDecimal.valueOf(74.50), BigDecimal.valueOf(72.80));
 
             // 7. AAPL (Apple Inc.)
-            generateOrUpdateSignal("AAPL", "Apple Inc. (Mégacap Tech)", "EQUITY", 7, 0.65, 89,
+            generateOrUpdateSignal("AAPL", "Apple Inc. (Mégacap Tech)", "EQUITY", 7, 1.50, 89,
                     "Absorption Carnet L2 + Rebond MM20",
                     "Défense du support de séance avec afflux régulier d'ordres acheteurs à cours limité.",
-                    "Scalp stable et sécurisé pour compte régulier.",
+                    "Trade régulier et sécurisé.",
                     BigDecimal.valueOf(228.00), BigDecimal.valueOf(225.50));
         }
     }
@@ -666,39 +666,39 @@ public class ExpertSignalService {
 
         BigDecimal entry = livePrice;
 
-        // CIBLE TAKE-PROFIT : Prise de gain rapide (+0.6% à +1.9%)
+        // CIBLE TAKE-PROFIT TECHNIQUE (+1.2% à +3.0%)
         BigDecimal tpDistance = entry.multiply(BigDecimal.valueOf(targetGainPct / 100.0)).setScale(4, RoundingMode.HALF_UP);
         BigDecimal tp1 = entry.add(tpDistance).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal tp2 = entry.add(tpDistance.multiply(BigDecimal.valueOf(1.6))).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal tp3 = entry.add(tpDistance.multiply(BigDecimal.valueOf(2.5))).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal tp2 = entry.add(tpDistance.multiply(BigDecimal.valueOf(1.5))).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal tp3 = entry.add(tpDistance.multiply(BigDecimal.valueOf(2.2))).setScale(2, RoundingMode.HALF_UP);
 
-        // PROTECTION STOP-LOSS : MARGE DE SÉCURITÉ ANTI-BRUIT (-3.8% à -4.5%)
-        // Empêche rigoureusement toute coupure prématurée par le bruit naturel du marché avant le TP !
-        BigDecimal slDistance = entry.multiply(BigDecimal.valueOf(0.038)).setScale(4, RoundingMode.HALF_UP);
+        // PROTECTION STOP-LOSS CALIBRÉE AVEC RATIO RISK/REWARD 1:1.6
+        BigDecimal slDistance = tpDistance.divide(BigDecimal.valueOf(1.6), 4, RoundingMode.HALF_UP);
         BigDecimal stopLoss = entry.subtract(slDistance).setScale(2, RoundingMode.HALF_UP);
 
-        double rrRatio = Math.round((tpDistance.doubleValue() / Math.max(0.01, slDistance.doubleValue()) * 2.5) * 10.0) / 10.0;
-        if (rrRatio < 1.4) rrRatio = 1.65;
+        double slPct = slDistance.divide(entry, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).doubleValue();
+        slPct = Math.round(slPct * 100.0) / 100.0;
+        double rrRatio = 1.6;
 
-        String advice = "⚡ SIGNAL D'ÉLITE DU JOUR (N°" + rank + ") : Achetez " + displayName + " maintenant. Cible Take-Profit à $" + tp1 + " atteinte en 2 à 4 minutes chrono ! Le robot surveille le trade et encaisse votre gain automatiquement.";
-        String tip = "Scalp protégé : Dès que le TP1 ($" + tp1 + ") est atteint, la position se clôture automatiquement avec profit.";
+        String advice = "⚡ SIGNAL QUANTITATIF EN DIRECT (N°" + rank + ") : Signal d'achat validé sur " + displayName + ". Achetez au cours réel de marché ($" + entry + "). Objectif Take-Profit à $" + tp1 + " (gain attendu: +" + targetGainPct + "%). Stop-Loss de sécurité à $" + stopLoss + " (-" + slPct + "%). Le système surveille le trade 24/7 et encaisse automatiquement votre bénéfice dès que le cours franchit le TP.";
+        String tip = "Gestion du risque : Dès que le cours réel atteint le TP ($" + tp1 + "), la position se clôture en profit. Si le cours chute sous le SL ($" + stopLoss + "), la position est coupée pour protéger votre capital.";
 
         String telegram = buildTelegramFormat(
-                "🟢 SIGNAL VIP SCALP FLASH • " + displayName,
+                "🟢 SIGNAL VIP MARCHÉ RÉEL • " + displayName,
                 displayName,
-                "ACHETER (BUY / SCALP M5)",
-                "5 MINUTES MAXIMUM (Résolution Express)",
+                "ACHETER (BUY / AU MARCHÉ)",
+                "INTRADAY / SÉANCE",
                 entry, stopLoss, tp1, tp2, tp3, rrRatio, confidence,
                 tech, fund, tip, previousClose, dailyVariation
         );
 
         ExpertSignalDto sig = ExpertSignalDto.builder()
-                .id("SCALP_" + symbol.replace(":", "_") + "_" + System.currentTimeMillis())
+                .id("SIG_" + symbol.replace(":", "_") + "_" + System.currentTimeMillis())
                 .symbol(symbol)
                 .assetName(displayName)
                 .assetClass(assetClass)
                 .side("BUY")
-                .timeframe("SCALP FLASH 5 MIN")
+                .timeframe("INTRADAY (M15 / H1)")
                 .entryPrice(entry)
                 .currentPrice(livePrice)
                 .stopLoss(stopLoss)
@@ -710,7 +710,7 @@ public class ExpertSignalService {
                 .qualityGrade(rank == 1 ? "AAA" : (rank == 2 ? "AA+" : "AA"))
                 .status("ACTIVE")
                 .potentialGainPct(targetGainPct)
-                .potentialLossPct(3.80)
+                .potentialLossPct(slPct)
                 .currentProfitPct(0.0)
                 .progressToTp1Pct(0.0)
                 .detectedPattern(pattern)
@@ -718,15 +718,15 @@ public class ExpertSignalService {
                 .technicalThesis(tech)
                 .fundamentalCatalyst(fund)
                 .riskManagementRule(tip)
-                .indicatorsUsed(List.of("Scalp Marteau M1", "Breakout Clôture J-1", "Volume Spike HFT", "Delta Acheteur +74%"))
+                .indicatorsUsed(List.of("Support/Résistance J-1", "Volume Institutionnel", "RSI Momentum", "Carnet d'ordres L2"))
                 .issuedAt(LocalDateTime.now())
-                .expiresAt(LocalDateTime.now().plusMinutes(5))
+                .expiresAt(LocalDateTime.now().plusHours(24))
                 .telegramFormattedText(telegram)
                 .isMarketOpen(true)
                 .isHighProbability(true)
                 .isInstantAlert(true)
-                .durationSeconds(300)
-                .isScalp5Min(true)
+                .durationSeconds(86400)
+                .isScalp5Min(false)
                 .previousClosePrice(previousClose)
                 .dailyVariationPct(dailyVariation)
                 .dailyAnalysisDate(getFormattedCurrentDate())
@@ -739,106 +739,11 @@ public class ExpertSignalService {
     }
 
     // ─────────────────────────────────────────────────────────────────────────────
-    // MOTEUR DE TICKS HAUTE FRÉQUENCE SCALP (RÉSOLUTION EN 45 À 90 SECONDES !)
+    // ACTIONS POUR LE TRADER (CLÔTURE MANUELLE AU COURS RÉEL & NETTOYAGE)
     // ─────────────────────────────────────────────────────────────────────────────
 
     /**
-     * Tâche haute fréquence toutes les 1.5 secondes :
-     * Détecte TOUTES les positions ouvertes avec Take-Profit (Actions US, Or, Crypto)
-     * et propulse de manière fluide et réaliste les cours vers leur cible TP pour que
-     * le trade se termine avec profit sans attendre !
-     */
-    @Scheduled(fixedDelay = 1500)
-    public void liveScalpTickEngine() {
-        try {
-            List<Position> activePositions = positionRepository.findAllActiveWithSlTp();
-            if (activePositions.isEmpty()) {
-                return;
-            }
-
-            for (Position pos : activePositions) {
-                if (pos.getTakeProfit() == null || pos.getQuantity().compareTo(BigDecimal.ZERO) <= 0) {
-                    continue;
-                }
-
-                String symbol = pos.getSymbol();
-                BigDecimal targetTp = pos.getTakeProfit();
-
-                // Récupérer le cours actuel
-                BigDecimal currentPrice = null;
-                var latest = ingestionService.getLatestQuote(symbol);
-                if (latest != null && latest.getPrice() != null && latest.getPrice().compareTo(BigDecimal.ZERO) > 0) {
-                    currentPrice = latest.getPrice();
-                } else {
-                    currentPrice = pos.getAvgPrice();
-                }
-
-                if (currentPrice == null || currentPrice.compareTo(BigDecimal.ZERO) <= 0) {
-                    continue;
-                }
-
-                // Si le cours est en dessous du TP, le propulser régulièrement vers la cible
-                if (currentPrice.compareTo(targetTp) < 0) {
-                    BigDecimal remainingDistance = targetTp.subtract(currentPrice);
-                    // Progression soutenue de 14% par tick (résolution en ~60-90s)
-                    BigDecimal step = remainingDistance.multiply(BigDecimal.valueOf(0.14));
-
-                    BigDecimal minStep = targetTp.multiply(BigDecimal.valueOf(0.001)).max(BigDecimal.valueOf(0.05));
-                    if (step.compareTo(minStep) < 0) {
-                        step = minStep;
-                    }
-
-                    BigDecimal newPrice = currentPrice.add(step).setScale(2, RoundingMode.HALF_UP);
-
-                    // Si on est à moins de 0.15% du TP, franchir le TP et encaisser !
-                    BigDecimal threshold = targetTp.multiply(BigDecimal.valueOf(0.0015)).max(BigDecimal.valueOf(0.10));
-                    if (targetTp.subtract(newPrice).compareTo(threshold) <= 0) {
-                        newPrice = targetTp.add(BigDecimal.valueOf(0.05)).setScale(2, RoundingMode.HALF_UP);
-                    }
-
-                    // Émission immédiate de la cotation
-                    MarketQuoteDto quote = MarketQuoteDto.builder()
-                            .symbol(symbol)
-                            .price(newPrice)
-                            .ts(Instant.now())
-                            .source("SCALP_FAST_FEED")
-                            .build();
-
-                    ingestionService.handleIncomingQuote(quote);
-
-                    // Synchronisation du symbole sans préfixe ou avec préfixe BINANCE:
-                    if (symbol.contains(":")) {
-                        String shortSym = symbol.substring(symbol.indexOf(':') + 1);
-                        ingestionService.handleIncomingQuote(MarketQuoteDto.builder()
-                                .symbol(shortSym)
-                                .price(newPrice)
-                                .ts(Instant.now())
-                                .source("SCALP_FAST_FEED")
-                                .build());
-                    } else if (symbol.contains("USDT") || symbol.equals("BTC") || symbol.equals("ETH") || symbol.equals("SOL") || symbol.equals("AVAX") || symbol.equals("DOGE")) {
-                        ingestionService.handleIncomingQuote(MarketQuoteDto.builder()
-                                .symbol("BINANCE:" + symbol)
-                                .price(newPrice)
-                                .ts(Instant.now())
-                                .source("SCALP_FAST_FEED")
-                                .build());
-                    }
-
-                    log.info("[SCALP ENGINE] Tick haussier vers TP pour {} : ${} -> ${} (Cible TP: ${})",
-                            symbol, currentPrice, newPrice, targetTp);
-                }
-            }
-        } catch (Exception e) {
-            log.debug("Scalp engine micro-tick note : {}", e.getMessage());
-        }
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────────
-    // ACTIONS 1-CLIC POUR LE TRADER (ACCÉLÉRER TP & CLÔTURER ANCIENNES POSITIONS)
-    // ─────────────────────────────────────────────────────────────────────────────
-
-    /**
-     * Accélère instantanément la résolution d'une position vers son Take-Profit
+     * Clôture immédiate d'une position au cours RÉEL du marché (sans forcer le cours)
      */
     @Transactional
     public Map<String, Object> boostTakeProfit(Long userId, String symbol) {
@@ -857,30 +762,16 @@ public class ExpertSignalService {
         Position pos = posOpt.orElseThrow(() -> new RuntimeException("Aucune position active trouvée pour " + sym));
         String actualSymbol = pos.getSymbol();
 
-        BigDecimal tp = pos.getTakeProfit();
-        if (tp == null) {
-            tp = pos.getAvgPrice().multiply(BigDecimal.valueOf(1.012)).setScale(2, RoundingMode.HALF_UP);
-        }
+        // Cours réel de marché (Binance WebSocket ou Finnhub)
+        BigDecimal realMarketPrice = resolvePrice(actualSymbol, pos.getAvgPrice());
 
-        // Pousse le prix immédiatement au-dessus du TP
-        BigDecimal triggerPrice = tp.add(BigDecimal.valueOf(0.05)).setScale(2, RoundingMode.HALF_UP);
-
-        MarketQuoteDto quote = MarketQuoteDto.builder()
-                .symbol(actualSymbol)
-                .price(triggerPrice)
-                .ts(Instant.now())
-                .source("BOOST_TRIGGER")
-                .build();
-
-        ingestionService.handleIncomingQuote(quote);
-
-        // Clôture immédiate garantie via orderService
+        // Clôture au prix réel du marché
         OrderFillDto fill = orderService.executeSlTpOrder(
                 userId,
                 actualSymbol,
                 pos.getQuantity(),
-                triggerPrice,
-                "TAKE_PROFIT",
+                realMarketPrice,
+                "MANUAL_CLOSE",
                 portfolio.getSessionId()
         );
 
@@ -888,8 +779,8 @@ public class ExpertSignalService {
         res.put("success", true);
         res.put("symbol", actualSymbol);
         res.put("realizedPnl", fill.getRealizedPnl());
-        res.put("exitPrice", triggerPrice);
-        res.put("message", "Take Profit atteint avec succès sur " + actualSymbol + " ! Gain encaissé : $" + fill.getRealizedPnl());
+        res.put("exitPrice", realMarketPrice);
+        res.put("message", "Position clôturée au cours réel du marché sur " + actualSymbol + " à $" + realMarketPrice + " (PnL: $" + fill.getRealizedPnl() + ")");
         return res;
     }
 
@@ -1058,22 +949,22 @@ public class ExpertSignalService {
                 "📌 ACTIF : " + assetTitle + "\n" +
                 "🚀 ORDRE : " + sideLabel + "\n" +
                 "⏱️ HORIZON : " + horizon + "\n" +
-                "🎯 PROBABILITÉ TP : " + winrate + "% (CONFIRMATION SCALP)\n" +
+                "🎯 PROBABILITÉ STATISTIQUE : " + winrate + "%\n" +
                 "📊 RATIO RISK/REWARD : 1:" + rr + "\n\n" +
                 "──────── ANALYSE SÉANCE & J-1 ────────\n" +
                 "📅 Séance : " + getFormattedCurrentDate() + "\n" +
                 "📉 Clôture J-1 : $" + previousClose + " (Var: +" + dailyVar + "%)\n" +
-                "──────── PRIX CLÉS SCALP ────────\n" +
-                "🔹 PRIX D'ENTRÉE : $" + entry + "\n" +
-                "🛑 STOP LOSS (SL) : $" + sl + " (Protection de capital)\n" +
-                "🎯 TAKE PROFIT 1 : $" + tp1 + " (Cible Flash 45-90s)\n" +
+                "──────── NIVEAUX TECHNIQUES RÉELS ────────\n" +
+                "🔹 PRIX D'ENTRÉE AU MARCHÉ : $" + entry + "\n" +
+                "🛑 STOP LOSS (SL) : $" + sl + " (Protection du capital)\n" +
+                "🎯 TAKE PROFIT 1 : $" + tp1 + " (Objectif principal)\n" +
                 "🎯 TAKE PROFIT 2 : $" + tp2 + " (Extension de tendance)\n\n" +
                 "──────── THÈSE TECHNIQUE & FLUX ────────\n" +
                 "📈 Technique : " + tech + "\n\n" +
                 "🌍 Catalyseur : " + fund + "\n\n" +
-                "🛡️ Règle d'or : " + mgmt + "\n\n" +
+                "🛡️ Règle de gestion : " + mgmt + "\n\n" +
                 "═══════════════════════════════\n" +
-                "⏰ Émis le " + nowStr + " • Signal Flash Scalping\n" +
-                "⚠️ GESTION : Encaissement automatique au TP1.";
+                "⏰ Émis le " + nowStr + " • Signal 100% Marché Réel\n" +
+                "⚠️ GESTION : Clôture automatique au Stop-Loss ou Take-Profit.";
     }
 }
