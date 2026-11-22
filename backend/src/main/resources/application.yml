@@ -33,7 +33,7 @@ app:
     secret: ${JWT_SECRET:4c69b2d887e5f1a92e10c73294c6b840e34b9d09a25ef14c995f3b728d1c92ea}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000} # 24 heures en millisecondes
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://10.174.80.50:5173}
   finnhub:
     api-key: ${FINNHUB_API_KEY:db6bck9r01qmd5lj8b6gdb6bck9r01qmd5lj8b70}
     webhook-secret: ${FINNHUB_WEBHOOK_SECRET:db6bck9r01qmd5lj8b80}

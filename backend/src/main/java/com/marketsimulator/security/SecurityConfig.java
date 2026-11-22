@@ -96,6 +96,15 @@ public class SecurityConfig {
                 .toList();
 
         configuration.setAllowedOrigins(origins);
+        configuration.setAllowedOriginPatterns(List.of(
+                "http://localhost:*",
+                "http://127.0.0.1:*",
+                "http://10.*:*",
+                "http://192.168.*:*",
+                "http://172.1*.*:*",
+                "http://172.2*.*:*",
+                "http://172.3*.*:*"
+        ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin"));
         configuration.setExposedHeaders(List.of("Authorization"));
