@@ -2081,6 +2081,28 @@ export const DuelArenaPage: React.FC = () => {
                           <div className="font-bold text-amber-400">{m.winnerName || 'En attente'}</div>
                         </div>
                       </div>
+
+                      {m.status === 'PENDING' && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              const inviteMatch = await getDuelInvite(m.inviteToken);
+                              setCurrentMatch(inviteMatch);
+                              let sc = scenarios.find((s) => s.id === m.scenarioId);
+                              if (!sc) {
+                                try { sc = await getDuelScenario(m.scenarioId); } catch (e) {}
+                              }
+                              if (sc) setSelectedScenario(sc);
+                              handleStartInvitedDuel();
+                            } catch (err) {
+                              console.warn('[DUELS] Erreur chargement match:', err);
+                            }
+                          }}
+                          className="w-full mt-2 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-95"
+                        >
+                          <Play className="w-3.5 h-3.5 fill-current" /> Jouer mon round maintenant
+                        </button>
+                      )}
                     </div>
                   ))
                 )}
