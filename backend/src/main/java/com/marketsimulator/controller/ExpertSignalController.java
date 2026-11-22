@@ -4,15 +4,19 @@ import com.marketsimulator.dto.signal.ExpertSignalDto;
 import com.marketsimulator.dto.signal.MarketHealthDto;
 import com.marketsimulator.dto.signal.ScanSignalsRequest;
 import com.marketsimulator.dto.signal.SignalTrackRecordDto;
+import com.marketsimulator.repository.UserRepository;
 import com.marketsimulator.service.signal.ExpertSignalService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/signals")
@@ -22,6 +26,7 @@ import java.util.List;
 public class ExpertSignalController {
 
     private final ExpertSignalService signalService;
+    private final UserRepository userRepository;
 
     @Operation(summary = "Évaluer la santé et la stabilité du marché (NYSE & Or)")
     @GetMapping("/health")
@@ -57,5 +62,28 @@ public class ExpertSignalController {
     @GetMapping("/track-record")
     public ResponseEntity<SignalTrackRecordDto> getTrackRecord() {
         return ResponseEntity.ok(signalService.getTrackRecord());
+    }
+
+    @Operation(summary = "Accélérer l'exécution d'une position vers son Take-Profit (Fast-Forward TP)")
+    @PostMapping("/boost-tp/{symbol}")
+    public ResponseEntity<Map<String, Object>> boostTakeProfit(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable String symbol) {
+        Long userId = resolveUserId(userDetails);
+        return ResponseEntity.ok(signalService.boostTakeProfit(userId, symbol));
+    }
+
+    @Operation(summary = "Clôturer les anciennes positions Swing bloquées pour faire place aux Scalps 5 minutes")
+    @PostMapping("/close-stale-positions")
+    public ResponseEntity<Map<String, Object>> closeStalePositions(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long userId = resolveUserId(userDetails);
+        return ResponseEntity.ok(signalService.closeStalePositions(userId));
+    }
+
+    private Long resolveUserId(UserDetails userDetails) {
+        return userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"))
+                .getId();
     }
 }

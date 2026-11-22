@@ -25,6 +25,8 @@ export interface ExpertSignal {
   detectedPattern?: string;
   beginnerAdvice?: string;
   isInstantAlert?: boolean;
+  durationSeconds?: number;
+  isScalp5Min?: boolean;
   createdAt?: string;
   validUntil?: string;
 }

@@ -20,3 +20,13 @@ export const getSignalTrackRecord = async (): Promise<SignalTrackRecord> => {
   const response = await api.get<SignalTrackRecord>('/api/signals/track-record');
   return response.data;
 };
+
+export const boostTakeProfit = async (symbol: string): Promise<{ success: boolean; realizedPnl: number; message: string }> => {
+  const response = await api.post<{ success: boolean; realizedPnl: number; message: string }>(`/api/signals/boost-tp/${symbol}`);
+  return response.data;
+};
+
+export const closeStalePositions = async (): Promise<{ closedCount: number; totalPnl: number; message: string }> => {
+  const response = await api.post<{ closedCount: number; totalPnl: number; message: string }>('/api/signals/close-stale-positions');
+  return response.data;
+};

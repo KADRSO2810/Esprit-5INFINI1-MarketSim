@@ -46,4 +46,6 @@ public class ExpertSignalDto {
     private Boolean isMarketOpen;
     private Boolean isHighProbability;
     private Boolean isInstantAlert;
+    private Integer durationSeconds; // Durée max du scalp (ex: 300 = 5 minutes)
+    private Boolean isScalp5Min; // true pour les signaux turbo 5 minutes
 }
