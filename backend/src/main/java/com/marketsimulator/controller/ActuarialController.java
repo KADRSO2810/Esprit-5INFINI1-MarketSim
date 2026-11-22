@@ -65,6 +65,24 @@ public class ActuarialController {
         return ResponseEntity.ok(list);
     }
 
+    @Operation(summary = "Analyse actuarielle du risque de trading : Théorie de la Ruine, EVT Queues Lourdes, Survie Kaplan-Meier et Solvabilité II")
+    @GetMapping("/trading-risk")
+    public ResponseEntity<TradingActuarialAnalysisDto> getTradingRiskAnalysis(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(defaultValue = "0") Long sessionId) {
+        Long userId = getUserId(userDetails);
+        PortfolioSummaryDto summary = portfolioService.getSummary(userId, sessionId);
+        BigDecimal capital = summary != null && summary.getEquity() != null ? summary.getEquity() : BigDecimal.valueOf(100_000);
+        return ResponseEntity.ok(actuarialService.calculateTradingActuarialRisk(capital));
+    }
+
+    @Operation(summary = "Simulation stochastique de Ruine de Cramér-Lundberg pour un compte de trading (Monte Carlo)")
+    @PostMapping("/simulate-ruin")
+    public ResponseEntity<SimulateRuinResultDto> simulateTradingRuin(
+            @RequestBody SimulateRuinRequestDto request) {
+        return ResponseEntity.ok(actuarialService.simulateCramerLundbergRuin(request));
+    }
+
     @Operation(summary = "Transfère l'excédent / bénéfice technique d'assurance vers le Cash de trading (ALM Transfer)")
     @PostMapping("/transfer-to-trading")
     public ResponseEntity<PortfolioSummaryDto> transferToTrading(
