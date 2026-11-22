@@ -74,7 +74,7 @@ export interface MarketHealth {
 }
 
 export interface ScanSignalsRequest {
-  assetFilter: 'ALL' | 'GOLD' | 'STOCKS' | 'CRYPTO';
+  assetFilter: 'ALL' | 'TOP' | 'GOLD' | 'COMMODITIES' | 'STOCKS' | 'CRYPTO';
   forceSimulatedScan: boolean;
   minRiskReward: number;
 }

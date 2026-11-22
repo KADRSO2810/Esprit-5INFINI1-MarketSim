@@ -220,15 +220,15 @@ public class StopLossTakeProfitService {
         String triggerType = null;
         BigDecimal triggerPrice = null;
 
-        // Condition Stop-Loss : cours actuel <= seuil SL
-        if (sl != null && marketPrice.compareTo(sl) <= 0) {
-            triggerType = "STOP_LOSS";
-            triggerPrice = sl;
-        }
-        // Condition Take-Profit : cours actuel >= seuil TP
-        else if (tp != null && marketPrice.compareTo(tp) >= 0) {
+        // Condition Take-Profit prioritaire : cours actuel >= seuil TP
+        if (tp != null && marketPrice.compareTo(tp) >= 0) {
             triggerType = "TAKE_PROFIT";
             triggerPrice = tp;
+        }
+        // Condition Stop-Loss : cours actuel <= seuil SL
+        else if (sl != null && marketPrice.compareTo(sl) <= 0) {
+            triggerType = "STOP_LOSS";
+            triggerPrice = sl;
         }
 
         if (triggerType == null) {

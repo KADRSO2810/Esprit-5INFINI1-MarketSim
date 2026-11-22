@@ -47,7 +47,7 @@ export const ExpertSignalsPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<'BEGINNER' | 'PRO'>('BEGINNER');
 
   // Filters & State
-  const [activeTab, setActiveTab] = useState<'ALL' | 'GOLD' | 'STOCKS' | 'CRYPTO' | 'TRACK_RECORD'>('ALL');
+  const [activeTab, setActiveTab] = useState<'ALL' | 'TOP' | 'STOCKS' | 'COMMODITIES' | 'CRYPTO' | 'TRACK_RECORD'>('ALL');
   const [forceSimulated] = useState<boolean>(true);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -864,7 +864,18 @@ export const ExpertSignalsPage: React.FC = () => {
                       : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
                   }`}
                 >
-                  {health?.isWeekendSession ? '⚡ Tous les Scalps 24/7' : '🌐 Tous les Scalps 5 Min'}
+                  {health?.isWeekendSession ? `⚡ Tous les Scalps 24/7 (${signals.length})` : `🌐 Tous les Scalps (${signals.length})`}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('TOP')}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                    activeTab === 'TOP'
+                      ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                      : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                  }`}
+                >
+                  🚀 Top 1 Du Jour (Actif Roi)
                 </button>
 
                 {health?.isWeekendSession ? (
@@ -876,20 +887,10 @@ export const ExpertSignalsPage: React.FC = () => {
                         : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
                     }`}
                   >
-                    ₿ Cryptos Majeures (SOL, ETH, BTC)
+                    ₿ Cryptos 24/7 (SOL, AVAX, ETH, BTC)
                   </button>
                 ) : (
                   <>
-                    <button
-                      onClick={() => setActiveTab('GOLD')}
-                      className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                        activeTab === 'GOLD'
-                          ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                          : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
-                      }`}
-                    >
-                      🏆 Scalp Or (GLD / Métaux)
-                    </button>
                     <button
                       onClick={() => setActiveTab('STOCKS')}
                       className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
@@ -898,7 +899,17 @@ export const ExpertSignalsPage: React.FC = () => {
                           : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
                       }`}
                     >
-                      🏛️ Actions US (NVDA, AAPL)
+                      🏛️ Actions US (TSLA, NVDA, META, AMD...)
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('COMMODITIES')}
+                      className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                        activeTab === 'COMMODITIES'
+                          ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                          : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                      }`}
+                    >
+                      🏆 Matières Premières (Or GLD, Pétrole USO)
                     </button>
                   </>
                 )}
