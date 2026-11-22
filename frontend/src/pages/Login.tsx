@@ -47,7 +47,8 @@ export const Login: React.FC = () => {
   const location = useLocation();
   const toast = useToast();
 
-  const from = (location.state as { from?: { pathname?: string } })?.from?.pathname || '/app';
+  const fromState = (location.state as { from?: { pathname?: string; search?: string } })?.from;
+  const from = fromState ? `${fromState.pathname || '/app'}${fromState.search || ''}` : '/app';
 
   useEffect(() => {
     return () => {

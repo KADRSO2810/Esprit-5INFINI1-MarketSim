@@ -38,6 +38,7 @@ import {
 import { CustomChallenge } from '../types/challenge';
 import {
   getDuelScenarios,
+  getDuelScenario,
   createAiDuel,
   createFriendDuel,
   submitDuelRun,
@@ -108,6 +109,7 @@ export const DuelArenaPage: React.FC = () => {
   const [custom1v1FriendEmail, setCustom1v1FriendEmail] = useState<string>('');
   const [custom1v1InviteUrl, setCustom1v1InviteUrl] = useState<string | null>(null);
   const [copiedCustom1v1, setCopiedCustom1v1] = useState<boolean>(false);
+  const [copiedWifi1v1, setCopiedWifi1v1] = useState<boolean>(false);
   const [isCreating1v1, setIsCreating1v1] = useState<boolean>(false);
 
   // Opponent Live Simulation State
@@ -139,8 +141,17 @@ export const DuelArenaPage: React.FC = () => {
           try {
             const inviteMatch = await getDuelInvite(inviteTokenParam);
             setCurrentMatch(inviteMatch);
-            const foundScenario = scList.find((s) => s.id === inviteMatch.scenarioId) || scList[0];
-            setSelectedScenario(foundScenario);
+            let foundScenario = scList.find((s) => s.id === inviteMatch.scenarioId);
+            if (!foundScenario) {
+              try {
+                foundScenario = await getDuelScenario(inviteMatch.scenarioId);
+              } catch (scErr) {
+                console.warn('[DUELS] Scénario spécifique non trouvé:', scErr);
+              }
+            }
+            if (foundScenario) {
+              setSelectedScenario(foundScenario);
+            }
           } catch (e) {
             console.warn('[DUELS] Défi introuvable avec ce token:', e);
           }
@@ -207,6 +218,11 @@ export const DuelArenaPage: React.FC = () => {
 
   // Current Opponent Equity
   const opponentCurrentEquity = useMemo(() => {
+    const isUserChallenger = currentMatch && user && currentMatch.challengerId === user.id;
+    if (currentMatch && !isUserChallenger && currentMatch.challengerEquityCurve && currentMatch.challengerEquityCurve.length > 0) {
+      const idx = Math.min(currentStepIndex, currentMatch.challengerEquityCurve.length - 1);
+      return currentMatch.challengerEquityCurve[idx];
+    }
     if (currentMatch?.opponentEquityCurve && currentMatch.opponentEquityCurve.length > 0) {
       const idx = Math.min(currentStepIndex, currentMatch.opponentEquityCurve.length - 1);
       return currentMatch.opponentEquityCurve[idx];
@@ -216,7 +232,7 @@ export const DuelArenaPage: React.FC = () => {
       return botEquityCurve[idx];
     }
     return initialCapital;
-  }, [currentMatch, botEquityCurve, currentStepIndex, initialCapital]);
+  }, [currentMatch, botEquityCurve, currentStepIndex, initialCapital, user]);
 
   const opponentNetPnl = opponentCurrentEquity - initialCapital;
   const opponentRoi = initialCapital > 0 ? (opponentNetPnl / initialCapital) * 100 : 0;
@@ -550,6 +566,41 @@ export const DuelArenaPage: React.FC = () => {
     playSfx('countdown');
   };
 
+  // ── REJOINDRE LE MATCH EN TANT QU'INVITÉ (1-CLIC) ───────────────────────────
+  const handleStartInvitedDuel = () => {
+    if (!selectedScenario && !currentMatch) return;
+    const startingCapital = selectedScenario?.initialCapital || currentMatch?.initialCapital || 50000;
+    const durSec = selectedScenario?.durationSeconds || 600;
+
+    setCash(startingCapital);
+    setOwnedShares(0);
+    setAvgBuyPrice(0);
+    setRealizedPnl(0);
+    setOrderQuantity(10);
+    setStopLossPrice(null);
+    setTakeProfitPrice(null);
+    setLastAutoExitMessage(null);
+    setPlayerTradesCount(0);
+    setPlayerEquityCurve([startingCapital]);
+    setPlayerPeakEquity(startingCapital);
+    setPlayerMaxDrawdown(0);
+    setCurrentStepIndex(0);
+    setRemainingSeconds(durSec);
+    setReplaySpeed(1);
+    setIsPaused(false);
+    setShowRevealModal(false);
+
+    // Si le challenger a déjà joué son round, injecter sa courbe pour le combat en direct
+    if (currentMatch?.challengerEquityCurve && currentMatch.challengerEquityCurve.length > 0) {
+      setBotEquityCurve(currentMatch.challengerEquityCurve);
+    } else {
+      setBotEquityCurve([startingCapital]);
+    }
+
+    setIsPlaying(true);
+    playSfx('countdown');
+  };
+
   // ── START DUEL DEPUIS LE LOBBY ──────────────────────────────────────────────
   const handleStartDuel = async () => {
     if (!selectedScenario) return;
@@ -872,6 +923,40 @@ export const DuelArenaPage: React.FC = () => {
 
         {/* ── MAIN CONTENT SWITCH ──────────────────────────────────────────────── */}
         <main className="flex-1 p-6 max-w-7xl w-full mx-auto">
+          {/* BANNIÈRE D'INVITATION DUEL 1V1 (QUAND ON ARRIVE AVEC UN TOKEN) */}
+          {!isPlaying && inviteTokenParam && currentMatch && (
+            <div className="mb-6 relative overflow-hidden rounded-3xl border-2 border-cyan-500/80 bg-gradient-to-r from-cyan-950/90 via-slate-900 to-indigo-950/90 p-6 shadow-2xl shadow-cyan-500/20 animate-fadeIn">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-5">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-cyan-500/20 border border-cyan-400 flex items-center justify-center text-cyan-300 shadow-inner">
+                    <Swords className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-mono text-xs font-bold mb-1 border border-cyan-500/40">
+                      ⚔️ INVITATION AU DUEL 1V1 REÇUE
+                    </div>
+                    <h2 className="text-xl font-black text-white tracking-tight">
+                      {currentMatch.challengerName || 'Votre ami'} vous défie en direct !
+                    </h2>
+                    <p className="text-xs text-slate-300 mt-1">
+                      Scénario : <strong className="text-cyan-300 font-mono">{selectedScenario?.codeName || currentMatch.scenarioTitle}</strong> • 
+                      Capital Initial : <strong className="text-white">${(selectedScenario?.initialCapital || currentMatch.initialCapital || 50000).toLocaleString()}</strong> • 
+                      Durée : <strong className="text-amber-400 font-mono">{selectedScenario?.durationSeconds ? Math.round(selectedScenario.durationSeconds / 60) : 10} min</strong>
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleStartInvitedDuel}
+                  className="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-extrabold text-sm rounded-2xl shadow-xl shadow-cyan-500/30 flex items-center justify-center gap-2.5 active:scale-95 transition-all shrink-0"
+                >
+                  <Play className="w-5 h-5 fill-current" />
+                  ACCEPTER LE DÉFI & COMMENCER LE MATCH
+                </button>
+              </div>
+            </div>
+          )}
+
           {isPlaying ? (
             /* ─────────────────────────────────────────────────────────────────── */
             /* 1. DUEL IN-COMBAT LIVE ARENA (SCREEN ACTIVE)                        */
@@ -2188,25 +2273,65 @@ export const DuelArenaPage: React.FC = () => {
                     </p>
                   </div>
 
-                  <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-2">
-                    <input
-                      type="text"
-                      readOnly
-                      value={custom1v1InviteUrl}
-                      className="bg-transparent text-xs font-mono text-cyan-300 w-full focus:outline-none select-all truncate"
-                    />
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(custom1v1InviteUrl);
-                        setCopiedCustom1v1(true);
-                        setTimeout(() => setCopiedCustom1v1(false), 2500);
-                      }}
-                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg flex items-center gap-1 shrink-0 transition-colors"
-                    >
-                      {copiedCustom1v1 ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                      {copiedCustom1v1 ? 'Copié !' : 'Copier'}
-                    </button>
+                  {/* LIEN LOCAL / ACTUEL */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-slate-400 font-semibold block">
+                      Lien local (si test sur ce même PC dans un autre navigateur) :
+                    </span>
+                    <div className="bg-slate-950 border border-slate-800 rounded-xl p-2.5 flex items-center justify-between gap-2">
+                      <input
+                        type="text"
+                        readOnly
+                        value={custom1v1InviteUrl || ''}
+                        className="bg-transparent text-xs font-mono text-cyan-300 w-full focus:outline-none select-all truncate"
+                      />
+                      <button
+                        onClick={() => {
+                          if (custom1v1InviteUrl) navigator.clipboard.writeText(custom1v1InviteUrl);
+                          setCopiedCustom1v1(true);
+                          setTimeout(() => setCopiedCustom1v1(false), 2500);
+                        }}
+                        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg flex items-center gap-1 shrink-0 transition-colors"
+                      >
+                        {copiedCustom1v1 ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                        {copiedCustom1v1 ? 'Copié !' : 'Copier'}
+                      </button>
+                    </div>
                   </div>
+
+                  {/* LIEN RÉSEAU WI-FI POUR LE PC DE L'AMI */}
+                  {(() => {
+                    const lanIp = '10.174.80.50';
+                    const wifiInviteUrl = custom1v1InviteUrl
+                      ? custom1v1InviteUrl.replace(/localhost(:\d+)?/i, `${lanIp}$1`).replace(/127\.0\.0\.1(:\d+)?/i, `${lanIp}$1`)
+                      : '';
+                    return (
+                      <div className="space-y-1 pt-1">
+                        <span className="text-[10px] text-amber-300 font-bold flex items-center gap-1">
+                          🌐 Lien Réseau Wi-Fi (Pour le PC de votre ami connecté au même Wi-Fi) :
+                        </span>
+                        <div className="bg-slate-950 border border-amber-500/40 rounded-xl p-2.5 flex items-center justify-between gap-2 shadow-inner">
+                          <input
+                            type="text"
+                            readOnly
+                            value={wifiInviteUrl}
+                            className="bg-transparent text-xs font-mono text-amber-300 w-full focus:outline-none select-all truncate"
+                          />
+                          <button
+                            onClick={() => {
+                              if (wifiInviteUrl) navigator.clipboard.writeText(wifiInviteUrl);
+                              setCopiedWifi1v1(true);
+                              setTimeout(() => setCopiedWifi1v1(false), 2500);
+                            }}
+                            className="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold rounded-lg flex items-center gap-1 shrink-0 transition-colors"
+                          >
+                            {copiedWifi1v1 ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                            {copiedWifi1v1 ? 'Copié !' : 'Copier Lien Wi-Fi'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   <div className="grid grid-cols-2 gap-2 pt-2">
                     <button

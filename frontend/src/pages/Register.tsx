@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { registerUser, loginUser } from '../api/auth';
@@ -35,7 +35,10 @@ export const Register: React.FC = () => {
   const { login } = useAuth();
   const { beginTradingEntrance } = useAuthTransition();
   const navigate = useNavigate();
+  const location = useLocation();
   const toast = useToast();
+  const fromState = (location.state as { from?: { pathname?: string; search?: string } })?.from;
+  const from = fromState ? `${fromState.pathname || '/app'}${fromState.search || ''}` : '/app';
 
   useEffect(() => {
     return () => {
@@ -78,7 +81,7 @@ export const Register: React.FC = () => {
         typeof window !== 'undefined' &&
         window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
       timerRef.current = window.setTimeout(() => {
-        beginTradingEntrance(() => navigate('/app', { replace: true }));
+        beginTradingEntrance(() => navigate(from, { replace: true }));
       }, reduced ? 240 : 820);
     } catch (err: unknown) {
       setAuthSuccess(false);
