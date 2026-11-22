@@ -71,6 +71,12 @@ public class MultiAssetMarketService {
         } else {
             if (ingestionService != null) {
                 MarketQuoteDto quote = ingestionService.getLatestQuote(symbol);
+                if (quote == null && symbol.contains(":")) {
+                    quote = ingestionService.getLatestQuote(symbol.substring(symbol.indexOf(':') + 1));
+                }
+                if (quote == null && !symbol.contains(":")) {
+                    quote = ingestionService.getLatestQuote("BINANCE:" + symbol);
+                }
                 if (quote != null && quote.getPrice() != null && quote.getPrice().compareTo(BigDecimal.ZERO) > 0) {
                     return quote.getPrice();
                 }

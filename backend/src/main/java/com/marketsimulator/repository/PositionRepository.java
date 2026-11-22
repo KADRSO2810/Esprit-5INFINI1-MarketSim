@@ -27,4 +27,7 @@ public interface PositionRepository extends JpaRepository<Position, Long> {
 
     @Query("SELECT p FROM Position p JOIN FETCH p.portfolio pf JOIN FETCH pf.user WHERE p.symbol = :symbol AND p.quantity > 0 AND (p.stopLoss IS NOT NULL OR p.takeProfit IS NOT NULL)")
     List<Position> findActiveWithSlTpBySymbol(@Param("symbol") String symbol);
+
+    @Query("SELECT p FROM Position p JOIN FETCH p.portfolio pf JOIN FETCH pf.user WHERE p.quantity > 0 AND (p.stopLoss IS NOT NULL OR p.takeProfit IS NOT NULL)")
+    List<Position> findAllActiveWithSlTp();
 }

@@ -1,8 +1,27 @@
+export interface DailyTopPick {
+  rank: number;
+  symbol: string;
+  cleanSymbol: string;
+  assetName: string;
+  assetClass: 'CRYPTO' | 'COMMODITY' | 'EQUITY' | string;
+  currentPrice: number;
+  previousClose: number;
+  dailyChangePct: number;
+  expectedReturnPct: number;
+  confidenceScore: number;
+  recommendation: string;
+  catalyst: string;
+  pattern: string;
+  timeframe: string;
+  targetPrice: number;
+  stopLoss: number;
+}
+
 export interface ExpertSignal {
   id: string;
   symbol: string;
   assetName: string;
-  assetClass: 'COMMODITY' | 'US_STOCK' | 'CRYPTO' | string;
+  assetClass: 'COMMODITY' | 'US_STOCK' | 'CRYPTO' | 'EQUITY' | string;
   side: 'BUY' | 'SELL';
   entryPrice: number;
   currentPrice: number;
@@ -12,7 +31,7 @@ export interface ExpertSignal {
   takeProfit3: number;
   riskRewardRatio: number;
   confidenceScore: number;
-  qualityGrade: 'AAA' | 'AA+' | 'A' | 'B' | string;
+  qualityGrade: 'AAA' | 'AA+' | 'AA' | 'A' | 'B' | string;
   technicalThesis: string;
   fundamentalCatalyst: string;
   riskManagementRule: string;
@@ -27,6 +46,12 @@ export interface ExpertSignal {
   isInstantAlert?: boolean;
   durationSeconds?: number;
   isScalp5Min?: boolean;
+  previousClosePrice?: number;
+  dailyVariationPct?: number;
+  dailyAnalysisDate?: string;
+  isWeekend247?: boolean;
+  isDailyTopPick?: boolean;
+  dailyTopRank?: number;
   createdAt?: string;
   validUntil?: string;
 }
@@ -42,10 +67,14 @@ export interface MarketHealth {
   overallWinRate: number;
   averageRiskReward: number;
   evaluatedAt: string;
+  isWeekendSession: boolean;
+  sessionActiveMarket: string;
+  currentTradingDate: string;
+  dailyTopPredictions: DailyTopPick[];
 }
 
 export interface ScanSignalsRequest {
-  assetFilter: 'ALL' | 'GOLD' | 'STOCKS';
+  assetFilter: 'ALL' | 'GOLD' | 'STOCKS' | 'CRYPTO';
   forceSimulatedScan: boolean;
   minRiskReward: number;
 }

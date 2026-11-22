@@ -22,4 +22,8 @@ public class MarketHealthDto {
     private double overallWinRate;
     private double averageRiskReward;
     private LocalDateTime evaluatedAt;
+    private boolean isWeekendSession; // true le samedi et dimanche
+    private String sessionActiveMarket; // "CRYPTO_24_7" ou "REGULAR_NYSE_GOLD"
+    private String currentTradingDate; // ex: "Dimanche 22 Novembre 2026"
+    private java.util.List<DailyTopPickDto> dailyTopPredictions; // Top 3 des actifs les plus rentables du jour
 }

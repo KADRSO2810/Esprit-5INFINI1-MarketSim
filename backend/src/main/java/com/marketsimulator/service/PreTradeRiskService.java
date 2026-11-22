@@ -429,7 +429,7 @@ public class PreTradeRiskService {
         if (multiAssetMarketService != null) {
             try {
                 AssetClass cls = multiAssetMarketService.resolveAssetClass(symbol);
-                if (cls == AssetClass.COMMODITY || cls == AssetClass.FOREX || cls == AssetClass.BOND) {
+                if (cls == AssetClass.COMMODITY || cls == AssetClass.FOREX || cls == AssetClass.BOND || cls == AssetClass.CRYPTO) {
                     return multiAssetMarketService.resolveExecutionPrice(symbol, "BUY");
                 }
             } catch (Throwable ignored) {}

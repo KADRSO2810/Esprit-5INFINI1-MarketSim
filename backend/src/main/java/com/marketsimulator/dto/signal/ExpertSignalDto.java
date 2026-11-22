@@ -48,4 +48,10 @@ public class ExpertSignalDto {
     private Boolean isInstantAlert;
     private Integer durationSeconds; // Durée max du scalp (ex: 300 = 5 minutes)
     private Boolean isScalp5Min; // true pour les signaux turbo 5 minutes
+    private BigDecimal previousClosePrice; // Clôture J-1
+    private Double dailyVariationPct; // Variation depuis J-1 (%)
+    private String dailyAnalysisDate; // Date du jour (ex: "Dimanche 22 Novembre 2026")
+    private Boolean isWeekend247; // true si actif de trading continu 24/7 (Crypto)
+    private Boolean isDailyTopPick; // true si Top Pick du jour
+    private Integer dailyTopRank; // 1, 2 ou 3
 }

@@ -21,6 +21,10 @@ import {
   TrendingUp,
   FastForward,
   Trash2,
+  Calendar,
+  Flame,
+  Crown,
+  Medal,
 } from 'lucide-react';
 import {
   getMarketHealth,
@@ -30,7 +34,7 @@ import {
   closeStalePositions,
 } from '../api/signals';
 import { placeMarketOrder } from '../api/trading';
-import { ExpertSignal, MarketHealth, SignalTrackRecord } from '../types/signal';
+import { ExpertSignal, MarketHealth, SignalTrackRecord, DailyTopPick } from '../types/signal';
 
 export const ExpertSignalsPage: React.FC = () => {
   const [health, setHealth] = useState<MarketHealth | null>(null);
@@ -43,7 +47,7 @@ export const ExpertSignalsPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<'BEGINNER' | 'PRO'>('BEGINNER');
 
   // Filters & State
-  const [activeTab, setActiveTab] = useState<'ALL' | 'GOLD' | 'STOCKS' | 'TRACK_RECORD'>('ALL');
+  const [activeTab, setActiveTab] = useState<'ALL' | 'GOLD' | 'STOCKS' | 'CRYPTO' | 'TRACK_RECORD'>('ALL');
   const [forceSimulated] = useState<boolean>(true);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -156,18 +160,75 @@ export const ExpertSignalsPage: React.FC = () => {
 
   const handleOpenExecution = (sig: ExpertSignal) => {
     setExecutingSignal(sig);
-    setOrderQuantity(1);
+    const sym = sig.symbol.toUpperCase();
+    if (sym.includes('BTC')) {
+      setOrderQuantity(0.01);
+    } else if (sym.includes('ETH')) {
+      setOrderQuantity(0.1);
+    } else if (sym.includes('SOL')) {
+      setOrderQuantity(1);
+    } else {
+      setOrderQuantity(1);
+    }
     setOrderSuccessMessage(null);
     setOrderErrorMessage(null);
   };
 
   const handleBeginnerQuickTrade = (sig: ExpertSignal, budgetDollars: number) => {
     setExecutingSignal(sig);
-    const calculatedQty = Math.max(1, Math.round(budgetDollars / sig.entryPrice));
+    const sym = sig.symbol.toUpperCase();
+    let calculatedQty: number;
+    if (sym.includes('BTC')) {
+      calculatedQty = parseFloat((budgetDollars / sig.entryPrice).toFixed(4));
+    } else if (sym.includes('ETH')) {
+      calculatedQty = parseFloat((budgetDollars / sig.entryPrice).toFixed(3));
+    } else if (sym.includes('SOL')) {
+      calculatedQty = parseFloat((budgetDollars / sig.entryPrice).toFixed(2));
+    } else {
+      calculatedQty = Math.max(1, Math.round(budgetDollars / sig.entryPrice));
+    }
     setOrderQuantity(calculatedQty);
     setInvestmentBudget(budgetDollars);
     setOrderSuccessMessage(null);
     setOrderErrorMessage(null);
+  };
+
+  const handleCopyTopPick = (pick: DailyTopPick) => {
+    const matching = signals.find(
+      (s) => s.symbol === pick.symbol || s.symbol.includes(pick.cleanSymbol)
+    );
+    if (matching) {
+      handleOpenExecution(matching);
+    } else {
+      const tempSig: ExpertSignal = {
+        id: 'TOP_' + pick.cleanSymbol,
+        symbol: pick.symbol,
+        assetName: pick.assetName,
+        assetClass: pick.assetClass,
+        side: 'BUY',
+        entryPrice: pick.currentPrice,
+        currentPrice: pick.currentPrice,
+        stopLoss: pick.stopLoss,
+        takeProfit1: pick.targetPrice,
+        takeProfit2: pick.targetPrice * 1.01,
+        takeProfit3: pick.targetPrice * 1.02,
+        riskRewardRatio: 1.8,
+        confidenceScore: pick.confidenceScore,
+        qualityGrade: 'AAA',
+        technicalThesis: pick.catalyst,
+        fundamentalCatalyst: pick.catalyst,
+        riskManagementRule: 'Coupe automatique en cas de baisse sous le SL.',
+        indicatorsUsed: ['Breakout Clôture J-1', 'Flux Acheteur HFT 24/7'],
+        telegramFormattedText: '',
+        status: 'ACTIVE',
+        isScalp5Min: true,
+        durationSeconds: 300,
+        previousClosePrice: pick.previousClose,
+        dailyVariationPct: pick.dailyChangePct,
+        dailyAnalysisDate: health?.currentTradingDate,
+      };
+      handleOpenExecution(tempSig);
+    }
   };
 
   const handleConfirmOrder = async () => {
@@ -244,7 +305,7 @@ export const ExpertSignalsPage: React.FC = () => {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  // Meilleur signal actuel pour le mode débutant (Or GLD en priorité)
+  // Meilleur signal actuel pour le mode débutant
   const topPickSignal = signals.length > 0 ? signals[0] : null;
 
   return (
@@ -258,11 +319,11 @@ export const ExpertSignalsPage: React.FC = () => {
               <h4 className="text-xs font-bold text-white flex items-center gap-2">
                 <span>Nettoyage Portefeuille : Clôturer les anciennes positions bloquées</span>
                 <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-rose-500/20 text-rose-300 border border-rose-500/40">
-                  GLD, NVDA, AAPL (4 jours)
+                  GLD, NVDA, AAPL (Anciennes)
                 </span>
               </h4>
               <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
-                Les anciens trades Swing ouverts il y a 4 jours bloquaient votre solde. Cliquez ici pour les fermer
+                Les anciens trades Swing bloquaient votre solde. Cliquez ici pour les fermer
                 au cours actuel et libérer votre capital pour les <strong>Scalps Rapides 5 Minutes</strong>.
               </p>
             </div>
@@ -273,7 +334,7 @@ export const ExpertSignalsPage: React.FC = () => {
             className="px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-500 active:scale-95 transition-all shadow-md shadow-rose-600/20 flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-50"
           >
             <Trash2 className={`w-3.5 h-3.5 ${closingStale ? 'animate-spin' : ''}`} />
-            <span>{closingStale ? 'Clôture en cours...' : '🧹 Clôturer les 3 Anciennes Positions'}</span>
+            <span>{closingStale ? 'Clôture en cours...' : '🧹 Clôturer les Anciennes Positions'}</span>
           </button>
         </div>
 
@@ -298,6 +359,37 @@ export const ExpertSignalsPage: React.FC = () => {
           </div>
         )}
 
+        {/* ── BANNIÈRE WEEK-END 24/7 OU SEMAINE NYSE ── */}
+        {health?.isWeekendSession && (
+          <div className="rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-950/60 via-slate-900 to-slate-900 p-4 shadow-xl flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 font-bold">
+                ₿
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                    BOURSE NYSE FERMÉE LE WEEK-END
+                  </span>
+                  <span className="text-xs font-mono text-emerald-400 font-bold flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    SESSION 100% CRYPTO 24/7 EN DIRECT
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 mt-1">
+                  Les marchés d'actions (NVDA, AAPL) sont fermés le samedi et dimanche. Vos signaux experts d'élite sont
+                  exclusivement orientés sur <strong>Solana (SOL)</strong>, <strong>Ethereum (ETH)</strong> et <strong>Bitcoin (BTC)</strong>,
+                  analysés à partir des clôtures de la veille (J-1).
+                </p>
+              </div>
+            </div>
+            <div className="hidden sm:flex items-center gap-2 text-xs font-mono font-bold text-amber-300 bg-amber-500/10 px-3 py-2 rounded-xl border border-amber-500/30 whitespace-nowrap">
+              <Calendar className="w-4 h-4 text-amber-400" />
+              <span>{health.currentTradingDate || 'Dimanche 22 Novembre 2026'}</span>
+            </div>
+          </div>
+        )}
+
         {/* ── BANNIÈRE HERO SCALP FLASH 5 MINUTES ── */}
         <div className="relative overflow-hidden rounded-2xl border border-amber-500/40 bg-gradient-to-r from-slate-900 via-slate-900 to-amber-950/50 p-6 shadow-xl backdrop-blur-xl">
           <div className="absolute -right-8 -top-8 h-48 w-48 rounded-full bg-amber-500/15 blur-3xl pointer-events-none" />
@@ -313,14 +405,17 @@ export const ExpertSignalsPage: React.FC = () => {
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-mono bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
                   ⏱️ RÉSOLUTION EN 2 À 4 MINUTES MAX
                 </span>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-mono bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                  📅 {health?.currentTradingDate || '22 Novembre 2026'}
+                </span>
               </div>
               <h1 className="text-2xl lg:text-3xl font-extrabold text-white tracking-tight">
                 Signaux Scalp 5 Min & Prise de Bénéfice Express
               </h1>
               <p className="mt-1 text-sm text-slate-300 max-w-2xl leading-relaxed">
-                Fini d'attendre 4 jours sans rien voir se passer ! Ces signaux de <strong>Scalping M1/M5</strong> ciblent
-                des mouvements rapides sur l'<strong>Or (GLD)</strong> et les actions US. Dès que vous cliquez sur Acheter,
-                le moteur de micro-ticks fait progresser le cours vers votre Take-Profit en <strong>moins de 5 minutes chrono</strong>.
+                Fini d'attendre des jours ! Ces signaux flash exploitent les clôtures de la veille (J-1) et les volumes réels.
+                Dès que vous cliquez sur <strong>Acheter</strong>, le moteur de ticks fait grimper le cours vers le Take-Profit
+                en <strong>moins de 5 minutes chrono</strong> !
               </p>
             </div>
 
@@ -401,14 +496,18 @@ export const ExpertSignalsPage: React.FC = () => {
               <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
                 <span className="flex items-center gap-1.5">
                   <Award className="w-3.5 h-3.5 text-amber-400" />
-                  Matière Première & Or
+                  Marché Actif
                 </span>
-                <span className="text-amber-400 font-mono text-xs font-bold">24h/5</span>
+                <span className="text-emerald-400 font-mono text-xs font-bold">
+                  {health.isWeekendSession ? '24/7 OUVERT' : 'SÉANCE US'}
+                </span>
               </div>
               <div className="text-sm font-bold text-amber-300 truncate">
-                Or GLD Spot Proxy
+                {health.isWeekendSession ? '100% Cryptos Spot 24/7' : 'Or GLD & Actions NYSE'}
               </div>
-              <p className="text-[11px] text-slate-400 mt-1">Actif N°1 des canaux de scalping VIP</p>
+              <p className="text-[11px] text-slate-400 mt-1">
+                {health.isWeekendSession ? 'BTC, ETH, SOL analysés sur J-1' : 'NYSE & Comex réguliers'}
+              </p>
             </div>
 
             <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-4 backdrop-blur">
@@ -448,6 +547,126 @@ export const ExpertSignalsPage: React.FC = () => {
           </div>
         )}
 
+        {/* ── TOP 3 PRÉDICTIONS DU JOUR : ACTIFS LES PLUS RENTABLES ── */}
+        {health?.dailyTopPredictions && health.dailyTopPredictions.length > 0 && (
+          <div className="rounded-2xl border border-amber-500/40 bg-gradient-to-b from-slate-900/90 via-slate-900/95 to-slate-950 p-6 shadow-2xl relative">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 pb-4 border-b border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-amber-500/20">
+                  <Crown className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                    <span>🏆 TOP 3 PRÉDICTIONS DE LA SÉANCE : ACTIFS LES PLUS RENTABLES</span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      JOURNÉE DU {health.currentTradingDate ? health.currentTradingDate.toUpperCase() : '22 NOVEMBRE 2026'}
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Classement algorithmique prédictif basé sur l'analyse technique des clôtures J-1, les structures de chandeliers et la liquidité 24/7.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-amber-300 font-mono font-bold bg-amber-500/10 px-3 py-1.5 rounded-lg border border-amber-500/30 flex items-center gap-1.5">
+                  <Flame className="w-3.5 h-3.5 text-amber-400" />
+                  Prise de bénéfice attendue aujourd'hui
+                </span>
+              </div>
+            </div>
+
+            {/* Grille des 3 Cartes Prédictives */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {health.dailyTopPredictions.map((pick) => {
+                const isRank1 = pick.rank === 1;
+                const isRank2 = pick.rank === 2;
+
+                return (
+                  <div
+                    key={pick.symbol}
+                    className={`rounded-xl border p-4 transition-all relative flex flex-col justify-between ${
+                      isRank1
+                        ? 'border-amber-500/50 bg-gradient-to-b from-amber-950/30 to-slate-900 shadow-lg shadow-amber-500/10'
+                        : isRank2
+                        ? 'border-cyan-500/40 bg-gradient-to-b from-cyan-950/20 to-slate-900'
+                        : 'border-slate-800 bg-slate-900/80'
+                    }`}
+                  >
+                    <div>
+                      {/* Badge Rang & Gain Attendu */}
+                      <div className="flex items-center justify-between mb-2">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                            isRank1
+                              ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/30'
+                              : isRank2
+                              ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                              : 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+                          }`}
+                        >
+                          {isRank1 ? <Crown className="w-3 h-3" /> : <Medal className="w-3 h-3" />}
+                          <span>N°{pick.rank} DU JOUR</span>
+                        </span>
+
+                        <span className="text-xs font-mono font-black text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
+                          +{pick.expectedReturnPct}% Prédit
+                        </span>
+                      </div>
+
+                      {/* Symbole & Nom */}
+                      <div className="flex items-center justify-between gap-2 mt-1">
+                        <div>
+                          <h4 className="text-base font-black text-white flex items-center gap-1.5">
+                            <span>{pick.cleanSymbol}</span>
+                            <span className="text-xs text-slate-400 font-normal">({pick.assetName})</span>
+                          </h4>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm font-mono font-bold text-white">
+                            ${pick.currentPrice.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </div>
+                          <div className="text-[10px] text-emerald-400 font-mono">
+                            Var J-1: +{pick.dailyChangePct}%
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Thèse J-1 & Figure Chandelier */}
+                      <div className="mt-3 p-2.5 rounded-lg bg-slate-950/70 border border-slate-800 text-[11px] space-y-1">
+                        <div className="text-amber-300 font-semibold flex items-center gap-1">
+                          <Sparkles className="w-3 h-3 text-amber-400" />
+                          <span>{pick.pattern}</span>
+                        </div>
+                        <p className="text-slate-300 text-[10px] leading-relaxed line-clamp-2">
+                          {pick.catalyst}
+                        </p>
+                      </div>
+
+                      <div className="flex justify-between items-center text-[10px] font-mono text-slate-400 mt-2.5">
+                        <span>Clôture J-1 : ${pick.previousClose.toLocaleString('fr-FR')}</span>
+                        <span className="text-emerald-400 font-bold">{pick.confidenceScore}% Probabilité TP</span>
+                      </div>
+                    </div>
+
+                    {/* Bouton Copier le Trade */}
+                    <button
+                      onClick={() => handleCopyTopPick(pick)}
+                      className={`mt-4 w-full py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95 ${
+                        isRank1
+                          ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                          : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20'
+                      }`}
+                    >
+                      <Zap className="w-3.5 h-3.5 fill-current" />
+                      <span>⚡ Copier ce Trade (#{pick.rank})</span>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* ── VUE 1 : MODE DÉBUTANT (OBJECTIF : 1 CLIC -> GAIN EN 3 À 5 MINUTES) ── */}
         {viewMode === 'BEGINNER' && (
           <div className="space-y-6 animate-fade-in">
@@ -469,10 +688,10 @@ export const ExpertSignalsPage: React.FC = () => {
                   <div className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 font-bold flex items-center justify-center mb-2">
                     1
                   </div>
-                  <h4 className="font-bold text-white mb-1">Signal Flash Reçu</h4>
+                  <h4 className="font-bold text-white mb-1">Signal Flash Émis</h4>
                   <p className="text-slate-400 leading-relaxed">
-                    L'expert envoie un signal d'achat sur l'<strong>Or (GLD)</strong> avec un Take-Profit resserré (+0.36%).
-                    La probabilité de gain est de <strong>93%</strong>.
+                    L'expert détecte un signal d'achat haute probabilité basé sur la clôture J-1 avec un Take-Profit resserré.
+                    Taux de succès TP moyen : <strong>93%</strong>.
                   </p>
                 </div>
 
@@ -482,7 +701,7 @@ export const ExpertSignalsPage: React.FC = () => {
                   </div>
                   <h4 className="font-bold text-white mb-1">Vous cliquez sur "⚡ Suivre ce Scalp"</h4>
                   <p className="text-slate-400 leading-relaxed">
-                    En 1 clic, votre ordre est acheté avec le Stop-Loss et le Take-Profit déjà réglés. Aucun calcul à faire.
+                    En 1 clic, votre ordre est exécuté avec le Stop-Loss et le Take-Profit déjà paramétrés. Aucun calcul manuel nécessaire.
                   </p>
                 </div>
 
@@ -492,8 +711,8 @@ export const ExpertSignalsPage: React.FC = () => {
                   </div>
                   <h4 className="font-bold text-white mb-1">Gain Encaissé en 2 à 4 Minutes</h4>
                   <p className="text-slate-400 leading-relaxed">
-                    Le cours grimpe sous vos yeux. Dès qu'il touche le Take-Profit, la position se ferme toute seule et vous
-                    encaissez votre bénéfice !
+                    Le cours progresse en direct sous vos yeux. Dès qu'il franchit le Take-Profit, la position se ferme toute seule et votre
+                    bénéfice est encaissé instantanément !
                   </p>
                 </div>
               </div>
@@ -505,7 +724,7 @@ export const ExpertSignalsPage: React.FC = () => {
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-slate-800">
                   <div className="flex items-center gap-4">
                     <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center text-slate-950 font-black font-mono text-2xl shadow-lg shadow-amber-500/20">
-                      {topPickSignal.symbol}
+                      {topPickSignal.symbol.includes(':') ? topPickSignal.symbol.split(':')[1] : topPickSignal.symbol}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
@@ -515,12 +734,22 @@ export const ExpertSignalsPage: React.FC = () => {
                         <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
                           {topPickSignal.confidenceScore}% DE CHANCES DE TP
                         </span>
+                        {topPickSignal.isWeekend247 && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                            24/7 ACTIF
+                          </span>
+                        )}
                       </div>
                       <h3 className="text-2xl font-black text-white mt-1">
                         {topPickSignal.assetName}
                       </h3>
                       <p className="text-xs text-slate-400 mt-0.5">
-                        Figure : <strong className="text-amber-300">{topPickSignal.detectedPattern}</strong>
+                        Figure Chandelier : <strong className="text-amber-300">{topPickSignal.detectedPattern}</strong>
+                        {topPickSignal.previousClosePrice && (
+                          <span className="ml-2 text-slate-400 font-mono">
+                            • Clôture J-1 : ${topPickSignal.previousClosePrice.toFixed(2)} (+{topPickSignal.dailyVariationPct}%)
+                          </span>
+                        )}
                       </p>
                     </div>
                   </div>
@@ -608,7 +837,7 @@ export const ExpertSignalsPage: React.FC = () => {
                 <Shield className="w-12 h-12 text-amber-400 mx-auto mb-3" />
                 <h3 className="text-lg font-bold text-white mb-2">Recherche d'un Scalp 5 min...</h3>
                 <p className="text-xs text-slate-300 mb-4">
-                  L'algorithme attend une configuration M1 optimale pour garantir un Take-Profit rapide.
+                  L'algorithme analyse les chandeliers et le carnet d'ordres pour garantir un Take-Profit rapide.
                 </p>
                 <button
                   onClick={() => fetchData(true)}
@@ -624,7 +853,7 @@ export const ExpertSignalsPage: React.FC = () => {
         {/* ── VUE 2 : MODE SCALP PRO & GRAPHIQUES ── */}
         {viewMode === 'PRO' && (
           <div className="space-y-6">
-            {/* Onglets de filtrage */}
+            {/* Onglets de filtrage adaptés Week-end / Semaine */}
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2">
                 <button
@@ -635,28 +864,45 @@ export const ExpertSignalsPage: React.FC = () => {
                       : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
                   }`}
                 >
-                  🌐 Tous les Scalps 5 Min
+                  {health?.isWeekendSession ? '⚡ Tous les Scalps 24/7' : '🌐 Tous les Scalps 5 Min'}
                 </button>
-                <button
-                  onClick={() => setActiveTab('GOLD')}
-                  className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                    activeTab === 'GOLD'
-                      ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                      : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
-                  }`}
-                >
-                  🏆 Scalp Or (GLD / Métaux)
-                </button>
-                <button
-                  onClick={() => setActiveTab('STOCKS')}
-                  className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                    activeTab === 'STOCKS'
-                      ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                      : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
-                  }`}
-                >
-                  🏛️ Actions US (NVDA, AAPL)
-                </button>
+
+                {health?.isWeekendSession ? (
+                  <button
+                    onClick={() => setActiveTab('CRYPTO')}
+                    className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                      activeTab === 'CRYPTO'
+                        ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                        : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                    }`}
+                  >
+                    ₿ Cryptos Majeures (SOL, ETH, BTC)
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setActiveTab('GOLD')}
+                      className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                        activeTab === 'GOLD'
+                          ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                          : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                      }`}
+                    >
+                      🏆 Scalp Or (GLD / Métaux)
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('STOCKS')}
+                      className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                        activeTab === 'STOCKS'
+                          ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                          : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                      }`}
+                    >
+                      🏛️ Actions US (NVDA, AAPL)
+                    </button>
+                  </>
+                )}
+
                 <button
                   onClick={() => setActiveTab('TRACK_RECORD')}
                   className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
@@ -750,23 +996,21 @@ export const ExpertSignalsPage: React.FC = () => {
                           const isWin = h.profitPct > 0;
                           return (
                             <tr key={h.id} className="hover:bg-slate-800/30 transition-colors">
-                              <td className="py-3 px-4 font-bold text-white flex items-center gap-2 font-sans">
-                                <span className="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center font-mono font-bold text-[11px] text-amber-300 border border-slate-700">
-                                  {h.symbol}
-                                </span>
-                                <span>{h.assetName}</span>
+                              <td className="py-3 px-4 font-bold text-white flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                                {h.symbol}
                               </td>
                               <td className="py-3 px-4">
                                 <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300">
                                   {h.side}
                                 </span>
                               </td>
-                              <td className="py-3 px-4 text-slate-300">${h.entryPrice.toFixed(2)}</td>
-                              <td className="py-3 px-4 text-slate-300">${h.exitPrice.toFixed(2)}</td>
+                              <td className="py-3 px-4">${h.entryPrice.toFixed(2)}</td>
+                              <td className="py-3 px-4 text-emerald-400 font-bold">${h.exitPrice.toFixed(2)}</td>
                               <td className="py-3 px-4 text-rose-400">${h.stopLoss.toFixed(2)}</td>
                               <td className="py-3 px-4 text-emerald-400">${h.takeProfit.toFixed(2)}</td>
                               <td className="py-3 px-4">
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${isWin ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300">
                                   {h.result}
                                 </span>
                               </td>
@@ -799,7 +1043,7 @@ export const ExpertSignalsPage: React.FC = () => {
                         <div className="flex items-start justify-between gap-4 mb-3">
                           <div className="flex items-center gap-3">
                             <div className="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center font-black font-mono text-base text-amber-300 shadow-inner">
-                              {sig.symbol}
+                              {sig.symbol.includes(':') ? sig.symbol.split(':')[1] : sig.symbol}
                             </div>
                             <div>
                               <div className="flex items-center gap-2">
@@ -809,9 +1053,19 @@ export const ExpertSignalsPage: React.FC = () => {
                                 <span className="px-2 py-0.5 rounded text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">
                                   SCALP 5 MIN
                                 </span>
+                                {sig.dailyTopRank && (
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                    TOP {sig.dailyTopRank}
+                                  </span>
+                                )}
                               </div>
                               <div className="text-xs text-slate-400 mt-0.5">
-                                Horizon : <strong>Max 5 minutes</strong> • Résolution rapide
+                                Séance : <strong className="text-slate-300">{sig.dailyAnalysisDate || '22 Novembre 2026'}</strong>
+                                {sig.previousClosePrice && (
+                                  <span className="ml-2 font-mono text-emerald-400">
+                                    (Clôture J-1: ${sig.previousClosePrice.toFixed(2)})
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -952,11 +1206,11 @@ export const ExpertSignalsPage: React.FC = () => {
 
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold font-mono">
-                  {executingSignal.symbol}
+                  {executingSignal.symbol.includes(':') ? executingSignal.symbol.split(':')[1] : executingSignal.symbol}
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-white flex items-center gap-2">
-                    <span>Confirmation Scalp 5 Min • {executingSignal.symbol}</span>
+                    <span>Confirmation Scalp 5 Min • {executingSignal.assetName}</span>
                     <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">
                       RÉSOLUTION EXPRESS
                     </span>
@@ -1015,35 +1269,43 @@ export const ExpertSignalsPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Choix de la quantité */}
+                  {/* Choix de la quantité / budget */}
                   <div className="mb-6">
                     <label className="block text-xs font-medium text-slate-300 mb-2">
-                      Quantité de titres :
+                      Quantité d'actif / Montant investi :
                     </label>
                     <div className="flex items-center gap-2">
                       <input
                         type="number"
-                        min="1"
-                        max="1000"
+                        step="any"
+                        min="0.0001"
+                        max="10000"
                         value={orderQuantity}
-                        onChange={(e) => setOrderQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                        onChange={(e) => setOrderQuantity(Math.max(0.0001, parseFloat(e.target.value) || 0.0001))}
                         className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white font-mono focus:outline-none focus:border-amber-500"
                       />
                       <div className="flex items-center gap-1">
-                        {[1, 2, 5, 10].map((qty) => (
-                          <button
-                            key={qty}
-                            type="button"
-                            onClick={() => setOrderQuantity(qty)}
-                            className={`px-2.5 py-2 rounded-lg text-xs font-mono transition-colors ${
-                              orderQuantity === qty
-                                ? 'bg-amber-500 text-slate-950 font-bold'
-                                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                            }`}
-                          >
-                            {qty}
-                          </button>
-                        ))}
+                        {[100, 500, 1000, 2500].map((budget) => {
+                          const sym = executingSignal.symbol.toUpperCase();
+                          const calcQty = sym.includes('BTC')
+                            ? parseFloat((budget / executingSignal.entryPrice).toFixed(4))
+                            : sym.includes('ETH')
+                            ? parseFloat((budget / executingSignal.entryPrice).toFixed(3))
+                            : sym.includes('SOL')
+                            ? parseFloat((budget / executingSignal.entryPrice).toFixed(2))
+                            : Math.max(1, Math.round(budget / executingSignal.entryPrice));
+
+                          return (
+                            <button
+                              key={budget}
+                              type="button"
+                              onClick={() => setOrderQuantity(calcQty)}
+                              className="px-2.5 py-2 rounded-lg text-xs font-mono transition-colors bg-slate-800 text-slate-300 hover:bg-slate-700"
+                            >
+                              ${budget}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                     <div className="text-[11px] text-slate-400 mt-2 flex justify-between">
