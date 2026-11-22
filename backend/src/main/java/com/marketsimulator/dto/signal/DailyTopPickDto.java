@@ -28,4 +28,9 @@ public class DailyTopPickDto {
     private String timeframe; // "SCALP 5 MIN (24/7)"
     private BigDecimal targetPrice; // TP1
     private BigDecimal stopLoss;
+    private String periodOfDay; // Période précise de la séance (ex: "Séance Pleine Liquidité 12h00 - 18h00")
+    private String periodAdvice; // Pourquoi cet actif est le meilleur à cette période
+    private Boolean isBestSignalOfDay; // true pour le signal N°1 maître du jour
+    private Integer guaranteedTpRate; // Ex: 96% probabilité Take-Profit
+    private Double riskRewardRatio; // Ex: 1.60
 }

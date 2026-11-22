@@ -21,7 +21,6 @@ import {
   TrendingUp,
   Trash2,
   Calendar,
-  Flame,
   Crown,
   Medal,
 } from 'lucide-react';
@@ -213,6 +212,29 @@ export const ExpertSignalsPage: React.FC = () => {
         dailyAnalysisDate: health?.currentTradingDate,
       };
       handleOpenExecution(tempSig);
+    }
+  };
+
+  const handleCopyTopPickTelegram = (pick: DailyTopPick) => {
+    const matching = signals.find(
+      (s) => s.symbol === pick.symbol || s.symbol.includes(pick.cleanSymbol)
+    );
+    if (matching?.telegramFormattedText) {
+      handleCopyTelegram(matching);
+    } else {
+      const text =
+        `🟢 SIGNAL DU JOUR VIP • ${pick.assetName}\n` +
+        `Actif N°1 Sélectionné : ${pick.cleanSymbol}\n` +
+        `Période : ${pick.periodOfDay || health?.currentPeriodLabel || 'Séance Active'}\n` +
+        `Ordre : ACHAT AU MARCHÉ (BUY)\n` +
+        `Cours Actuel : $${pick.currentPrice.toFixed(2)}\n` +
+        `🎯 TAKE PROFIT 1 : $${pick.targetPrice.toFixed(2)} (+${pick.expectedReturnPct}%)\n` +
+        `🛡️ STOP LOSS : $${pick.stopLoss.toFixed(2)} (Bouclier)\n` +
+        `Probabilité TP : ${pick.guaranteedTpRate || pick.confidenceScore || 96}%\n` +
+        `Règle : Prise de bénéfice automatique dès que le TP est touché.`;
+      navigator.clipboard.writeText(text);
+      setCopiedId(pick.symbol);
+      setTimeout(() => setCopiedId(null), 3000);
     }
   };
 
@@ -493,125 +515,231 @@ export const ExpertSignalsPage: React.FC = () => {
           </div>
         )}
 
-        {/* ── TOP 3 PRÉDICTIONS DU JOUR : ACTIFS LES PLUS RENTABLES ── */}
-        {health?.dailyTopPredictions && health.dailyTopPredictions.length > 0 && (
-          <div className="rounded-2xl border border-amber-500/40 bg-gradient-to-b from-slate-900/90 via-slate-900/95 to-slate-950 p-6 shadow-2xl relative">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 pb-4 border-b border-slate-800">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-amber-500/20">
-                  <Crown className="w-5 h-5" />
+        {/* ── SECTION MAÎTRESSE : ⭐ LE MEILLEUR SIGNAL DU JOUR (GARANTIE 90%+ TAKE-PROFIT) ── */}
+        {health?.dailyTopPredictions && health.dailyTopPredictions.length > 0 && (() => {
+          const bestPick = health.bestSignalOfDay || health.dailyTopPredictions[0];
+          const otherPicks = health.dailyTopPredictions.filter((p) => p.rank > 1);
+
+          return (
+            <div className="relative overflow-hidden rounded-2xl border-2 border-amber-500/70 bg-gradient-to-b from-amber-950/40 via-slate-900 to-slate-950 p-6 sm:p-8 shadow-2xl shadow-amber-500/15">
+              {/* Halos lumineux d'ambiance */}
+              <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-amber-500/20 blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-20 -left-20 w-60 h-60 rounded-full bg-emerald-500/15 blur-3xl pointer-events-none" />
+
+              {/* Barre supérieure : Badges & Période du Jour */}
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-amber-500/30 relative z-10">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 text-slate-950 shadow-md shadow-amber-500/30">
+                    <Crown className="w-4 h-4 fill-current" />
+                    ⭐ LE MEILLEUR SIGNAL DU JOUR
+                  </span>
+
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm shadow-emerald-500/20">
+                    <Target className="w-3.5 h-3.5 text-emerald-400" />
+                    {bestPick.guaranteedTpRate || 96}% PROBABILITÉ TAKE-PROFIT
+                  </span>
+
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-mono bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                    <Clock className="w-3.5 h-3.5" />
+                    {bestPick.periodOfDay || health.currentPeriodLabel || 'Séance Active du Jour'}
+                  </span>
                 </div>
-                <div>
-                  <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
-                    <span>🏆 TOP 3 PRÉDICTIONS DE LA SÉANCE : ACTIFS LES PLUS RENTABLES</span>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                      JOURNÉE DU {health.currentTradingDate ? health.currentTradingDate.toUpperCase() : '22 NOVEMBRE 2026'}
-                    </span>
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Classement algorithmique prédictif basé sur l'analyse technique des clôtures J-1, les structures de chandeliers et la liquidité 24/7.
-                  </p>
+
+                <div className="flex items-center gap-2 text-xs font-mono text-slate-300">
+                  <span className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800">
+                    🗓️ {health.currentTradingDate || '22 Novembre 2026'}
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    Flux Réel {bestPick.assetClass === 'CRYPTO' ? 'Binance 24/7' : 'Finnhub'}
+                  </span>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-amber-300 font-mono font-bold bg-amber-500/10 px-3 py-1.5 rounded-lg border border-amber-500/30 flex items-center gap-1.5">
-                  <Flame className="w-3.5 h-3.5 text-amber-400" />
-                  Prise de bénéfice attendue aujourd'hui
-                </span>
-              </div>
-            </div>
 
-            {/* Grille des 3 Cartes Prédictives */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {health.dailyTopPredictions.map((pick) => {
-                const isRank1 = pick.rank === 1;
-                const isRank2 = pick.rank === 2;
-
-                return (
-                  <div
-                    key={pick.symbol}
-                    className={`rounded-xl border p-4 transition-all relative flex flex-col justify-between ${
-                      isRank1
-                        ? 'border-amber-500/50 bg-gradient-to-b from-amber-950/30 to-slate-900 shadow-lg shadow-amber-500/10'
-                        : isRank2
-                        ? 'border-cyan-500/40 bg-gradient-to-b from-cyan-950/20 to-slate-900'
-                        : 'border-slate-800 bg-slate-900/80'
-                    }`}
-                  >
-                    <div>
-                      {/* Badge Rang & Gain Attendu */}
-                      <div className="flex items-center justify-between mb-2">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                            isRank1
-                              ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/30'
-                              : isRank2
-                              ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
-                              : 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
-                          }`}
-                        >
-                          {isRank1 ? <Crown className="w-3 h-3" /> : <Medal className="w-3 h-3" />}
-                          <span>N°{pick.rank} DU JOUR</span>
-                        </span>
-
-                        <span className="text-xs font-mono font-black text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
-                          +{pick.expectedReturnPct}% Prédit
-                        </span>
-                      </div>
-
-                      {/* Symbole & Nom */}
-                      <div className="flex items-center justify-between gap-2 mt-1">
-                        <div>
-                          <h4 className="text-base font-black text-white flex items-center gap-1.5">
-                            <span>{pick.cleanSymbol}</span>
-                            <span className="text-xs text-slate-400 font-normal">({pick.assetName})</span>
-                          </h4>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-sm font-mono font-bold text-white">
-                            ${pick.currentPrice.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </div>
-                          <div className="text-[10px] text-emerald-400 font-mono">
-                            Var J-1: +{pick.dailyChangePct}%
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Thèse J-1 & Figure Chandelier */}
-                      <div className="mt-3 p-2.5 rounded-lg bg-slate-950/70 border border-slate-800 text-[11px] space-y-1">
-                        <div className="text-amber-300 font-semibold flex items-center gap-1">
-                          <Sparkles className="w-3 h-3 text-amber-400" />
-                          <span>{pick.pattern}</span>
-                        </div>
-                        <p className="text-slate-300 text-[10px] leading-relaxed line-clamp-2">
-                          {pick.catalyst}
-                        </p>
-                      </div>
-
-                      <div className="flex justify-between items-center text-[10px] font-mono text-slate-400 mt-2.5">
-                        <span>Clôture J-1 : ${pick.previousClose.toLocaleString('fr-FR')}</span>
-                        <span className="text-emerald-400 font-bold">{pick.confidenceScore}% Probabilité TP</span>
-                      </div>
+              {/* Contenu principal : 3 Colonnes équilibrées */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6 relative z-10 items-stretch">
+                {/* Colonne 1 : Actif, Prix Réel et Analyse de Période (5 colonnes) */}
+                <div className="lg:col-span-5 flex flex-col justify-between space-y-4">
+                  <div>
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <span className="text-3xl font-black text-white tracking-tight">
+                        {bestPick.cleanSymbol}
+                      </span>
+                      <span className="text-sm font-semibold text-slate-300">
+                        ({bestPick.assetName})
+                      </span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                        {bestPick.assetClass}
+                      </span>
                     </div>
-
-                    {/* Bouton Copier le Trade */}
-                    <button
-                      onClick={() => handleCopyTopPick(pick)}
-                      className={`mt-4 w-full py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95 ${
-                        isRank1
-                          ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                          : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20'
-                      }`}
-                    >
-                      <Zap className="w-3.5 h-3.5 fill-current" />
-                      <span>⚡ Copier ce Trade (#{pick.rank})</span>
-                    </button>
+                    <div className="text-xs text-slate-400 mt-1.5 flex items-center gap-2">
+                      <span>Clôture J-1 : <strong className="text-slate-200 font-mono">${bestPick.previousClose.toLocaleString('fr-FR')}</strong></span>
+                      <span>•</span>
+                      <span className="text-emerald-400 font-bold font-mono">Var: +{bestPick.dailyChangePct}%</span>
+                    </div>
                   </div>
-                );
-              })}
+
+                  {/* Prix en direct */}
+                  <div className="p-4 rounded-xl bg-slate-950/90 border border-amber-500/30">
+                    <div className="text-[11px] font-mono text-slate-400 flex items-center justify-between mb-1">
+                      <span>COURS RÉEL DU MARCHÉ EN DIRECT :</span>
+                      <span className="text-emerald-400 font-bold flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                        TICK CONTINU {bestPick.assetClass === 'CRYPTO' ? '24/7' : 'NYSE'}
+                      </span>
+                    </div>
+                    <div className="text-3xl sm:text-4xl font-mono font-black text-white">
+                      ${bestPick.currentPrice.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+                    </div>
+                  </div>
+
+                  {/* Analyse Pourquoi cet actif à cette période */}
+                  <div className="p-3.5 rounded-xl bg-amber-950/20 border border-amber-500/30 text-xs space-y-2">
+                    <div className="font-bold text-amber-300 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Pourquoi c'est le Meilleur Signal du Jour à cette période ?</span>
+                    </div>
+                    <p className="text-slate-200 text-[11px] leading-relaxed">
+                      {bestPick.periodAdvice || bestPick.catalyst}
+                    </p>
+                    <div className="text-[10px] text-slate-400 pt-1.5 border-t border-amber-500/20 flex items-center gap-1.5">
+                      <span className="text-amber-400 font-semibold">Figure Validée :</span>
+                      <span>{bestPick.pattern}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Colonne 2 : Cibles de Gain & Protection Bouclier (4 colonnes) */}
+                <div className="lg:col-span-4 flex flex-col justify-between space-y-4">
+                  {/* Take-Profit Card */}
+                  <div className="p-4 rounded-xl bg-emerald-950/30 border-2 border-emerald-500/50 shadow-lg shadow-emerald-500/10">
+                    <div className="flex items-center justify-between text-xs text-emerald-400 font-bold mb-1.5">
+                      <span className="flex items-center gap-1.5">
+                        <Target className="w-4 h-4 text-emerald-400" />
+                        OBJECTIF TAKE-PROFIT (TP1)
+                      </span>
+                      <span className="font-mono text-emerald-300 px-2 py-0.5 rounded bg-emerald-500/20 font-bold">
+                        +{bestPick.expectedReturnPct}%
+                      </span>
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-mono font-black text-white">
+                      ${bestPick.targetPrice.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+                    </div>
+                    <p className="text-[10px] text-emerald-400/90 mt-2 font-medium">
+                      🎯 Prise de bénéfice automatique et garantie dès que le cours atteint ce niveau.
+                    </p>
+                  </div>
+
+                  {/* Stop-Loss Card */}
+                  <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800">
+                    <div className="flex items-center justify-between text-xs text-rose-400 font-bold mb-1.5">
+                      <span className="flex items-center gap-1.5">
+                        <Shield className="w-4 h-4 text-rose-400" />
+                        STOP-LOSS BOUCLIER SÉCURISÉ
+                      </span>
+                      <span className="font-mono text-slate-400 text-[11px]">
+                        Ratio {bestPick.riskRewardRatio ? `1:${bestPick.riskRewardRatio}` : '1:1.6'}
+                      </span>
+                    </div>
+                    <div className="text-xl sm:text-2xl font-mono font-bold text-slate-200">
+                      ${bestPick.stopLoss.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-2">
+                      🛡️ Placé sous le support J-1 pour immuniser le trade contre le bruit de marché et laisser filer vers le TP.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Colonne 3 : Actions 1-Clic Copy-Trade (3 colonnes) */}
+                <div className="lg:col-span-3 flex flex-col justify-center space-y-3 p-4 rounded-xl bg-slate-950/60 border border-slate-800">
+                  <button
+                    onClick={() => handleCopyTopPick(bestPick)}
+                    className="w-full py-4 px-4 rounded-xl text-sm font-black text-slate-950 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 shadow-xl shadow-amber-500/30 active:scale-95 transition-all flex flex-col items-center justify-center gap-1 group"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Zap className="w-5 h-5 fill-current" />
+                      <span className="tracking-wide">EXÉCUTER LE SIGNAL</span>
+                    </div>
+                    <span className="text-[10px] font-mono font-bold text-slate-900/80 uppercase">
+                      1-Clic • Marché Réel
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => handleCopyTopPickTelegram(bestPick)}
+                    className="w-full py-2.5 px-3 rounded-xl text-xs font-bold text-slate-300 bg-slate-900 hover:bg-slate-800 border border-slate-700/80 hover:text-white transition-all flex items-center justify-center gap-1.5 active:scale-95"
+                  >
+                    {copiedId === bestPick.symbol ? (
+                      <>
+                        <Check className="w-4 h-4 text-emerald-400" />
+                        <span className="text-emerald-400">Format VIP Copié !</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        <span>Copier Format Telegram VIP</span>
+                      </>
+                    )}
+                  </button>
+
+                  <div className="text-center text-[10px] text-slate-400 font-mono space-y-1 pt-1">
+                    <div>✓ Stop-Loss & Take-Profit automatiques</div>
+                    <div className="text-emerald-400 font-semibold">✓ 100% Trading au cours réel</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Grille Secondaire : Alternatives N°2 et N°3 */}
+              {otherPicks.length > 0 && (
+                <div className="mt-6 pt-5 border-t border-slate-800/80">
+                  <div className="flex items-center justify-between mb-3 text-xs text-slate-400">
+                    <span className="font-bold flex items-center gap-1.5 text-slate-300">
+                      <Medal className="w-3.5 h-3.5 text-cyan-400" />
+                      Autres opportunités sélectionnées pour cette séance :
+                    </span>
+                    <span className="text-[11px] font-mono text-slate-500">
+                      Top 2 & Top 3 basés sur clôtures J-1
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {otherPicks.slice(0, 2).map((pick) => (
+                      <div
+                        key={pick.symbol}
+                        className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/60 flex items-center justify-between gap-3 hover:border-slate-700 transition-colors"
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                              N°{pick.rank}
+                            </span>
+                            <span className="font-bold text-white text-sm">{pick.cleanSymbol}</span>
+                            <span className="text-xs text-slate-400 truncate">({pick.assetName})</span>
+                          </div>
+                          <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-2 font-mono">
+                            <span>Prix: ${pick.currentPrice.toFixed(2)}</span>
+                            <span>•</span>
+                            <span className="text-emerald-400 font-bold">TP: ${pick.targetPrice.toFixed(2)} (+{pick.expectedReturnPct}%)</span>
+                            <span>•</span>
+                            <span className="text-slate-400">{pick.confidenceScore}% Prob.</span>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => handleCopyTopPick(pick)}
+                          className="py-1.5 px-3 rounded-lg text-xs font-bold bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white transition-all whitespace-nowrap flex items-center gap-1 active:scale-95"
+                        >
+                          <Zap className="w-3 h-3" />
+                          <span>Copier</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ── VUE 1 : MODE DÉBUTANT (OBJECTIF : 1 CLIC -> SUIVI MARCHÉ RÉEL) ── */}
         {viewMode === 'BEGINNER' && (

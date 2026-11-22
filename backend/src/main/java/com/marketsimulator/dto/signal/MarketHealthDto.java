@@ -25,5 +25,7 @@ public class MarketHealthDto {
     private boolean isWeekendSession; // true le samedi et dimanche
     private String sessionActiveMarket; // "CRYPTO_24_7" ou "REGULAR_NYSE_GOLD"
     private String currentTradingDate; // ex: "Dimanche 22 Novembre 2026"
+    private String currentPeriodLabel; // ex: "Séance Pleine Liquidité Après-Midi (12h00 - 18h00)"
+    private DailyTopPickDto bestSignalOfDay; // Le meilleur signal absolu du jour (Garantie TP 90%+)
     private java.util.List<DailyTopPickDto> dailyTopPredictions; // Top 3 des actifs les plus rentables du jour
 }

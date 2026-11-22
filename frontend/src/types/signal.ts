@@ -15,6 +15,11 @@ export interface DailyTopPick {
   timeframe: string;
   targetPrice: number;
   stopLoss: number;
+  periodOfDay?: string;
+  periodAdvice?: string;
+  isBestSignalOfDay?: boolean;
+  guaranteedTpRate?: number;
+  riskRewardRatio?: number;
 }
 
 export interface ExpertSignal {
@@ -70,6 +75,8 @@ export interface MarketHealth {
   isWeekendSession: boolean;
   sessionActiveMarket: string;
   currentTradingDate: string;
+  currentPeriodLabel?: string;
+  bestSignalOfDay?: DailyTopPick;
   dailyTopPredictions: DailyTopPick[];
 }
 
