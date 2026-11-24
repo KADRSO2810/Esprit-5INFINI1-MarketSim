@@ -395,79 +395,92 @@ export const ActuarialPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* 2. 4 Strategic Actuarial KPI Cards */}
+                {/* 2. 4 Strategic Actuarial KPI Cards with Live Pulse Aura */}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   {/* Card 1: Probabilité de Ruine */}
-                  <div className="rounded-2xl border border-violet-500/30 bg-[#0B1220] p-5 shadow-xl transition-all hover:border-violet-500/60">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-slate-400">Probabilité de Ruine Ψ(u)</span>
-                      <ShieldAlert className="h-5 w-5 text-violet-400" />
+                  <div className="rounded-2xl border border-violet-500/40 bg-gradient-to-b from-[#141226] to-[#0B1220] p-5 shadow-xl transition-all hover:scale-[1.02] hover:border-violet-400 actuary-shield-aura relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-violet-500/10 rounded-full blur-2xl group-hover:bg-violet-500/20 transition-all pointer-events-none" />
+                    <div className="flex items-center justify-between relative z-10">
+                      <span className="text-xs font-semibold text-slate-300">Probabilité de Ruine Ψ(u)</span>
+                      <div className="p-2 rounded-xl bg-violet-500/20 text-violet-300 border border-violet-500/30 animate-pulse">
+                        <ShieldAlert className="h-4 w-4" />
+                      </div>
                     </div>
-                    <div className="mt-3 flex items-baseline gap-2">
-                      <span className="text-2xl font-black text-white font-mono">
+                    <div className="mt-3 flex items-baseline gap-2 relative z-10">
+                      <span className="text-2xl font-black text-white font-mono tracking-tight drop-shadow-[0_0_12px_rgba(139,92,246,0.5)]">
                         {tradingRiskResult?.lundbergRuinProbability != null ? `${tradingRiskResult.lundbergRuinProbability.toFixed(3)}%` : '0.040%'}
                       </span>
-                      <span className="text-[11px] font-semibold text-emerald-400">
+                      <span className="text-[11px] font-semibold text-emerald-400 flex items-center gap-1">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping inline-block" />
                         {tradingRiskResult?.lundbergRuinProbability && tradingRiskResult.lundbergRuinProbability < 1 ? 'Très faible' : 'Modéré'}
                       </span>
                     </div>
-                    <p className="mt-2 text-[11px] text-slate-400">
-                      Borne de Lundberg : <code className="text-violet-300 font-mono">Ψ(u) ≤ e^(-Ru)</code> avec coefficient d'ajustement R = {tradingRiskResult?.lundbergAdjustmentCoefficientR.toFixed(4) || '0.0820'}.
+                    <p className="mt-2 text-[11px] text-slate-400 relative z-10">
+                      Borne de Lundberg : <code className="text-violet-300 font-mono font-bold">Ψ(u) ≤ e^(-Ru)</code> (R = {tradingRiskResult?.lundbergAdjustmentCoefficientR.toFixed(4) || '0.0820'}).
                     </p>
                   </div>
 
                   {/* Card 2: Biais Finance Classique */}
-                  <div className="rounded-2xl border border-rose-500/30 bg-[#0B1220] p-5 shadow-xl transition-all hover:border-rose-500/60">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-slate-400">Biais Loi Normale (Gauss)</span>
-                      <AlertTriangle className="h-5 w-5 text-rose-400" />
+                  <div className="rounded-2xl border border-rose-500/40 bg-gradient-to-b from-[#1F1218] to-[#0B1220] p-5 shadow-xl transition-all hover:scale-[1.02] hover:border-rose-400 hover:shadow-[0_0_24px_rgba(239,68,68,0.35)] relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/10 rounded-full blur-2xl group-hover:bg-rose-500/20 transition-all pointer-events-none" />
+                    <div className="flex items-center justify-between relative z-10">
+                      <span className="text-xs font-semibold text-slate-300">Biais Loi Normale (Gauss)</span>
+                      <div className="p-2 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-500/30 animate-bounce">
+                        <AlertTriangle className="h-4 w-4" />
+                      </div>
                     </div>
-                    <div className="mt-3 flex items-baseline gap-2">
-                      <span className="text-2xl font-black text-rose-400 font-mono">
+                    <div className="mt-3 flex items-baseline gap-2 relative z-10">
+                      <span className="text-2xl font-black text-rose-400 font-mono tracking-tight drop-shadow-[0_0_12px_rgba(239,68,68,0.5)]">
                         {tradingRiskResult?.riskUnderestimationFactor != null ? `${tradingRiskResult.riskUnderestimationFactor.toFixed(1)}x` : '3.6x'}
                       </span>
                       <span className="text-[11px] font-semibold text-rose-300">Sous-estimation</span>
                     </div>
-                    <p className="mt-2 text-[11px] text-slate-400">
+                    <p className="mt-2 text-[11px] text-slate-400 relative z-10">
                       La VaR 99% classique ignore les queues épaisses (indice Pareto ξ = {tradingRiskResult?.tailIndexXi.toFixed(2) || '0.28'}).
                     </p>
                   </div>
 
                   {/* Card 3: Survie du Portefeuille */}
-                  <div className="rounded-2xl border border-sky-500/30 bg-[#0B1220] p-5 shadow-xl transition-all hover:border-sky-500/60">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-slate-400">Survie à 100 Trades</span>
-                      <Activity className="h-5 w-5 text-sky-400" />
+                  <div className="rounded-2xl border border-sky-500/40 bg-gradient-to-b from-[#0F1C2B] to-[#0B1220] p-5 shadow-xl transition-all hover:scale-[1.02] hover:border-sky-400 hover:shadow-[0_0_24px_rgba(56,189,248,0.35)] relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-sky-500/10 rounded-full blur-2xl group-hover:bg-sky-500/20 transition-all pointer-events-none" />
+                    <div className="flex items-center justify-between relative z-10">
+                      <span className="text-xs font-semibold text-slate-300">Survie à 100 Trades</span>
+                      <div className="p-2 rounded-xl bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                        <Activity className="h-4 w-4 text-sky-400 animate-pulse" />
+                      </div>
                     </div>
-                    <div className="mt-3 flex items-baseline gap-2">
-                      <span className="text-2xl font-black text-white font-mono">
+                    <div className="mt-3 flex items-baseline gap-2 relative z-10">
+                      <span className="text-2xl font-black text-white font-mono tracking-tight drop-shadow-[0_0_12px_rgba(56,189,248,0.5)]">
                         {tradingRiskResult?.capitalSurvivalProbability100Trades != null ? `${tradingRiskResult.capitalSurvivalProbability100Trades.toFixed(1)}%` : '94.5%'}
                       </span>
                       <span className="text-[11px] font-semibold text-sky-400">
                         Demi-vie : {tradingRiskResult?.halfLifeTrades || 450} trades
                       </span>
                     </div>
-                    <p className="mt-2 text-[11px] text-slate-400">
-                      Espérance de survie selon Kaplan-Meier pour levier {ruinParams.leverage}x et risque {ruinParams.riskPerTradePct}%.
+                    <p className="mt-2 text-[11px] text-slate-400 relative z-10">
+                      Espérance Kaplan-Meier pour levier {ruinParams.leverage}x et risque {ruinParams.riskPerTradePct}%.
                     </p>
                   </div>
 
                   {/* Card 4: Réserve SCR Solvabilité II */}
-                  <div className="rounded-2xl border border-emerald-500/30 bg-[#0B1220] p-5 shadow-xl transition-all hover:border-emerald-500/60">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-slate-400">Réserve Solvabilité II (SCR)</span>
-                      <Lock className="h-5 w-5 text-emerald-400" />
+                  <div className="rounded-2xl border border-emerald-500/40 bg-gradient-to-b from-[#0D201A] to-[#0B1220] p-5 shadow-xl transition-all hover:scale-[1.02] hover:border-emerald-400 hover:shadow-[0_0_24px_rgba(34,197,94,0.35)] relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all pointer-events-none" />
+                    <div className="flex items-center justify-between relative z-10">
+                      <span className="text-xs font-semibold text-slate-300">Réserve Solvabilité II (SCR)</span>
+                      <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        <Lock className="h-4 w-4 text-emerald-400 animate-pulse" />
+                      </div>
                     </div>
-                    <div className="mt-3 flex items-baseline gap-2">
-                      <span className="text-2xl font-black text-emerald-400 font-mono">
+                    <div className="mt-3 flex items-baseline gap-2 relative z-10">
+                      <span className="text-2xl font-black text-emerald-400 font-mono tracking-tight drop-shadow-[0_0_12px_rgba(34,197,94,0.5)]">
                         ${tradingRiskResult?.recommendedSolvencyBuffer ? tradingRiskResult.recommendedSolvencyBuffer.toLocaleString() : '32,500'}
                       </span>
-                      <span className="text-[11px] font-semibold text-emerald-300">
+                      <span className="text-[11px] font-semibold text-emerald-300 font-mono">
                         Ratio : {tradingRiskResult?.solvencyRatioPct ? tradingRiskResult.solvencyRatioPct.toFixed(0) : '308'}%
                       </span>
                     </div>
-                    <p className="mt-2 text-[11px] text-slate-400">
-                      Capital tampon requis pour absorber un choc décennal (-{tradingRiskResult?.tenYearStressDrawdown.toFixed(1) || '32.5'}%).
+                    <p className="mt-2 text-[11px] text-slate-400 relative z-10">
+                      Tampon requis pour absorber un choc décennal (-{tradingRiskResult?.tenYearStressDrawdown.toFixed(1) || '32.5'}%).
                     </p>
                   </div>
                 </div>

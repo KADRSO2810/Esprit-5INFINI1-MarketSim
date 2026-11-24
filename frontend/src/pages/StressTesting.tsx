@@ -933,7 +933,7 @@ export const StressTesting: React.FC = () => {
         {activeTab === 'runs' && (
           <div className="space-y-6">
             {/* Launcher Bar */}
-            <div className="workstation-panel rounded-2xl p-5">
+            <div className={`workstation-panel rounded-2xl p-5 transition-all duration-300 ${launchingRun ? 'seismic-ripple border-violet-500/80 shadow-[0_0_35px_rgba(139,92,246,0.45)]' : ''}`}>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                 <div>
                   <label className="text-[11px] text-slate-400 font-medium block mb-1.5">
@@ -1052,6 +1052,41 @@ export const StressTesting: React.FC = () => {
 
                 {runDetail.status === 'DONE' && (
                   <>
+                    {/* Bâle III & EBA Resilience Banner */}
+                    <div className="rounded-2xl border border-sky-500/30 bg-gradient-to-r from-[#0B1528] via-[#0D1D3A] to-[#0B1528] p-4 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4 overflow-hidden relative group">
+                      <div className="absolute top-0 right-0 w-48 h-48 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
+                      <div className="flex items-center gap-3.5 relative z-10">
+                        <div className="w-11 h-11 rounded-xl bg-sky-500/20 border border-sky-500/40 text-sky-400 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(56,189,248,0.3)]">
+                          <Building2 className="w-6 h-6 animate-pulse" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-500/20 text-sky-300 border border-sky-500/40">
+                              RÈGLEMENTATION BÂLE III & EBA
+                            </span>
+                            <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1 font-mono">
+                              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                              TEST DE RÉSISTANCE EN CONDITIONS SÉVÈRES
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-300 mt-1 max-w-2xl">
+                            Simulation de chocs systémiques selon les lignes directrices de l'Autorité Bancaire Européenne (EBA).
+                            Audit automatique de l'érosion du ratio CET1 et décomposition explicable par valeurs de Shapley (SHAP).
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 relative z-10 shrink-0">
+                        <div className="px-3 py-2 rounded-xl bg-[#070B14]/80 border border-slate-700 text-right">
+                          <div className="text-[10px] font-mono text-slate-400 uppercase">Seuil CET1 Min</div>
+                          <div className="text-sm font-bold font-mono text-white">8.0% + 2.5%</div>
+                        </div>
+                        <div className="px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-right">
+                          <div className="text-[10px] font-mono text-emerald-300 uppercase">Statut Stress</div>
+                          <div className="text-sm font-bold font-mono text-emerald-400">RÉSILIENCE AUDITÉE</div>
+                        </div>
+                      </div>
+                    </div>
+
                     {/* Top 4 Quantitative KPIs */}
                     <MotionStagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                       <MotionItem>

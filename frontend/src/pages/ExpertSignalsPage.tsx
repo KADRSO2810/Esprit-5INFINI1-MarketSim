@@ -32,6 +32,7 @@ import {
 } from '../api/signals';
 import { placeMarketOrder } from '../api/trading';
 import { ExpertSignal, MarketHealth, SignalTrackRecord, DailyTopPick } from '../types/signal';
+import { FinancialRadarScan, TradeCelebrationFX } from '../components/ui';
 
 export const ExpertSignalsPage: React.FC = () => {
   const [health, setHealth] = useState<MarketHealth | null>(null);
@@ -60,6 +61,7 @@ export const ExpertSignalsPage: React.FC = () => {
   const [executingOrder, setExecutingOrder] = useState<boolean>(false);
   const [orderSuccessMessage, setOrderSuccessMessage] = useState<string | null>(null);
   const [orderErrorMessage, setOrderErrorMessage] = useState<string | null>(null);
+  const [celebration, setCelebration] = useState<{ show: boolean; msg: string; amount?: number } | null>(null);
 
   // Mémoire des signaux vus pour déclencher l'alerte sonore lors d'un nouveau signal
   const prevSignalIdsRef = useRef<Set<string>>(new Set());
@@ -257,6 +259,11 @@ export const ExpertSignalsPage: React.FC = () => {
       setOrderSuccessMessage(
         `⚡ Trade exécuté avec succès : ${fill.side} ${fill.quantity} ${fill.symbol} à $${fill.price.toFixed(2)}. Stop-Loss à $${executingSignal.stopLoss.toFixed(2)} et Take-Profit à $${executingSignal.takeProfit1.toFixed(2)}. Surveillance automatique active au marché réel !`
       );
+      setCelebration({
+        show: true,
+        msg: `Position ouverte : ${fill.side} ${executingSignal.symbol} (TP: $${executingSignal.takeProfit1.toFixed(2)})`,
+        amount: Number(((executingSignal.takeProfit1 - executingSignal.entryPrice) * orderQuantity).toFixed(2)),
+      });
       setTimeout(() => {
         setExecutingSignal(null);
         setOrderSuccessMessage(null);
@@ -364,27 +371,32 @@ export const ExpertSignalsPage: React.FC = () => {
           <div className="absolute -right-8 -top-8 h-48 w-48 rounded-full bg-amber-500/15 blur-3xl pointer-events-none" />
           <div className="absolute right-1/4 -bottom-10 h-36 w-36 rounded-full bg-cyan-500/15 blur-3xl pointer-events-none" />
 
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-            <div>
-              <div className="flex flex-wrap items-center gap-2 mb-2">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                  <Zap className="w-3.5 h-3.5 text-amber-400" />
-                  SIGNAUX EXPERTS QUANTITATIFS • MARCHÉ RÉEL
-                </span>
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-mono bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                  🟢 100% FLUX RÉELS BINANCE & FINNHUB
-                </span>
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-mono bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
-                  📅 {health?.currentTradingDate || '22 Novembre 2026'}
-                </span>
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+            <div className="flex items-center gap-5">
+              <div className="hidden sm:flex shrink-0">
+                <FinancialRadarScan tone="amber" label="Scanner Haute Fréquence" detectedCount={signals.length} size="md" />
               </div>
-              <h1 className="text-2xl lg:text-3xl font-extrabold text-white tracking-tight">
-                Signaux Experts & Algorithmiques de Marché Réel
-              </h1>
-              <p className="mt-1 text-sm text-slate-300 max-w-2xl leading-relaxed">
-                Analyse quantitative basée sur les cours réels, les clôtures J-1 et les flux institutionnels.
-                Exécutez vos trades au marché réel avec Stop-Loss et Take-Profit surveillés en continu 24/7.
-              </p>
+              <div>
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                    <Zap className="w-3.5 h-3.5 text-amber-400" />
+                    SIGNAUX EXPERTS QUANTITATIFS • MARCHÉ RÉEL
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-mono bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                    🟢 100% FLUX RÉELS BINANCE & FINNHUB
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-mono bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                    📅 {health?.currentTradingDate || '22 Novembre 2026'}
+                  </span>
+                </div>
+                <h1 className="text-2xl lg:text-3xl font-extrabold text-white tracking-tight">
+                  Signaux Experts & Algorithmiques de Marché Réel
+                </h1>
+                <p className="mt-1 text-sm text-slate-300 max-w-2xl leading-relaxed">
+                  Analyse quantitative basée sur les cours réels, les clôtures J-1 et les flux institutionnels.
+                  Exécutez vos trades au marché réel avec Stop-Loss et Take-Profit surveillés en continu 24/7.
+                </p>
+              </div>
             </div>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -1409,6 +1421,13 @@ export const ExpertSignalsPage: React.FC = () => {
             </div>
           </div>
         )}
+        {/* Visual Trade Execution FX */}
+        <TradeCelebrationFX
+          show={!!celebration?.show}
+          message={celebration?.msg}
+          amount={celebration?.amount}
+          onComplete={() => setCelebration(null)}
+        />
       </div>
     </AppShell>
   );

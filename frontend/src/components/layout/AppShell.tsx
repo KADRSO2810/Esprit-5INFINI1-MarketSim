@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
-import { CommandPalette, LivePulseDot } from '../ui';
+import { CommandPalette, LivePulseDot, LiveMarketTickerTape, FinancialAtmosphereBackground } from '../ui';
 import { usePageTransition } from '../motion';
 import {
   TrendingUp,
@@ -573,8 +573,14 @@ export const AppShell: React.FC<AppShellProps> = ({
           </div>
         </header>
 
+        {/* Live Market Institutional Ticker Tape */}
+        <LiveMarketTickerTape />
+
+        {/* Ambient Financial Atmosphere FX (Floating Currency Glyphs & Grid Glow) */}
+        <FinancialAtmosphereBackground />
+
         {/* Page Body */}
-        <main className={`flex-1 w-full ${maxWidthClass} mx-auto px-4 sm:px-6 py-5`}>
+        <main className={`flex-1 w-full ${maxWidthClass} mx-auto px-4 sm:px-6 py-5 relative z-10`}>
           {children}
         </main>
       </div>

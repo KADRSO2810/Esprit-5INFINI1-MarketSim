@@ -32,6 +32,7 @@ import {
   AnimatedPriceIndicator,
   useToast,
   AssetLogo,
+  TradeCelebrationFX,
 } from '../components/ui';
 import { useAuthTransition } from '../components/auth';
 import {
@@ -109,12 +110,12 @@ const TickerCard: React.FC<TickerCardProps> = ({
 
   const stateClass =
     quote?.flash === 'up'
-      ? 'bg-emerald-950/50 border-emerald-500/50 shadow-glow-bull'
+      ? 'bg-emerald-950/60 border-emerald-400 shadow-[0_0_20px_rgba(34,197,94,0.4)] animate-pulse-glow-bull scale-[1.01]'
       : quote?.flash === 'down'
-      ? 'bg-rose-950/50 border-rose-500/50 shadow-glow-bear'
+      ? 'bg-rose-950/60 border-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.4)] animate-pulse-glow-bear scale-[1.01]'
       : isSelected
-      ? 'bg-[#142035] border-sky-400/60 shadow-glow-cyan'
-      : 'bg-[#101A2B]/90 border-subtle hover:border-strong';
+      ? 'bg-[#142035] border-sky-400/80 shadow-[0_0_22px_rgba(56,189,248,0.35)] ring-1 ring-sky-400/50 scale-[1.02]'
+      : 'bg-[#101A2B]/90 border-subtle hover:border-sky-500/40 hover:bg-[#132035] hover:scale-[1.01] hover:shadow-lg';
 
   const mini = sparkPoints.slice(-15);
   let spark: React.ReactNode = null;
@@ -133,13 +134,24 @@ const TickerCard: React.FC<TickerCardProps> = ({
       })
       .join(' ');
     const color = isUp ? '#22C55E' : '#EF4444';
+    const safeSym = symbol.replace(/[^a-zA-Z0-9]/g, '');
     spark = (
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-5" preserveAspectRatio="none">
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-5 overflow-visible" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id={`sparkGrad-${safeSym}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.4" />
+            <stop offset="100%" stopColor={color} stopOpacity="0.0" />
+          </linearGradient>
+        </defs>
+        <polygon
+          points={`0,${H} ${pts} ${W},${H}`}
+          fill={`url(#sparkGrad-${safeSym})`}
+        />
         <polyline
           points={pts}
           fill="none"
           stroke={color}
-          strokeWidth="1.5"
+          strokeWidth="1.8"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
@@ -155,24 +167,26 @@ const TickerCard: React.FC<TickerCardProps> = ({
 
   return (
     <div
-      className={`flex-shrink-0 w-48 border rounded-xl p-3 cursor-pointer transition-all duration-200 select-none ${stateClass}`}
+      className={`flex-shrink-0 w-48 border rounded-xl p-3 cursor-pointer transition-all duration-300 select-none ${stateClass}`}
     >
       <div className="flex items-center justify-between mb-2" onClick={onClick}>
         <div className="flex items-center gap-2 min-w-0">
           <AssetLogo symbol={symbol} size="md" />
           <span
-            className={`text-xs font-bold font-mono truncate ${isSelected ? 'text-sky-300' : 'text-white'}`}
+            className={`text-xs font-bold font-mono truncate ${isSelected ? 'text-sky-300 drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]' : 'text-white'}`}
           >
             {shortLabel(symbol)}
           </span>
         </div>
         {crypto ? (
-          <span className="text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-300 border border-violet-500/25 flex items-center gap-0.5">
-            <Zap className="w-2.5 h-2.5" />
+          <span className="text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-300 border border-violet-500/25 flex items-center gap-1 shadow-sm">
+            <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+            <Zap className="w-2.5 h-2.5 text-violet-300" />
             24/7
           </span>
         ) : symbol.includes('/') ? (
-          <span className="text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 flex items-center gap-0.5">
+          <span className="text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 flex items-center gap-1 shadow-sm">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             FX 24/5
           </span>
         ) : ['TLT', 'IEF', 'SHY', 'BND', 'LQD', 'HYG', 'TIP'].includes(symbol) ? (
@@ -184,7 +198,7 @@ const TickerCard: React.FC<TickerCardProps> = ({
             CMDTY
           </span>
         ) : usOpen ? (
-          <span className="text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 flex items-center gap-1">
+          <span className="text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 flex items-center gap-1 shadow-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             NYSE
           </span>
@@ -202,7 +216,7 @@ const TickerCard: React.FC<TickerCardProps> = ({
             <div className="text-sm font-bold font-mono tabular-nums text-white">${priceFmt}</div>
             <div
               className={`text-[10px] font-mono tabular-nums font-semibold flex items-center gap-0.5 ${
-                isUp ? 'text-emerald-400' : 'text-rose-400'
+                isUp ? 'text-emerald-400 drop-shadow-[0_0_6px_rgba(34,197,94,0.4)]' : 'text-rose-400 drop-shadow-[0_0_6px_rgba(244,63,94,0.4)]'
               }`}
             >
               {isUp ? (
@@ -222,7 +236,7 @@ const TickerCard: React.FC<TickerCardProps> = ({
         )}
       </div>
 
-      <div className="mt-2 h-5 opacity-85" onClick={onClick}>
+      <div className="mt-2 h-5 opacity-90 transition-opacity hover:opacity-100" onClick={onClick}>
         {spark}
       </div>
 
@@ -233,7 +247,7 @@ const TickerCard: React.FC<TickerCardProps> = ({
             onBuy();
           }}
           disabled={!hasData}
-          className="flex-1 flex items-center justify-center gap-1 py-1 rounded-lg text-[10px] font-semibold bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 hover:bg-emerald-500/25 disabled:opacity-30 disabled:cursor-not-allowed transition"
+          className="flex-1 flex items-center justify-center gap-1 py-1 rounded-lg text-[10px] font-bold bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500 hover:text-slate-950 hover:shadow-[0_0_12px_rgba(34,197,94,0.4)] active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
         >
           <ShoppingCart className="w-2.5 h-2.5" /> Buy
         </button>
@@ -243,7 +257,7 @@ const TickerCard: React.FC<TickerCardProps> = ({
             onSell();
           }}
           disabled={!hasData}
-          className="flex-1 flex items-center justify-center gap-1 py-1 rounded-lg text-[10px] font-semibold bg-rose-500/10 border border-rose-500/25 text-rose-300 hover:bg-rose-500/25 disabled:opacity-30 disabled:cursor-not-allowed transition"
+          className="flex-1 flex items-center justify-center gap-1 py-1 rounded-lg text-[10px] font-bold bg-rose-500/10 border border-rose-500/30 text-rose-300 hover:bg-rose-500 hover:text-white hover:shadow-[0_0_12px_rgba(244,63,94,0.4)] active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
         >
           <Minus className="w-2.5 h-2.5" /> Sell
         </button>
@@ -284,6 +298,8 @@ export const Dashboard: React.FC = () => {
   const [portfolioLoading, setPortfolioLoading] = useState(true);
   const [riskLoading, setRiskLoading] = useState(true);
 
+  const [celebration, setCelebration] = useState<{ show: boolean; msg: string; amount?: number } | null>(null);
+
   const refreshPortfolio = useCallback(async () => {
     try {
       const [summary, pos, trd] = await Promise.all([
@@ -321,6 +337,11 @@ export const Dashboard: React.FC = () => {
       realizedPnl: number;
     }) => {
       if (event.triggerType === 'TAKE_PROFIT') {
+        setCelebration({
+          show: true,
+          msg: `🎯 Take-Profit Encaissé sur ${event.symbol} !`,
+          amount: Number(event.realizedPnl.toFixed(2)),
+        });
         toast.trade(
           '🎯 Objectif Take-Profit Atteint !',
           `${event.symbol} : Vente de ${Number(event.quantity).toFixed(4)} @ $${Number(event.executionPrice).toFixed(4)} (+PnL: $${Number(event.realizedPnl).toFixed(2)})`
@@ -450,7 +471,11 @@ export const Dashboard: React.FC = () => {
     });
   };
 
-  const handleOrderFilled = () => {
+  const handleOrderFilled = (customMsg?: string) => {
+    setCelebration({
+      show: true,
+      msg: customMsg || `Ordre exécuté au marché sur ${selectedSymbol}`,
+    });
     setTimeout(() => {
       refreshPortfolio();
       refreshRisk();
@@ -560,6 +585,13 @@ export const Dashboard: React.FC = () => {
         onOrderFilled={() => {
           handleOrderFilled();
         }}
+      />
+
+      <TradeCelebrationFX
+        show={Boolean(celebration?.show)}
+        message={celebration?.msg || 'Ordre Exécuté'}
+        amount={celebration?.amount}
+        onComplete={() => setCelebration(null)}
       />
 
       <PageTransition className="flex flex-col gap-5">

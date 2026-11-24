@@ -40,3 +40,8 @@ export {
   MotionCard,
   MotionPageShell,
 } from '../motion';
+export { LiveMarketTickerTape } from './LiveMarketTickerTape';
+export { FinancialAtmosphereBackground } from './FinancialAtmosphereBackground';
+export { FinancialGlowCard, type GlowTheme } from './FinancialGlowCard';
+export { FinancialRadarScan } from './FinancialRadarScan';
+export { TradeCelebrationFX } from './TradeCelebrationFX';
