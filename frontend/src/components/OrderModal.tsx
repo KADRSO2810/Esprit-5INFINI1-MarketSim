@@ -23,13 +23,7 @@ import {
   Clock,
 } from 'lucide-react';
 
-function isUSMarketOpen(): boolean {
-  const now = new Date();
-  const day = now.getUTCDay();
-  if (day === 0 || day === 6) return false;
-  const minutes = now.getUTCHours() * 60 + now.getUTCMinutes();
-  return minutes >= 14 * 60 + 30 && minutes < 21 * 60;
-}
+import { getUSMarketSession } from '../utils/marketHours';
 
 interface OrderModalProps {
   isOpen?: boolean;
@@ -75,6 +69,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   const [fetchedPrice, setFetchedPrice] = useState<number | null>(null);
   const [priceLoading, setPriceLoading] = useState<boolean>(false);
   const toast = useToast();
+  const marketSession = getUSMarketSession();
 
   const effectivePrice = (lastPrice != null && lastPrice > 0) ? lastPrice : fetchedPrice;
 
@@ -335,8 +330,10 @@ export const OrderModal: React.FC<OrderModalProps> = ({
               </svg>
             </div>
             <div className="text-emerald-400 font-bold text-base mb-1">
-              {!symbol.includes('/') && !symbol.includes(':') && !isUSMarketOpen()
-                ? 'Ordre exécuté (Dernier cours officiel de clôture)'
+              {!symbol.includes('/') && !symbol.includes(':') && !marketSession.isOpen
+                ? marketSession.session === 'PRE_MARKET'
+                  ? 'Ordre exécuté au cours réel Pré-Marché'
+                  : 'Ordre exécuté (Dernier cours officiel de clôture)'
                 : 'Ordre exécuté'}
             </div>
             <div className="text-slate-400 text-xs font-mono tabular-nums mb-5">
@@ -442,13 +439,23 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                 </span>
               </div>
 
-              {/* Marché NYSE Fermé Educational Banner */}
-              {!symbol.includes('/') && !['TLT', 'IEF', 'SHY', 'BND', 'LQD', 'HYG', 'TIP', 'GLD', 'SLV', 'USO', 'BNO', 'UNG', 'CPER', 'DBA'].includes(symbol) && !symbol.includes(':') && !symbol.endsWith('USDT') && !isUSMarketOpen() && (
-                <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-lg border border-amber-500/25 bg-amber-500/10 text-amber-300 text-[11px] leading-relaxed">
+              {/* Marché NYSE Session Info */}
+              {!symbol.includes('/') && !['TLT', 'IEF', 'SHY', 'BND', 'LQD', 'HYG', 'TIP', 'GLD', 'SLV', 'USO', 'BNO', 'UNG', 'CPER', 'DBA'].includes(symbol) && !symbol.includes(':') && !symbol.endsWith('USDT') && !marketSession.isOpen && (
+                <div className={`flex items-start gap-2.5 px-3 py-2.5 rounded-lg border text-[11px] leading-relaxed ${
+                  marketSession.session === 'PRE_MARKET'
+                    ? 'border-amber-500/30 bg-amber-500/10 text-amber-200'
+                    : 'border-slate-800 bg-slate-900/60 text-slate-300'
+                }`}>
                   <Clock className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
                   <div>
-                    <span className="font-semibold block text-amber-200">NYSE Fermé (Séance : 15h30 - 22h00 Paris)</span>
-                    En conditions réelles, cet ordre serait mis en file d'attente (MOO). En mode simulateur, il est exécuté au dernier cours officiel de clôture.
+                    <span className="font-semibold block text-amber-300">
+                      {marketSession.session === 'PRE_MARKET'
+                        ? 'Session de Pré-Marché US Active (10h00 - 15h30 Paris)'
+                        : 'Marché NYSE Fermé (Séance Principale : 15h30 - 22h00 Paris)'}
+                    </span>
+                    {marketSession.session === 'PRE_MARKET'
+                      ? "Les transactions électroniques (ECN) sont ouvertes avant l'ouverture de la cloche à 15h30. Les flux Finnhub diffusent les transactions institutionnelles en direct."
+                      : "En conditions réelles hors séance, cet ordre serait mis en file d'attente (MOO). En mode simulateur, il est exécuté au dernier cours officiel de clôture."}
                   </div>
                 </div>
               )}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, ShieldCheck, Landmark, Bot, Activity } from 'lucide-react';
+import { getLastQuotes, MarketQuote } from '../../api/market';
 
 interface TickerAsset {
   symbol: string;
@@ -28,37 +29,43 @@ const DEFAULT_TICKER_DATA: TickerAsset[] = [
 
 export const LiveMarketTickerTape: React.FC = () => {
   const [items, setItems] = useState<TickerAsset[]>(DEFAULT_TICKER_DATA);
-  const [lastUpdatedSymbol, setLastUpdatedSymbol] = useState<string | null>(null);
-  const [lastDirection, setLastDirection] = useState<'UP' | 'DOWN'>('UP');
 
-  // Realistic micro-tick simulation on ticker to make it look alive like a high-frequency desk
+  // Synchronisation 100% avec les cotations réelles (aucun tick aléatoire synthétique)
   useEffect(() => {
-    const interval = setInterval(() => {
-      setItems((prev) => {
-        const randomIndex = Math.floor(Math.random() * prev.length);
-        const item = prev[randomIndex];
-        // Only tick stocks, crypto, commodities, forex
-        if (item.type === 'ACTUARY' || item.type === 'BANK') return prev;
+    let isMounted = true;
+    const fetchRealQuotes = async () => {
+      try {
+        const quotes: MarketQuote[] = await getLastQuotes();
+        if (!isMounted || !quotes || quotes.length === 0) return;
 
-        const isPositiveTick = Math.random() > 0.42;
-        const tickPct = (Math.random() * 0.12 + 0.02) * (isPositiveTick ? 1 : -1);
-        const newPrice = Math.max(0.0001, item.price * (1 + tickPct / 100));
-        const newChangePct = item.changePct + (isPositiveTick ? 0.03 : -0.03);
+        const map = new Map<string, MarketQuote>();
+        quotes.forEach((q) => map.set(q.symbol.toUpperCase(), q));
 
-        setLastUpdatedSymbol(item.symbol);
-        setLastDirection(isPositiveTick ? 'UP' : 'DOWN');
+        setItems((prev) =>
+          prev.map((item) => {
+            const sym = item.symbol.toUpperCase();
+            const real = map.get(sym);
+            if (real && real.price > 0) {
+              return {
+                ...item,
+                price: real.price,
+              };
+            }
+            return item;
+          })
+        );
+      } catch (err) {
+        // En cas de temporaire indisponibilité, conserver les derniers cours enregistrés
+        console.debug('[LiveMarketTickerTape] Cotations:', err);
+      }
+    };
 
-        const next = [...prev];
-        next[randomIndex] = {
-          ...item,
-          price: newPrice,
-          changePct: Number(newChangePct.toFixed(2)),
-        };
-        return next;
-      });
-    }, 2400);
-
-    return () => clearInterval(interval);
+    fetchRealQuotes();
+    const interval = setInterval(fetchRealQuotes, 10000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
   return (
@@ -72,18 +79,11 @@ export const LiveMarketTickerTape: React.FC = () => {
       <div className="flex w-max ticker-track py-1.5 animate-marquee hover:pause">
         {[...items, ...items].map((asset, index) => {
           const isUp = asset.changePct >= 0;
-          const isJustTicked = asset.symbol === lastUpdatedSymbol;
 
           return (
             <div
               key={`${asset.symbol}-${index}`}
-              className={`flex items-center gap-2 px-3.5 py-0.5 mx-1 rounded-md transition-all duration-300 ticker-item-hover ${
-                isJustTicked
-                  ? lastDirection === 'UP'
-                    ? 'bg-emerald-500/15 ring-1 ring-emerald-500/40 text-emerald-300'
-                    : 'bg-rose-500/15 ring-1 ring-rose-500/40 text-rose-300'
-                  : 'bg-[#101A2B]/60 border border-slate-800/80 text-slate-300'
-              }`}
+              className="flex items-center gap-2 px-3.5 py-0.5 mx-1 rounded-md transition-all duration-300 ticker-item-hover bg-[#101A2B]/60 border border-slate-800/80 text-slate-300"
             >
               {/* Category Icon */}
               {asset.type === 'ACTUARY' ? (

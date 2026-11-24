@@ -63,13 +63,7 @@ import {
   Layers,
 } from 'lucide-react';
 
-function isUSMarketOpen(): boolean {
-  const now = new Date();
-  const day = now.getUTCDay();
-  if (day === 0 || day === 6) return false;
-  const minutes = now.getUTCHours() * 60 + now.getUTCMinutes();
-  return minutes >= 14 * 60 + 30 && minutes < 21 * 60;
-}
+import { getUSMarketSession } from '../utils/marketHours';
 
 function isCrypto(symbol: string): boolean {
   return symbol.includes(':');
@@ -104,7 +98,7 @@ const TickerCard: React.FC<TickerCardProps> = ({
   onSell,
 }) => {
   const crypto = isCrypto(symbol);
-  const usOpen = isUSMarketOpen();
+  const marketSession = getUSMarketSession();
   const hasData = !!quote;
   const isUp = (quote?.change ?? 0) >= 0;
 
@@ -197,10 +191,20 @@ const TickerCard: React.FC<TickerCardProps> = ({
           <span className="text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded bg-pink-500/15 text-pink-300 border border-pink-500/25 flex items-center gap-0.5">
             CMDTY
           </span>
-        ) : usOpen ? (
+        ) : marketSession.session === 'REGULAR' ? (
           <span className="text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 flex items-center gap-1 shadow-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             NYSE
+          </span>
+        ) : marketSession.session === 'PRE_MARKET' ? (
+          <span className="text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/25 flex items-center gap-1 shadow-sm" title="Cotations en continu sur le Pré-Marché américain">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+            PRÉ-MARCHÉ
+          </span>
+        ) : marketSession.session === 'AFTER_HOURS' ? (
+          <span className="text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-300 border border-violet-500/25 flex items-center gap-1 shadow-sm" title="Cotations en continu sur le Post-Marché américain">
+            <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+            AFTER-HOURS
           </span>
         ) : (
           <span className="text-[9px] font-mono font-medium px-1.5 py-0.5 rounded bg-[#070B14] text-slate-400 border border-subtle flex items-center gap-0.5">
@@ -231,7 +235,7 @@ const TickerCard: React.FC<TickerCardProps> = ({
           </>
         ) : (
           <div className="text-[11px] font-mono text-slate-500">
-            {crypto || usOpen ? 'En attente…' : 'Hors séance'}
+            {crypto || marketSession.isExtendedOpen ? 'En attente…' : 'Hors séance'}
           </div>
         )}
       </div>
@@ -482,7 +486,7 @@ export const Dashboard: React.FC = () => {
     }, 400);
   };
 
-  const usOpen = isUSMarketOpen();
+  const marketSession = getUSMarketSession();
   const totalPnl =
     (portfolioSummary?.unrealizedPnl ?? 0) + (portfolioSummary?.realizedPnl ?? 0);
   const pnlPct = portfolioSummary?.equity
@@ -906,10 +910,20 @@ export const Dashboard: React.FC = () => {
                     <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-2 py-1 rounded-md bg-violet-500/15 text-violet-300 border border-violet-500/25">
                       <Zap className="w-3 h-3" /> 24/7
                     </span>
-                  ) : usOpen ? (
+                  ) : marketSession.session === 'REGULAR' ? (
                     <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-2 py-1 rounded-md bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                       NYSE LIVE
+                    </span>
+                  ) : marketSession.session === 'PRE_MARKET' ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-2 py-1 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/25" title="Cotations en continu sur le Pré-Marché américain">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                      PRÉ-MARCHÉ
+                    </span>
+                  ) : marketSession.session === 'AFTER_HOURS' ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-2 py-1 rounded-md bg-violet-500/15 text-violet-300 border border-violet-500/25">
+                      <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+                      POST-MARCHÉ
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-1 rounded-md bg-[#070B14] text-amber-300 border border-amber-500/25">

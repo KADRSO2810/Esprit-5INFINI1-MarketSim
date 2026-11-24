@@ -115,13 +115,7 @@ const NAV_SECTIONS: NavSection[] = [
   },
 ];
 
-function isUSMarketOpen(): boolean {
-  const now = new Date();
-  const day = now.getUTCDay();
-  if (day === 0 || day === 6) return false;
-  const minutes = now.getUTCHours() * 60 + now.getUTCMinutes();
-  return minutes >= 14 * 60 + 30 && minutes < 21 * 60;
-}
+import { getUSMarketSession } from '../../utils/marketHours';
 
 const LiveClock: React.FC = () => {
   const [nowStr, setNowStr] = useState(() =>
@@ -200,7 +194,7 @@ export const AppShell: React.FC<AppShellProps> = ({
       : location.pathname === item.to;
   };
 
-  const usOpen = isUSMarketOpen();
+  const marketSession = getUSMarketSession();
   const initials = user?.email ? user.email.slice(0, 2).toUpperCase() : 'TR';
 
   const renderSidebarContent = (isMobile = false) => {
@@ -515,22 +509,28 @@ export const AppShell: React.FC<AppShellProps> = ({
 
             {/* Market status */}
             <div
-              className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono ${
-                usOpen
-                  ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-300'
-                  : 'bg-[#101A2B] border-subtle text-slate-400'
-              }`}
-              title="Horaires NYSE/NASDAQ : 15h30 - 22h00 Paris"
+              className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono ${marketSession.badgeClass}`}
+              title={marketSession.description}
             >
-              {usOpen ? (
+              {marketSession.session === 'REGULAR' ? (
                 <>
                   <LivePulseDot color="emerald" />
                   <span>NYSE OPEN</span>
                 </>
+              ) : marketSession.session === 'PRE_MARKET' ? (
+                <>
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                  <span>PRÉ-MARCHÉ</span>
+                </>
+              ) : marketSession.session === 'AFTER_HOURS' ? (
+                <>
+                  <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+                  <span>POST-MARCHÉ</span>
+                </>
               ) : (
                 <>
                   <Clock className="w-3 h-3 text-slate-500" />
-                  <span>NYSE CLOSED</span>
+                  <span>NYSE FERMÉ</span>
                 </>
               )}
             </div>
